@@ -1,0 +1,96 @@
+# Command line: ../.././constVolumeWSR.x n_hexadecane_TSweep.inp
+# ---------------------------------------------------------------------------
+# Mechanism constants:
+#   mechanism definition      [path] : ../mechanisms/llnl_n_hexadecane/c8-c16_n-alkanes.mech
+#   thermodynamics definition [path] : ../mechanisms/llnl_n_hexadecane/c8-c16_n-alkanes.therm
+#   parser log definition     [path] : c8-c16_n-alkanes.log
+#   number of species            [#] : 2115
+#   number of reactions          [#] : 8157
+#   number of 1-way steps        [#] : 13868
+#   max non-zeros in species J   [#] : 33096
+#   max non-zeros in const vol J [#] : 37325
+# ---------------------------------------------------------------------------
+# Fuel composition (moles of species)/(moles of fuel):
+#                 oh: 0
+#                h2o: 0
+#                 co: 0
+#                co2: 0
+#            nc16h34: 1
+# Oxid(izer) composition (moles of species)/(moles of oxid):
+#                 o2: 0.209999999999999992
+#                 n2: 0.790000000000000036
+# Global stoichiometry constants:
+#   fuel (excess mols of atomic-O)/(mols of fuel) : -49
+#   oxid (excess mols of atomic-O)/(mols of oxid) : 0.419999999999999984
+#   (mols of oxid)/(mols of fuel) at phi=1        : 116.666666666666671
+# ---------------------------------------------------------------------------
+# Simulation constants:
+#   ode print time               [s] : 1
+#   ode max time                 [s] : 1
+#   continue after IDT found   [y/n] : yes
+#   reference temperature        [K] : 1000
+#   ignition delay delta Temp    [K] : 400
+#   total number of runs         [#] : 17
+# ---------------------------------------------------------------------------
+# Solver constants:
+#   ode relative tolerance            [-] : 1.00000000000000002e-08
+#   ode absolute tolerance            [-] : 9.99999999999999945e-21
+#   ode max internal timestep         [s] : 0.0500000000000000028
+#   ode max internal steps            [#] : 100000
+#   linear solver rel error           [-] : 0.0500000000000000028
+#   non-linear solver rel error       [-] : 0.0500000000000000028
+#   cvode primary failures allowed    [#] : 5
+#   cvode secondary failures allowed  [#] : 2
+#   secondary failure P threshold     [-] : 9.99999999999999955e-07
+#   max Krylov dimension              [#] : 5
+#   use fake P update               [y/n] : no
+#   use incomplete LU factorization [y/n] : no
+#   partial pivot threshold           [-] : 0
+#   P threshold type code             [#] : absolute
+#   permutation type code             [#] : MMD_AT_PLUS_A
+#   exp() vector                      [#] : fmath
+# ---------------------------------------------------------------------------
+# Column  1: [#]      run id
+# Column  2: [K]      initial temperature
+# Column  3: [Pa]     initial pressure
+# Column  4: [-]      equivalence ratio
+# Column  5: [-]      EGR fraction
+# Column  6: [-]      preconditioner threshold
+# Column  7: [kg/m^3] initial density
+# Column  8: [s]      ignition delay time (defined delta T)
+# Column  9: [s]      execution wall clock time
+# Column 10: [#]      number of cvode errors
+# Column 11: [-]      initial mole frac of o2
+# Column 12: [-]      initial mole frac of oh
+# Column 13: [-]      initial mole frac of h2o
+# Column 14: [-]      initial mole frac of n2
+# Column 15: [-]      initial mole frac of co
+# Column 16: [-]      initial mole frac of co2
+# Column 17: [-]      initial mole frac of nc16h34
+# ----------------------------------------------------------------------------
+# run id |      Temp [K] |     Pres [Pa] |       phi [-] |  EGR frac [-] |  P thresh [-] |  dens [kg/m3] |       IDT [s] |  sim time [s] | cvode err [#] | mlfrc       o2 | mlfrc       oh | mlfrc      h2o | mlfrc       n2 | mlfrc       co | mlfrc      co2 | mlfrc  nc16h34 |
+       0   6.5000000e+02   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   1.1298044e+01   2.9097629e-02   3.6003132e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       1   7.0000000e+02   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   1.0491041e+01   6.2246753e-03   3.5556650e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       2   7.5000000e+02   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   9.7916380e+00   2.0290754e-03   3.5046129e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       3   8.0000000e+02   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   9.1796606e+00   1.2181101e-03   3.4704421e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       4   8.5000000e+02   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   8.6396806e+00   1.2796943e-03   3.3985820e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       5   9.0000000e+02   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   8.1596983e+00   1.7444585e-03   3.4325821e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       6   9.5000000e+02   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   7.7302405e+00   2.3269813e-03   3.2157900e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       7   1.0000000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   7.3437285e+00   2.0241070e-03   2.9812920e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       8   1.0500000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   6.9940271e+00   1.1820163e-03   2.8215091e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+       9   1.1000000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   6.6761168e+00   6.3158387e-04   2.6650259e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+      10   1.1500000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   6.3858509e+00   3.3263763e-04   2.5371611e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+      11   1.2000000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   6.1197738e+00   1.7424046e-04   2.6485789e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+      12   1.2500000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   5.8749828e+00   9.1584499e-05   2.5008652e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+      13   1.3000000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   5.6490219e+00   4.9067005e-05   2.5124190e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+      14   1.3500000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   5.4397989e+00   2.7132807e-05   2.4091220e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+      15   1.4000000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   5.2455204e+00   1.5607253e-05   2.5438728e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+      16   1.4500000e+03   2.0000000e+06   1.0000000e+00   0.0000000e+00   2.0480000e-03   5.0646403e+00   9.3734502e-06   2.2064750e+00               0    2.0821530e-01    0.0000000e+00    0.0000000e+00    7.8328612e-01    0.0000000e+00    0.0000000e+00    8.4985836e-03
+
+
+# -----------------------------------------------------------------------------
+# Column 1: [-] preconditioner threshold
+# Column 2: [s] average simulation time
+# Column 3: [s] minimum simulation time
+# Column 4: [s] maximum simulation time
+ 2.0480000e-03   2.9414299e+00   2.2064750e+00   3.6003132e+00

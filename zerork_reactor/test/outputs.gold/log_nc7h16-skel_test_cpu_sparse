@@ -1,0 +1,156 @@
+INFO: Reaction 1 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (1)exp(-T/(1e-15))
+                +(0)exp(-T/(1e-15))
+                +exp(-40/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 2 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (1)exp(-T/(1e-15))
+                +(0)exp(-T/(1e-15))
+                +exp(-40/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 29 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(95))
+                +exp(-200/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 30 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(95))
+                +exp(-200/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 119 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(675))
+                +exp(-1e+15/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 120 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(675))
+                +exp(-1e+15/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 1 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (1)exp(-T/(1e-15))
+                +(0)exp(-T/(1e-15))
+                +exp(-40/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 2 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (1)exp(-T/(1e-15))
+                +(0)exp(-T/(1e-15))
+                +exp(-40/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 29 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(95))
+                +exp(-200/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 30 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(95))
+                +exp(-200/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 119 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(675))
+                +exp(-1e+15/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+INFO: Reaction 120 may not have the intended centering function.
+      Troe centering fucntion Fc(T) being used:
+        Fc(T) = (0)exp(-T/(1e-15))
+                +(1)exp(-T/(675))
+                +exp(-1e+15/T)
+
+      In some older mechanisms, non-positive parameters were
+      sometimes used as flags for alternative forms for the
+      centering function Fc.  Please verify that the above
+      definition is consistent with your expectations.
+       0   6.9176601e-01   3.7015796e-01   0
+       1   6.9176601e-01   3.6908507e-01   0
+       2   6.9176601e-01   3.6636019e-01   0
+       3   6.9176601e-01   3.6545682e-01   0
+       4   6.9176601e-01   3.6549282e-01   0
+       5   6.9176601e-01   3.6409593e-01   0
+       6   6.9176601e-01   3.6482096e-01   0
+       7   6.9176601e-01   3.7280416e-01   0
+       8   6.9176601e-01   3.6339688e-01   0
+       9   6.9176601e-01   3.5718203e-01   0
+      10   6.9176601e-01   3.7288594e-01   0
+      11   6.9176601e-01   3.6475515e-01   0
+      12   6.9176601e-01   3.6000395e-01   0
+      13   6.9176601e-01   3.7228703e-01   0
+      14   6.9176601e-01   3.6781406e-01   0
+      15   6.9176601e-01   3.6764812e-01   0
+      16   6.9176601e-01   3.6270404e-01   0
+      17   6.9176601e-01   3.5382199e-01   0
+      18   6.9176601e-01   3.7038493e-01   0
+      19   6.9176601e-01   3.8030696e-01   0
+      20   6.9176601e-01   3.6695099e-01   0
+      21   6.9176601e-01   3.6380005e-01   0
+      22   6.9176601e-01   3.6092210e-01   0
+      23   6.9176601e-01   3.9068604e-01   0
+      24   6.9176601e-01   3.7855411e-01   0
+      25   6.9176601e-01   3.9695501e-01   0
+      26   6.9176601e-01   4.0389585e-01   0
+      27   6.9176601e-01   3.9970899e-01   0
+      28   6.9176601e-01   3.9940405e-01   0
+      29   6.9176601e-01   3.9092588e-01   0
+      30   6.9176601e-01   4.0163493e-01   0
+      31   6.9176601e-01   4.0196800e-01   0
+   nprnt   nstep   nertf  nnlsit  nnlcvf ngevals prsetup ncolprm nfactor backslv  intfcl     nnz    rnnz   lunnz    jac setup tm   prec setup tm     col perm tm      jac fac tm    backsolve tm     rhs func tm        other tm      sim tm
+       0   58272     736   66208       0       0     992    1344    4672  162208  165504    3811    1694    2867   6.7957163e-02   1.2867808e-01   4.6645260e-01   7.0970821e-01   2.5016260e+00   7.1182997e+00   9.9404049e-01  1.1987e+01
+       1   58272     736   66208       0       0     992    1344    4672  162208  165504    3811    1694    2867   6.7957163e-02   1.2867808e-01   4.6645260e-01   7.0970821e-01   2.5016260e+00   7.1182997e+00   9.9404049e-01  1.1987e+01
+simTime : 11.9871 s

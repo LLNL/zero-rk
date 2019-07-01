@@ -1,0 +1,62 @@
+../mechanisms/llnl_iso_octane/ic8_ver3_mech.txt     ! [read]  ck2 format mech file
+../mechanisms/llnl_iso_octane/prf_v3_therm_dat.txt  ! [read]  ck2 format thermo file
+ic8_ver3_mech.log    ! [write] zerork/cantera conversion log
+iso_octane_TSweep.dat   ! [write] ignition delay time data
+iso_octane_TSweep.thist ! [write] time history file
+5                    ! [#] of fuel species            
+IC8H18  1.0          ! species (case must match mech), initial mole fraction
+H2O     0.0
+OH      0.0
+CO      0.0
+CO2     0.0
+2                 ! [#] number of oxidizer species
+N2      0.79      ! species (case must match mech), initial mole fraction
+O2      0.21      ! species (case must match mech), initial mole fraction
+1.0               ! [s] stopping time
+1.0               ! [s] print time for (t,T,p,x1,x2, ...)
+0.05              ! [s] maximum internal timestep for cvode
+100000            ! [#] maximum number of internal timestep for cvode
+1.0e-8            ! [-] relative cvode tolerance
+1.0e-20           ! [-] absolute cvode tolerance
+5                 ! [#] maximum primary CVODE failures allowed
+2                 ! [#] maximum secondary CVODE failures with safety threshold
+1.0e-6            ! [-] safety preconditioner threshold to use after max primary failures 
+400.0             ! [K] delta temperature to measure ignition
+1                 ! [switch] Continue after IDT? 0 = No, 1 = Yes
+1000.0            ! [K] reference temperature 
+17                ! [#] of initial temperature points
+ 650.0             ! [K] T(1)
+ 700.0
+ 750.0
+ 800.0
+ 850.0
+ 900.0
+ 950.0
+1000.0
+1050.0
+1100.0
+1150.0
+1200.0
+1250.0
+1300.0
+1350.0
+1400.0
+1450.0
+1                 ! [#] of initial pressure points
+2.0e6
+1                 ! [#] of equivalence ratios
+1.0
+1                 ! [#] of egr pts (mass frac of comp that is ideal exhaust)
+0.0               ! [-]   egr(1)
+1                 ! [#] of preconditioner thresholds (1e-3 good starting guess)
+2.048e-3
+5                 ! [#]   maxKrylovDim [default = 5]
+0                 ! [switch] Do incomplete LU
+0                 ! [switch] Do fake update to preconditioner
+1                 ! [#] Preconditioner threshold type [1: Abs 2: Col-norm 3: Row-norm 4: RowCol-min 5: Percent of terms]
+0.0               ! [#] Partial pivot threshold (LU default 1.0, ILU default 0.1)
+0.05              ! [#] CVODE epsLin  (Default 0.1)
+0.05              ! [#] CVspils nlConvCoeff (Default 0.05)
+0                 ! [switch] One Step Mode
+1                 ! [#] Permutation type [1: MMD_AT_PLUS_A 2: Metis_NodeND  3: External (read from perm_c.txt)]
+123456789         ! [123456789] end of input indicator 

@@ -1,0 +1,24 @@
+#Variables and directives for src/libs
+
+INC_DIR:=$(ZERORK_ROOT)/include
+LIB_DIR:=$(ZERORK_ROOT)/lib
+
+all: $(TARG_LIB) | $(LOC_INC_DIR)
+	cp *.h $(LOC_INC_DIR)/.
+	cp $(TARG_LIB) $(LIB_DIR)/.
+
+$(TARG_LIB): $(OBJS) | $(LIB_DIR)
+	ar ruv $(TARG_LIB) $^
+	ranlib $(TARG_LIB)
+
+clean:
+	rm -f *.o *~ $(TARG_LIB)
+
+$(INC_DIR):
+	mkdir $(INC_DIR)
+
+$(LOC_INC_DIR): | $(INC_DIR)
+	mkdir $(LOC_INC_DIR)
+
+$(LIB_DIR):
+	mkdir $(LIB_DIR)

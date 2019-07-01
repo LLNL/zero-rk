@@ -1,0 +1,68 @@
+#Chemkin Format Mechansim File
+#Type: string
+thermFile: h2_v1a_therm.txt
+
+#Chemkin Format Thermodynamics File
+#Type: string
+mechFile:  h2_v1b_mech.txt
+
+#Mechanism Parser Log File
+#Type: string
+mechLogFile: h2.cklog
+
+#Ignition delay output file
+#Type: string
+outFile: h2_mr_run.log
+
+nReactors: 256
+nMatrixReactors: 256
+nReactorsMin: 1
+nReactorsMax: 2048
+
+#Fuel composition map
+#Type: string:floating-point map
+fuelComp: { H2: 1.0 }
+
+#Oxidizer composition map
+#Type: string:floating-point map
+oxidizerComp: {}
+
+deltaTign: 400.0
+
+#Total integration time
+#Type: floating-point
+reactorTime: 1.0
+
+#Print interval
+#Type: floating-point
+printDt: 1.0
+
+TMin: 1450.0
+TMax: 1450.0
+pMin: 2.02650e6
+pMax: 2.02650e6
+phiMin: 1.00
+phiMax: 1.00
+egrMin: 0.0
+egrMax: 0.0
+
+precThresh: 3.20e-5
+
+oneStepMode: off
+printAllSteps: on
+doFakeUpdate: off
+doILU: off
+
+permThresh: 0.3
+strictSamePattern: off
+maxGammaOrderChange: 3.0
+cvStabLimDet: off
+
+cvEpsLin: 0.1
+cvNlConvCoeff: 0.05
+
+linearSolver: DirectDense
+cuda: on
+
+#GLU_FACTOR_ALG: 0
+#GLU_SOLVE_ALG: 0
