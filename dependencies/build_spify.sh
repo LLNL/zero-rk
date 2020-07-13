@@ -1,19 +1,20 @@
 #!/bin/bash
 
 mkdir -p ../opt/{include,lib}
+ln -s ./lib ../opt/lib64
 
-tar -xzvf spify.tar.gz
+wget https://github.com/LLNL/spify/archive/v1.0.2.tar.gz
+tar -xzf v1.0.2.tar.gz
+cd spify-1.0.2
 
+#git clone ~/src/spify
+#cd spify/
 
-cd spify
+mkdir build
+cd build
+cmake ../ -DCMAKE_INSTALL_PREFIX=`pwd`/../../../opt
+make install
 
-sed -i 's|^YAMLCPPDIR.*$|YAMLCPPDIR:=../../opt|' Makefile
-make
-
-cp -rL ./include/spify ../../opt/include
-cp lib/* ../../opt/lib
-cp src/SpifyParserGenerator.py ../../opt/include/spify
-
-cd ../
-rm -rf spify
-
+cd ../../
+rm -rf spify-1.0.2
+rm v1.0.2.tar.gz

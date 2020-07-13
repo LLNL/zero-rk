@@ -1164,34 +1164,3 @@ const double& zerork_reactorIFP::min_scaled_dt() const
 }
 
 
-
-
-#ifdef ZERORK_REACTORIFP_MAKEMASTER
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-
-int main(int argc, char **argv)
-{
-    FILE * tmpFile;
-    char tmpFileName[32];
-
-    memset(tmpFileName,0,sizeof(tmpFileName));
-    strncpy(tmpFileName,"ymlfXXXXXX",10);
-    mkstemp(tmpFileName);
-    tmpFile = fopen(tmpFileName,"w");
-    fprintf(tmpFile,"printMasterFileTo: zerork_reactorIFPMaster.yml\n");
-    fclose(tmpFile);
-
-    try //This will fail.
-    {
-        zerork_reactorIFP inputData(tmpFileName);
-    }
-    catch (...)
-    {
-        remove(tmpFileName);
-    }
-    return(0);
-}
-#endif
-

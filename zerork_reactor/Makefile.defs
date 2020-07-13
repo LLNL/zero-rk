@@ -32,7 +32,7 @@ endif
 OPT_FLAGS:= -O3
 
 # C++ compile flags
-CXX_FLAGS:= $(OPT_FLAGS) -fPIC -fopenmp
+CXX_FLAGS:= $(OPT_FLAGS) -fPIC -fopenmp -std=c++11
 
 #DEFS+= -DCONVERGE_DPDT_UNITS
 #DEFS+= -DCONVERGE_CONST_PRESS
