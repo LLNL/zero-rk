@@ -879,7 +879,7 @@ void rate_const::updateFalloffRxn(const double C[])
       log_10_Pr=log_10_Pr/(nTerm-0.14*log_10_Pr); // d = 0.14
       log_10_Pr*=log_10_Pr;
       fTerm/=(1.0+log_10_Pr);
-      fTerm=pow10(fTerm);
+      fTerm=pow(10.0,fTerm);
 
       // Ignore the following non-standard Troe definition, no reference has
       // been found supporting its use.  The check function
