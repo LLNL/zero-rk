@@ -32,14 +32,22 @@ if((NOT EXISTS ${parmetis_prefix}) OR (NOT ${parmetis_system_working}))
   endif()
 endif()
 
+set(parmetis_lib_dir ${parmetis_prefix}/lib64)
+if(NOT EXISTS ${parmetis_lib_dir})
+  set(parmetis_lib_dir ${parmetis_prefix}/lib)
+  if(NOT EXISTS ${parmetis_lib_dir})
+    message(FATAL_ERROR "Couldn't find parmetis library directory.")
+  endif()
+endif()
+
 add_library(parmetis STATIC IMPORTED GLOBAL)
 set_target_properties(parmetis PROPERTIES
-  IMPORTED_LOCATION ${parmetis_prefix}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}parmetis${CMAKE_STATIC_LIBRARY_SUFFIX}
+  IMPORTED_LOCATION ${parmetis_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}parmetis${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${parmetis_prefix}/include)
 
 add_library(metis STATIC IMPORTED GLOBAL)
 set_target_properties(metis PROPERTIES
-  IMPORTED_LOCATION ${parmetis_prefix}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX}
+  IMPORTED_LOCATION ${parmetis_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}metis${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${parmetis_prefix}/include)
 
 target_link_libraries(parmetis INTERFACE metis)

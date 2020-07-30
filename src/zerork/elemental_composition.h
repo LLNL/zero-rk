@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include <memory> //auto_ptr
+#include <memory> //unique_ptr
 
 namespace zerork {
 
@@ -48,8 +48,7 @@ class ElementalComposition
 
  private:
   class Impl;
-  //C++11: Change to unique_ptr
-  std::auto_ptr<ElementalComposition::Impl> impl_;
+  std::unique_ptr<ElementalComposition::Impl> impl_;
 };
 
 //Comparison operators

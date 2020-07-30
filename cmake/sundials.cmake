@@ -42,10 +42,18 @@ if((NOT EXISTS ${sundials_prefix}) OR (NOT ${sundials_system_working}))
   endif()
 endif()
 
+set(sundials_lib_dir ${sundials_prefix}/lib64)
+if(NOT EXISTS ${sundials_lib_dir})
+  set(sundials_lib_dir ${sundials_prefix}/lib)
+  if(NOT EXISTS ${sundials_lib_dir})
+    message(FATAL_ERROR "Couldn't find sundials library directory.")
+  endif()
+endif()
+
 foreach(LIBRARY ${sundials_libs})
   add_library(sundials_${LIBRARY} STATIC IMPORTED GLOBAL)
   set_target_properties(sundials_${LIBRARY} PROPERTIES
-  IMPORTED_LOCATION ${sundials_prefix}/lib64/${CMAKE_STATIC_LIBRARY_PREFIX}sundials_${LIBRARY}${CMAKE_STATIC_LIBRARY_SUFFIX}
+  IMPORTED_LOCATION ${sundials_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}sundials_${LIBRARY}${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${sundials_prefix}/include
   INTERFACE_COMPILE_DEFINITIONS SUNDIALS${SUNDIALS_IFACE_NUM})
 endforeach()

@@ -9,7 +9,7 @@ Zero-RK was created by [Matthew McNenly](https://people.llnl.gov/mcnenly1), with
 Installation Notes
 ----------------
 
-Zero-RK builds with cmake and depends on cmake version 3.10 or higher.  Zero-RK also requires a C11/C++14 compatible compiler suite, and has been tested with gnu, intel, and clang compilers on Linux.  The basic installation process is:
+Zero-RK builds with cmake and depends on cmake version 3.12 or higher.  Zero-RK also requires a C11/C++14 compatible compiler suite, and has been tested with gnu, intel, and clang compilers on Linux and clang on Mac OS.  The basic installation process is:
 
     $ git clone https://github.com/llnl/zero-rk   #git
     $ cd zero-rk
@@ -76,14 +76,26 @@ Citing
 
 If you use Zero-RK in a scholarly article, please cite the article(s) describing the application(s) used. 
 
-- For zero-dimensional, constant- or variable-volume reactors solvers, please cite:
+- For zero-dimensional solvers:
 
 > M. J. McNenly, R. A.Whitesides, and D. L. Flowers (2015). Faster solvers for large kinetic mechanisms using adaptive preconditioners. Proceedings of the Combustion Institute, 35(1), 581-587. https://doi.org/10.1016/j.proci.2014.05.113
 
-- For one-dimensional, laminar flames solvers, please cite: 
+- For variable-volume solvers:
+
+> S. Cheng, D. Kang, A. Fridlyand, S.S. Goldsborough, C. Saggese, S. Wagnon, M.J. McNenly, M. Mehl, W.J. Pitz, D. Vuilleumier, Autoignition behavior of gasoline/ethanol blends at engine-relevant conditions, Combustion and Flame. 216 (2020) 369-384. https://doi.org/10.1016/j.combustflame.2020.02.032.
+
+- For the global sensitivity analysis solvers:
+
+> A. Fridlyand, M.S. Johnson, S.S. Goldsborough, R.H. West, M.J. McNenly, M. Mehl, W.J. Pitz, The role of correlations in uncertainty quantification of transportation relevant fuel models, Combustion and Flame. 180 (2017) 239-249. https://doi.org/10.1016/j.combustflame.2016.10.014.
+
+- For one-dimensional, laminar flames solvers:
 
 > S. Lapointe, R. A. Whitesides, and M. J. McNenly (2019). Sparse, iterative simulation methods for one-dimensional laminar flames. Combustion and Flame, 204, 23-32. https://doi.org/10.1016/j.combustflame.2019.02.030
+> S. Lapointe, Y. Xuan, H. Kwon, R.A. Whitesides, M.J. McNenly, A computationally-efficient method for flamelet calculations, Combustion and Flame. 221 (2020) 94-102. https://doi.org/10.1016/j.combustflame.2020.07.035.
 
+- For the mechanism analysis/debugging tools:
+
+> N. J. Killingsworth, M. J. McNenly, R. A. Whitesides, and S. W. Wagnon (2020). Cloud based tool for analysis of chemical kinetic mechanisms. Combustion and Flame, in press.
 
 License
 ----------------
@@ -96,4 +108,4 @@ See LICENSE and NOTICE for details.
 
 SPDX-License-Identifier: (BSD-3-Clause)
 
-LLNL-CODE-XXXXXX
+LLNL-CODE-813396

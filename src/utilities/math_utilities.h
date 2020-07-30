@@ -72,6 +72,8 @@ class InterpolationTable
   std::vector<double> workspace_;
 };
 
+template<typename T>
+T erfc_inv(T q);
 
 } // namespace utilities
 } // namespace advcomb

@@ -2,7 +2,7 @@ Zero-RK Chemkin Format Mechanism Parser
      derived from Cantera CKreader 1.0
      see README for license information
 
-Tue Jul 28 15:12:50 2020
+Thu Jul 30 15:57:21 2020
 
         input file: /share/zerork/mechanisms/n-heptane_reduced/heptanesymp159_mec.txt
   species database: /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
@@ -9265,4 +9265,4 @@ reaction 1540
    rate coeff:  A, n, E = (5E+10, 0, 9599.9)
 
 
-Success... elapsed CPU time = 0.07 s
+Success... elapsed CPU time = 0.05 s

@@ -8,7 +8,8 @@ setYMLScalar()
   file=$1
   scalar_name=$2
   scalar_val=$3
-  sed -i "s|^\s*${scalar_name}\s*:\s*.*$|${scalar_name}: ${scalar_val}|" $file
+  sed "s|^\ *${scalar_name}\ *:\ *.*$|${scalar_name}: ${scalar_val}|" $file > ${outputs_dir}/tmp.yml
+  mv ${outputs_dir}/tmp.yml $file
 }
 
 runSims() {
@@ -23,12 +24,12 @@ runSims() {
   simTime=$(echo "scale=20; ${ignitionDelayTime} * 2" | bc)
 
 
-  initFuelMassFracs=`grep -v "^#" inputs/${name}_fracs.log | egrep -iv '^\<O2\>|^\<N2\>' | cut -f1-2 | sed 's/$/,/' | sed 's/\s\s*/: /g'`
+  initFuelMassFracs=`grep -v "^#" inputs/${name}_fracs.log | egrep -iv '^\<O2\>|^\<N2\>' | sed 's/$/,/'`
   initFuelMassFracs=`echo $initFuelMassFracs`  #strip newlines
-  initOxidMassFracs=`grep -v "^#" inputs/${name}_fracs.log | egrep -i  '^\<O2\>|^\<N2\>' | cut -f1-2 | sed 's/$/,/' | sed 's/\s\s*/: /g'`
+  initOxidMassFracs=`grep -v "^#" inputs/${name}_fracs.log | egrep -i  '^\<O2\>|^\<N2\>' | sed 's/$/,/'`
   initOxidMassFracs=`echo $initOxidMassFracs`  #strip newlines
 
-  infile=`mktemp --tmpdir=./`
+  infile=${outputs_dir}/${name}_input.yml
   cp inputs/base.yml $infile
 
   setYMLScalar $infile mechFile $mechFile

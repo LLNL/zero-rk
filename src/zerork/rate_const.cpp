@@ -6,6 +6,16 @@
 #include "constants.h"
 #include "fast_exps.h"
 
+#ifdef __APPLE__
+//C11 aligned alloc not available in Mac OS X as of July 2020
+static inline void* aligned_alloc(size_t alignment, size_t size)
+{
+        void* p;
+        int flag = posix_memalign(&p, alignment, size);
+        return (flag == 0) ? p : 0;
+}
+#endif
+
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
 #define likely(expr) __builtin_expect(!!(expr), 1)
 
@@ -942,7 +952,7 @@ void rate_const::updateFalloffRxn(const double C[])
       log_10_Pr=log_10_Pr/(nTerm-0.14*log_10_Pr); // d = 0.14
       log_10_Pr*=log_10_Pr;
       fTerm/=(1.0+log_10_Pr);
-      fTerm=pow(fTerm,10.0);
+      fTerm=pow(10.0,fTerm);
     // end if Troe 3 and 4 parameter falloff reactions
     } else if(falloffRxnList[j].falloffType == SRI) {
 

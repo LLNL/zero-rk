@@ -80,8 +80,6 @@ static int ConstPressureRHS(double t,
                             N_Vector ydot,
                             void *user_data);
 
-static std::string GetCurrentDirectory();
-
 
 int main(int argc, char *argv[])
 {
@@ -95,7 +93,6 @@ int main(int argc, char *argv[])
   double error;
   InitialConditions ic;
   MechanismParameters mech;
-  std::string current_dir = GetCurrentDirectory();
   std::string outcome;
 
   if(argc >= 3) {
@@ -150,8 +147,7 @@ int main(int argc, char *argv[])
     }
 
 
-    printf("[%s/%s] RUN %2d: %s  t=%8.2e [s]  y_f(error)=%9.2e  y_f(rel. error)=%9.2e\n",
-           current_dir.c_str(),
+    printf("[%s] RUN %2d: %s  t=%8.2e [s]  y_f(error)=%9.2e  y_f(rel. error)=%9.2e\n",
            argv[0],
            j+1,
            outcome.c_str(),
@@ -174,8 +170,7 @@ int main(int argc, char *argv[])
 
   }
 
-  printf("[%s/%s] PASSED  %d/%d (%7.3f%%)\n",
-         current_dir.c_str(),
+  printf("[%s] PASSED  %d/%d (%7.3f%%)\n",
          argv[0],
          num_passed,
          num_runs,
@@ -332,27 +327,6 @@ static int ConstPressureRHS(double t,
   ConstPressureReactor *reactor = (ConstPressureReactor *)user_data;
   reactor->GetTimeDerivative(t,NV_DATA_S(y),NV_DATA_S(ydot));
   return 0;
-}
-
-static std::string GetCurrentDirectory()
-{
-  std::string full_path;
-  std::string current_directory;
-  size_t found;
-  char *buffer;
-
-  buffer=get_current_dir_name(); // calls malloc
-  full_path = std::string(buffer);
-  free(buffer);
-
-  found=full_path.find_last_of("/\\");
-  if(found == std::string::npos) {
-    current_directory = full_path;
-  } else {
-    current_directory = full_path.substr(found+1);
-  }
-
-  return current_directory;
 }
 
 // Solves the mass fraction integral

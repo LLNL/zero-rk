@@ -1,16 +1,9 @@
 #include "kinsol_functions.h"
 #include "flame_params.h"
-#include <boost/math/special_functions/erf.hpp>
+#include "utilities/math_utilities.h"
 
 extern "C" void dgbtrf_(int* dim1, int* dim2, int* nu, int* nl, double* a, int* lda, int* ipiv, int* info);
 extern "C" void dgbtrs_(char *TRANS, int *N, int *NRHS, int* nu, int* nl, double *A, int *LDA, int *IPIV, double *B, int *LDB, int *INFO);
-
-
-// Get scalar dissipation rate
-static double GetDissipationRate(double mixture_fraction);
-
-// Get scalar dissipation rate for modified flamelet equations
-static double GetDissipationRateYSI(double mixture_fraction);
 
 // Upwind scheme for convective term
 static double NonLinearConvectUpwind(double velocity,
@@ -252,29 +245,7 @@ int ConstPressureFlameLocal(int nlocal,
     conductivity_over_cp[j] = params->thermal_conductivity_[j]/
       params->mixture_specific_heat_[j];
 
-    // compute dissipation rate and dissipation rate multiplied by density
-    if(params->fix_temperature_) {
-      if(jglobal<0 || jglobal>num_total_points-1) {
-        params->dissipation_rate_[j] = 0.0;
-      } else {
-        params->dissipation_rate_[j] = GetDissipationRateYSI(params->z_[jglobal]);
-      }
-    } else {
-      double stoichiometric_dissipation_rate;
-      double local_dissipation_rate;
-      stoichiometric_dissipation_rate =
-        GetDissipationRate(params->stoichiometric_mixture_fraction_);
-
-      if(jglobal<0 || jglobal>num_total_points-1) {
-        local_dissipation_rate = 0.0;
-      } else {
-        local_dissipation_rate = GetDissipationRate(params->z_[jglobal]);
-      }
-
-    params->dissipation_rate_[j] = params->scalar_dissipation_rate_*
-      local_dissipation_rate/stoichiometric_dissipation_rate;
-    }
-
+    // compute dissipation rate times density
     dissipation_rate_times_rho[j] = params->dissipation_rate_[j]/relative_volume_j;
 
     // compute sum of mass fraction over Lewis number
@@ -1665,41 +1636,6 @@ void ErrorFunction(int error_code,
   if(error_code != -6) //don't abort if max_iter reached
     MPI_Abort(comm, error_code);
   // Add no abort for step length test?
-}
-
-
-double GetDissipationRate(double mixture_fraction)
-{
-  if(mixture_fraction <= 0.0 || mixture_fraction >= 1.0) {
-    return 0.0;
-  } else {
-    double two_mixture_fraction = 2.0*mixture_fraction;
-    double inv_erfc = boost::math::erfc_inv(two_mixture_fraction);
-    return exp(-2.0*inv_erfc*inv_erfc);
-  }
-}
-
-double GetDissipationRateYSI(double mixture_fraction)
-{
-  if(mixture_fraction <= 0.0 || mixture_fraction >= 1.0) {
-    return 0.0;
-  } else {
-    double a=0.0;
-    if (mixture_fraction < 0.15 )
-      a=20.0 * pow(mixture_fraction,3.0) * pow(1.0-mixture_fraction,1.7);
-    if (mixture_fraction > 0.15)
-      a=120*exp(-0.6/(mixture_fraction-0.11))*
-        pow(1.0-mixture_fraction,1.5)
-        +0.1*exp(-50.0*(mixture_fraction-0.3)*(mixture_fraction-0.7))
-        +0.1*exp(-50.0*(mixture_fraction-0.2)*(mixture_fraction-0.4));
-
-    double b=-2e-14*exp(-150*(mixture_fraction+0.2)*(mixture_fraction-0.7));
-
-    double f=1.75*a-b;
-
-    return f;
-
-  }
 }
 
 double NonLinearConvectUpwind(double velocity,

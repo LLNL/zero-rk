@@ -27,7 +27,7 @@ ElementalComposition::ElementalComposition(const ElementalComposition& rhs)
 
 ElementalComposition::~ElementalComposition()
 {
-  //auto_ptr deletes impl_
+  //unique_ptr deletes impl_
 }
 
 ElementalComposition& ElementalComposition::operator=(ElementalComposition rhs)

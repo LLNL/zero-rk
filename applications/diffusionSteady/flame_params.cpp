@@ -8,6 +8,11 @@
 
 #include "flame_params.h"
 
+// Get scalar dissipation rate
+static double GetDissipationRate(double mixture_fraction);
+
+// Get scalar dissipation rate for modified flamelet equations
+static double GetDissipationRateYSI(double mixture_fraction);
 
 static double NormalizeComposition(const size_t num_elements,
                                    double composition[]);
@@ -887,7 +892,7 @@ void FlameParams::SetMemory()
   mixture_specific_heat_.assign(num_local_points+(2*nover_), 0.0);
 
   // create the workspace for the dissipation rate at each point
-  dissipation_rate_.assign(num_local_points+(2*nover_), 0.0);
+  dissipation_rate_.assign(num_local_points+(2*nover_), 0.0); //larger size for derivaties
 
   // Vectors for analytical jacobian computation
   enthalpy_flux_sum_.assign(num_local_points+(2*nover_), 0.0); //larger size for derivaties
@@ -928,6 +933,35 @@ void FlameParams::SetMemory()
 
   krylov_subspace_ = parser_->krylov_subspace();
 
+  // Compute dissipation rate
+  const int num_total_points = z_.size();
+  for(int j=0; j<num_local_points+2*nover_; ++j) {
+    int jlocal = j-nover_;
+    int jglobal = jlocal + my_pe_*num_local_points;
+    if(fix_temperature_) {
+      if(jglobal<0 || jglobal>num_total_points-1) {
+        dissipation_rate_[j] = 0.0;
+      } else {
+        dissipation_rate_[j] = GetDissipationRateYSI(z_[jglobal]);
+      }
+    } else {
+      double stoichiometric_dissipation_rate;
+      double local_dissipation_rate;
+      stoichiometric_dissipation_rate =
+        GetDissipationRate(stoichiometric_mixture_fraction_);
+
+      if(jglobal<0 || jglobal>num_total_points-1) {
+        local_dissipation_rate = 0.0;
+      } else {
+        local_dissipation_rate = GetDissipationRate(z_[jglobal]);
+      }
+
+    dissipation_rate_[j] = scalar_dissipation_rate_*
+      local_dissipation_rate/stoichiometric_dissipation_rate;
+    }
+  }
+
+  // Setup Jacobian
   // Block-tridiagonal Jacobian with SuperLUDIST
   if(integrator_type_ == 2) {
     row_id_zerod.assign(num_nonzeros, 0);
@@ -1189,4 +1223,38 @@ static double NormalizeComposition(const size_t num_elements,
     sum = 1.0/sum;
   }
   return sum;
+}
+
+double GetDissipationRate(double mixture_fraction)
+{
+  if(mixture_fraction <= 0.0 || mixture_fraction >= 1.0) {
+    return 0.0;
+  } else {
+    double two_mixture_fraction = 2.0*mixture_fraction;
+    double inv_erfc = zerork::utilities::erfc_inv(two_mixture_fraction);
+    return exp(-2.0*inv_erfc*inv_erfc);
+  }
+}
+
+double GetDissipationRateYSI(double mixture_fraction)
+{
+  if(mixture_fraction <= 0.0 || mixture_fraction >= 1.0) {
+    return 0.0;
+  } else {
+    double a=0.0;
+    if (mixture_fraction < 0.15 )
+      a=20.0 * pow(mixture_fraction,3.0) * pow(1.0-mixture_fraction,1.7);
+    if (mixture_fraction > 0.15)
+      a=120*exp(-0.6/(mixture_fraction-0.11))*
+        pow(1.0-mixture_fraction,1.5)
+        +0.1*exp(-50.0*(mixture_fraction-0.3)*(mixture_fraction-0.7))
+        +0.1*exp(-50.0*(mixture_fraction-0.2)*(mixture_fraction-0.4));
+
+    double b=-2e-14*exp(-150*(mixture_fraction+0.2)*(mixture_fraction-0.7));
+
+    double f=1.75*a-b;
+
+    return f;
+
+  }
 }

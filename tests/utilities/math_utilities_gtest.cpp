@@ -2,10 +2,14 @@
 #include <string.h> // memcpy
 
 #include <vector>
+#include <iostream> // for file reading
+#include <fstream>  // for file reading
 
 #include <gtest/gtest.h>
 
 #include <math_utilities.h>
+#include <string_utilities.h>
+#include <file_utilities.h>
 
 const int NUM_SIMPLE = 11;
 const int SIMPLE_I[] = {1024, 1, 512, 2, 256, 4, 128, 8, 64, 16, 32};
@@ -418,6 +422,24 @@ TEST(InterpolationTable, OrderedListExtrapolationCubicFirstDerivative)
   EXPECT_NEAR(table->InterpolateFirstDerivative( 5.0),    6.17820, 1.0e-5);
 
   delete table;
+}
+
+TEST(erfc_inv, AccuracyCheck)
+{
+  std::ifstream input_file("data/erfc_inv_test.dat");
+  std::string line;
+  int line_num = 0;
+  std::vector<std::string> token_vector;
+  while(zerork::utilities::GetAnyLine(input_file,&line)) {
+    size_t num_tokens =
+      zerork::utilities::SplitStringToVector(line, zerork::utilities::WHITESPACE, &token_vector);
+    if(num_tokens != 2) continue; //EOF
+
+    double q = std::stod(token_vector[0]);
+    double x = std::stod(token_vector[1]);
+    double calc_x = zerork::utilities::erfc_inv(q);
+    EXPECT_NEAR(x, calc_x, 5.0e-3);
+  }
 }
 
 int main(int argc, char **argv) {

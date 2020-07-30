@@ -79,8 +79,6 @@ bool SameVector(const std::vector<double>A,
 
 
 
-static std::string GetCurrentDirectory();
-
 int ConstPressureDerivative(const size_t num_equations,
                             const double t, 
                             const double y[],
@@ -93,7 +91,6 @@ int main(int argc, char *argv[])
   int seed = -1;     // default indicates time(0) used as seed
   int num_runs = 1;
   int num_passed = 0;
-  std::string current_dir = GetCurrentDirectory();
   std::string outcome;
   //double initial_temperature, initial_pressure;
   std::vector<double> mass_fraction;
@@ -219,8 +216,7 @@ int main(int argc, char *argv[])
     } else {
       outcome = "FAILED";
     }
-    printf("[%s/%s] RUN %2d: %s   Frobenius norms |J| = %10.3e |error| = %10.3e |error| = %10.3e (exclude roundoff)",
-           current_dir.c_str(),
+    printf("[%s] RUN %2d: %s   Frobenius norms |J| = %10.3e |error| = %10.3e |error| = %10.3e (exclude roundoff)",
            argv[0],
            j+1,
            outcome.c_str(),
@@ -281,8 +277,7 @@ int main(int argc, char *argv[])
     } 
     delete user_data;
   }
-  printf("[%s/%s] PASSED  %d/%d (%7.3f%%)\n",
-         current_dir.c_str(),
+  printf("[%s] PASSED  %d/%d (%7.3f%%)\n",
          argv[0],
          num_passed,
          num_runs,
@@ -375,26 +370,6 @@ static void RandomNormalizedVector(const size_t num_elements,
   }
 }
 
-static std::string GetCurrentDirectory()
-{
-  std::string full_path;
-  std::string current_directory;
-  size_t found;
-  char *buffer;
-
-  buffer=get_current_dir_name(); // calls malloc
-  full_path = std::string(buffer);
-  free(buffer);
-
-  found=full_path.find_last_of("/\\");
-  if(found == std::string::npos) {
-    current_directory = full_path;
-  } else {
-    current_directory = full_path.substr(found+1);
-  }
-
-  return current_directory;
-}
 bool SameVector(const std::vector<double>A, 
                 const std::vector<double>B,
                 const double rtol,

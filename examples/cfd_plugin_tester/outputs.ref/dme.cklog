@@ -2,7 +2,7 @@ Zero-RK Chemkin Format Mechanism Parser
      derived from Cantera CKreader 1.0
      see README for license information
 
-Tue Jul 28 15:12:44 2020
+Thu Jul 30 15:57:15 2020
 
         input file: /share/zerork/mechanisms/dme/dme_24_mech.txt
   species database: /share/zerork/mechanisms/dme/dme_24_therm.txt
@@ -3374,4 +3374,4 @@ reaction 351
    reverse rate coeff:  A, n, E = (2.589E+12, 0.12, 6459)
 
 
-Success... elapsed CPU time = 0.02 s
+Success... elapsed CPU time = 0.01 s

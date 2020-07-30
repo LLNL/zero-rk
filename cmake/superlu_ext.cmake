@@ -33,9 +33,17 @@ if((NOT EXISTS ${superlu_prefix}) OR (NOT ${superlu_system_working}))
   endif()
 endif()
 
+set(superlu_lib_dir ${superlu_prefix}/lib64)
+if(NOT EXISTS ${superlu_lib_dir})
+  set(superlu_lib_dir ${superlu_prefix}/lib)
+  if(NOT EXISTS ${superlu_lib_dir})
+    message(FATAL_ERROR "Couldn't find superlu library directory.")
+  endif()
+endif()
+
 add_library(superlu STATIC IMPORTED GLOBAL)
 set_target_properties(superlu PROPERTIES
-  IMPORTED_LOCATION ${superlu_prefix}/lib64/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}
+  IMPORTED_LOCATION ${superlu_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${superlu_prefix}/include)
 
 target_link_libraries(superlu INTERFACE lapack blas)

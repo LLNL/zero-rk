@@ -1,0 +1,27 @@
+elements
+h
+end
+
+species
+h
+h2
+end
+
+
+! multiplier to convert activation energies from cal/mol to kelvin
+! CAL_PER_MOL_TACT = 4184.0/8.3144598e3
+!                  = 5.032197040630348450e-01
+reactions cal/mol
+
+! reaction 1
+! three parameters
+h2(+M) => h + h (+M)    2.0e12  0.0  0.0
+low  /  2.0e9       0.0      0.0  / 
+troe /  6.800E-01  7.800E+01  1.995E+03 / 
+
+
+! reaction 2
+! four parameters
+h2(+M) => h + h (+M)    2.0e12  0.0  0.0
+low  /  2.0e9       0.0      0.0  / 
+troe /  6.800E-01  7.800E+01  1.995E+03  5.590E+03 / 

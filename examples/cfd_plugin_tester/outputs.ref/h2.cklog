@@ -2,7 +2,7 @@ Zero-RK Chemkin Format Mechanism Parser
      derived from Cantera CKreader 1.0
      see README for license information
 
-Tue Jul 28 15:12:35 2020
+Thu Jul 30 15:57:08 2020
 
         input file: /share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt
   species database: /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt

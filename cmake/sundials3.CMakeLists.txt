@@ -1,5 +1,6 @@
 
 cmake_minimum_required(VERSION 3.10)
+project(sundials3_build)
 
 include(ExternalProject)
 ExternalProject_Add(

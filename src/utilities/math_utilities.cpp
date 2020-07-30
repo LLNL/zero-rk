@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <cmath>
 
 #include <map>
 
@@ -290,6 +291,28 @@ double InterpolationTable::InterpolateFirstDerivative(const double x) const
   return df_interp;
 }
 
+// Approximate inverse error function implemented from:
+// "A handy approximation for the error function and its inverse"
+// by Sergei Winitzki
+// Note we are using the erf_inv form and transforming q to p
+// Worst case error should be less than 1% over whole range
+template<typename T>
+T erfc_inv(T q) {
+    if(q <= 0) return INFINITY;
+    if(q >= 2) return -INFINITY;
+    T p = 1 - q;
+    T sgn = p < 0 ? -1 : 1;
+
+    T logpt = log((1 - p)*(1 + p));
+    T pt1 = 2/(M_PI*0.147) + 0.5*logpt;
+    T pt2 = 1/(0.147) * logpt;
+
+    return(sgn*sqrt(-pt1 + sqrt(pt1*pt1 - pt2)));
+}
+
+template float erfc_inv<float>(float q);
+template double erfc_inv<double>(double q);
+template long double erfc_inv<long double>(long double q);
 
 } // namespace utilities
-} // namespace advcomb
+} // namespace zerork

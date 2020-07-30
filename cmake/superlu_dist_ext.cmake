@@ -33,9 +33,17 @@ if((NOT EXISTS ${superlu_dist_prefix}) OR (NOT ${superlu_dist_system_working}))
   endif()
 endif()
 
+set(superlu_dist_lib_dir ${superlu_dist_prefix}/lib64)
+if(NOT EXISTS ${superlu_dist_lib_dir})
+  set(superlu_dist_lib_dir ${superlu_dist_prefix}/lib)
+  if(NOT EXISTS ${superlu_dist_lib_dir})
+    message(FATAL_ERROR "Couldn't find superlu_dist library directory.")
+  endif()
+endif()
+
 add_library(superlu_dist STATIC IMPORTED GLOBAL)
 set_target_properties(superlu_dist PROPERTIES
-  IMPORTED_LOCATION ${superlu_dist_prefix}/lib64/${CMAKE_STATIC_LIBRARY_PREFIX}superlu_dist${CMAKE_STATIC_LIBRARY_SUFFIX}
+  IMPORTED_LOCATION ${superlu_dist_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu_dist${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${superlu_dist_prefix}/include)
 
 target_link_libraries(superlu_dist INTERFACE parmetis lapack blas pthread)
@@ -47,13 +55,4 @@ if(OPENMP_FOUND)
                         INTERFACE_COMPILE_OPTIONS "${OpenMP_C_FLAGS}"
                         INTERFACE_LINK_OPTIONS "${OpenMP_C_FLAGS}")
 endif()
-
-#TODO: why do we have to add fopenmp here (instead of depending on cmake to figure this out)
-#TODO: likewise for libpthread
-#set_target_properties(superlu_dist PROPERTIES 
-#                      COMPILE_DEFINITIONS "METIS_EXPORT="
-#                      COMPILE_OPTIONS "-fopenmp"
-#                      INTERFACE_COMPILE_OPTIONS "-fopenmp"
-#                      INTERFACE_LINK_OPTIONS "-fopenmp"
-#                      INTERFACE_INCLUDE_DIRECTORIES ${superlu_dist_SOURCE_DIR}/SRC)
 
