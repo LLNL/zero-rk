@@ -1,0 +1,48 @@
+# WARNING: Solving unity Lewis number equations.
+# Number of states     : 67
+# Number of grid points: 256
+# Stoichiometric Mixture fraction: 0.0628327438365806484
+# Fuel temperature  [K]: 300
+# Fuel density [kg/m^3]: 6.91934215738225067
+# Initial upstream temperature  (next to inlet)     [K]: 462.983605570314694
+# Initial upstream density      (next to inlet)[kg/m^3]: 0.758880696400794696
+#------------------------------------------------------------------------------
+# Column  1: [#] time steps printed
+# Column  2: [s] ODE system time
+# Column  3: [#] number of steps taken by KINSOL
+# Column  4: [#] number of calls to the user's (RHS) function
+# Column  5: [#] number of calls to the linear solver setup function
+# Column  6: [#] number of linear iterations
+# Column  7: min sum of mass fractions
+# Column  8: max sum of mass fractions
+# Column  9: maximum Temperature in the domain
+# Column 10: [m] location of the maximum Temperature
+# Column 11: maximum MassFraction_OH in the domain
+# Column 12: [m] location of the maximum MassFraction_OH
+# Column 13: maximum MassFraction_H2O2 in the domain
+# Column 14: [m] location of the maximum MassFraction_H2O2
+
+[KINSOL] KINSolInit
+   scsteptol =        1e-20  fnormtol =         0.01
+
+[KINSOL] KINSolInit
+   nni =    0   nfe =      1   fnorm =        0.02060652994393729
+
+[KINSOL] KINFullNewton
+   pnorm =   3.8929e-04
+
+[KINSOL] KINSol
+   nni =    1   nfe =      2   fnorm =       0.008822534567500996
+
+[KINSOL] KINSol
+   Return value: 0 (KIN_SUCCESS)
+Scaled norm of F:  8.8225346e-03
+Scaled norm of the step:  3.8929046e-04
+Number of function evaluations: 2
+Number of nonlinear iterations: 1
+Number of linear iterations: 16
+Number of preconditioner evaluations: 1
+Number of preconditioner solves: 17
+Final   0.0000000e+00       1       2       1      16   1.0000000e+00   1.0000013e+00   2.0281147e+03   7.7821012e-02   5.3715675e-03   6.2256809e-02   3.2464475e-06   1.5564202e-02
+# Simulation setup time   [s]:  4.03487e-01
+# Time in integrator loop [s]:  8.79157e-01

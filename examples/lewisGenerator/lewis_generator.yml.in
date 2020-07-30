@@ -1,0 +1,71 @@
+#Chemkin Format Mechansim File [input]
+#Type: string
+mech_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_mech.txt
+
+#Chemkin Format Thermodynamics File [input]
+#Type: string
+therm_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_therm.txt
+
+#Transport File [input]
+#Type: string
+trans_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_transport.txt
+
+#Transport model
+#Available options are ConstantLewis, MixAvg, and MixAvgSoret
+#Use MixAvg or MixAvgSoret to generate Lewis numbers
+#Type: string
+#transport_model: 'ConstantLewis'
+transport_model: 'MixAvg'
+#transport_model: 'MixAvgSoret'
+
+#Mechanism Parser log file
+#Type: string
+#Optional with default value of '/dev/null'
+log_file: '/dev/null'
+
+
+#Fuel composition mole fraction map for inlet
+#Type: string:floating-point map
+inlet_fuel_comp: {
+NC12H26: 1.0
+}
+
+#Oxidizer composition mole fraction map for inlet
+#Type: string:floating-point map
+inlet_oxidizer_comp: {
+N2: 3.76,
+O2: 1.0
+}
+
+
+#Full composition mole fraction map for inlet
+#Type: string:floating-point map
+#Can be left empty. If used, will overwrite both
+#inlet_fuel_comp and inlet_oxidizer_comp entries
+inlet_full_comp: {}
+
+#Pressure of the flame system [Pa]
+#Type: floating-point
+#Optional with default value of 101325
+pressure: 101325.0
+
+#Reference temperature to normalize the ODE dT/dt equation
+#Type: floating-point
+#Optional with default value of 1000
+ref_temperature: 1000.0
+
+#Inlet temperature [K]
+#Type: floating-point
+#Optional with default value of 1800
+#Temperature value at which the Lewis numbers will be computed
+inlet_temperature: 2000.0
+
+#Inlet equivalence ratio (F/A)/(F/A)_{st} [-]
+#Type: floating-point
+#Optional with default value of 1
+inlet_phi: 1.0
+
+#Inlet exhaust gas recirculation ratio
+#Type: floating-point
+#Optional with default value of 0
+egr: 0.0

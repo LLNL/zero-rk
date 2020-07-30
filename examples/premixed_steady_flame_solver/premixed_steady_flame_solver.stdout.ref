@@ -1,0 +1,97 @@
+# Number of states     : 67
+# Number of grid points: 256
+# Inlet BC fuel fraction [kg fuel/kg inflow]: 0.0628327438365806484
+# Inlet BC temperature  [K]: 400
+# Inlet BC density [kg/m^3]: 0.915252116038625774
+# Inlet BC velocity   [m/s]: 0.500000000000086264
+# Initial upstream temperature  (next to inlet)     [K]: 400
+# Initial upstream density      (next to inlet)[kg/m^3]: 0.915252116038625774
+# Initial upstream avg velocity (next to inlet)   [m/s]: 0.500000000000086264
+#------------------------------------------------------------------------------
+# Column  1: [#] time steps printed
+# Column  2: [s] System time
+# Column  3: [m/s] Flame speed
+# Column  4: [m] Flame thickness defined as T_burnt-T_unburnt
+#            divided by maximum temperature gradient
+# Column  5: [K] maximum jump (T-T_wall) in the domain
+# Column  6: [m] location of the maximum temperature jump
+# Column  7: [#] number of steps taken by KINSOL
+# Column  8: [#] number of calls to the user's (RHS) function
+# Column  9: [#] number of calls to the linear solver setup function
+# Column 10: [#] number of linear iterations
+# Column 11: [#] current method order of time integrator
+# Column 12: [s] current size of internal time step
+# Column 13: [s] characteristic time step for Courant number control dx/max(|velocity|) 
+# Column 14: [s] characteristic time step for diffusion stability control 0.5*dx*dx/max(thermal diffusivity)
+# Column 15: Mass change normalized by inlet mass flux
+# Column 16: min sum of mass fractions
+# Column 17: max sum of mass fractions
+# Column 18: [m/s] min velocity
+# Column 19: [m/s] max velocity
+# Column 20: maximum Temperature in the domain
+# Column 21: [m] location of the maximum Temperature
+# Column 22: maximum MassFraction_OH in the domain
+# Column 23: [m] location of the maximum MassFraction_OH
+# Column 24: maximum MassFraction_H2O2 in the domain
+# Column 25: [m] location of the maximum MassFraction_H2O2
+
+[KINSOL] KINSolInit
+   scsteptol =        1e-20  fnormtol =         0.01
+
+[KINSOL] KINSolInit
+   nni =    0   nfe =      1   fnorm =          2950.728427431369
+
+[KINSOL] KINFullNewton
+   pnorm =   1.1246e+00
+
+[KINSOL] KINSol
+   nni =    1   nfe =      2   fnorm =          819.2640374727323
+
+[KINSOL] KINFullNewton
+   pnorm =   2.5609e-01
+
+[KINSOL] KINSol
+   nni =    2   nfe =      3   fnorm =          266.6732509970715
+
+[KINSOL] KINFullNewton
+   pnorm =   3.9400e-02
+
+[KINSOL] KINSol
+   nni =    3   nfe =      4   fnorm =          35.88064699806644
+
+[KINSOL] KINFullNewton
+   pnorm =   4.0704e-02
+
+[KINSOL] KINSol
+   nni =    4   nfe =      5   fnorm =           7.21132296933333
+
+[KINSOL] KINFullNewton
+   pnorm =   6.5597e-04
+
+[KINSOL] KINSol
+   nni =    5   nfe =      6   fnorm =           1.38161917799964
+
+[KINSOL] KINFullNewton
+   pnorm =   7.3445e-04
+
+[KINSOL] KINSol
+   nni =    6   nfe =      7   fnorm =        0.06178924118234614
+
+[KINSOL] KINFullNewton
+   pnorm =   6.5124e-07
+
+[KINSOL] KINSol
+   nni =    7   nfe =      8   fnorm =       0.001678261838692998
+
+[KINSOL] KINSol
+   Return value: 0 (KIN_SUCCESS)
+Scaled norm of F:  1.6782618e-03
+Scaled norm of the step:  6.5124088e-07
+Number of function evaluations: 8
+Number of nonlinear iterations: 7
+Number of linear iterations: 254
+Number of preconditioner evaluations: 1
+Number of preconditioner solves: 261
+Final   0.0000000e+00   6.5323161e-01   4.0868951e-04   1.8907572e+03   1.5000000e-02       7       8       1     254   0.0000000e+00   0.0000000e+00   1.4589966e-05   2.4088974e-06   0.0000000e+00   9.9645376e-01   1.0347088e+00   6.5323164e-01   4.0317797e+00   2.2907572e+03   1.5000000e-02   5.7124996e-03   4.8823529e-03   4.8789296e-05   4.2941176e-03
+# Simulation setup time   [s]:  4.16135e-01
+# Time in integrator loop [s]:  5.87791e+00

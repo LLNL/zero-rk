@@ -1,0 +1,29 @@
+elements
+c 
+o
+end
+
+species
+o
+o2
+o3
+co
+co2
+end
+
+
+! multiplier to convert activation energies from cal/mol to kelvin
+! CAL_PER_MOL_TACT = 4184.0/8.3144598e3
+!                  = 5.032197040630348450e-01
+reactions cal/mol
+
+! reaction 1
+! fractional reactant
+co + 0.5 o2 <=> co2    2.0e4  0.0  0.0
+
+! reaction 2
+! fractional product
+o3 => 0.8o2 + 1.4o     3.0e5  0.0  0.0
+
+
+end

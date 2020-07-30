@@ -1,0 +1,26 @@
+! Idealized thermodynamics definition for constant specific heats
+!
+! Ru = 8314.4598 J/(kmol*K)
+! 
+! a0 = Cp/Ru = gamma/(gamma-1); gamma = a0/(a0-1)
+! a1 = a2 = a3 = a4 = 0
+! a5 = (Hf(Tref) - Cp*Tref)/Ru
+! a6 = (S(Tref) - Cp*ln(Tref))/Ru,
+! where Hf(Tref) is the enthalpy of formation at the standard state 1 bar and
+! Tref = 298.15 K, and S(Tref) is the standard state entropy at Tref
+!
+!-------------------------------------------------------------------------------
+!        1         2         3         4         5         6         7         8
+!2345678901234567890123456789012345678901234567890123456789012345678901234567890
+!-------------------------------------------------------------------------------
+thermo
+    300.0    1000.0    5000.0
+! Argon
+!      gamma = 5/3              => a0 =  2.5
+!   Hf(Tref) = 0.0     KJ/mol   => a5 = -7.45375000e+02
+!    S(Tref) = 154.846  J/mol*K => a6 =  4.37970761e+00
+ar                fixcp ar  1               g   300.00   5000.00  1000.00      1
+ 2.50000000e+00 0.00000000e+00 0.00000000e+00 0.00000000e+00 0.00000000e+00    2
+-7.45375000e+02 4.37970761e+00 2.50000000e+00 0.00000000e+00 0.00000000e+00    3
+ 0.00000000e+00 0.00000000e+00-7.45375000e+02 4.37970761e+00                   4
+end

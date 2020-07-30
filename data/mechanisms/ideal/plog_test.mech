@@ -1,0 +1,79 @@
+elements
+h
+end
+
+species
+h
+h2
+end
+
+
+! multiplier to convert activation energies from cal/mol to kelvin
+! CAL_PER_MOL_TACT = 4184.0/8.3144598e3
+!                  = 5.032197040630348450e-01
+reactions cal/mol
+
+! reaction 1
+! single pressure
+h + h => h2    2.0e12  0.0  0.0
+plog / 1.0   1.0e9   2.0  1.987203585086042040e+03 / 
+
+! reaction 2
+! single pressure
+h + h => h2    2.0e12  0.0  0.0
+plog / 1.0   -1.0e9   2.0  1.987203585086042040e+03 / 
+
+! reaction 3
+! single pressure
+h + h => h2    2.0e12  0.0  0.0
+plog / 1.0   -1.0e8   2.0  1.987203585086042040e+03 / 
+plog / 1.0    4.0e8   2.0  1.987203585086042040e+03 / 
+plog / 1.0    6.0e8   2.0  1.987203585086042040e+03 / 
+
+! reaction 4
+! single pressure
+h + h <=> h2    2.0e12  0.0  0.0
+plog / 1.0   1.0e9   2.0  1.987203585086042040e+03 / 
+
+! reaction 5
+! single pressure
+h + h <=> h2    2.0e12  0.0  0.0
+plog / 1.0   -1.0e9   2.0  1.987203585086042040e+03 / 
+
+! reaction 6
+! multiple pressures example from Judit Zador at SNL
+h + h => h2     1.0e2   0.0  0.0
+plog / 1.0    2.0e2    0.0   0.0 /
+plog / 1.0   60.0e2    0.0   0.0 /
+plog / 2.0    8.0e2    0.0   0.0 /
+plog / 2.0    5.0e2    0.0   0.0 /
+plog / 4.0  100.0e2    0.0   0.0 /
+plog / 4.0    0.1e2    0.0   0.0 /
+
+! reaction 7
+! plog values from TPGME mechanism
+h + h => h2      3.502e+005        1.441        -3244.0
+plog/ 0.0100   3.502e+005        1.441        -3244.0/
+plog/ 0.1000   8.854e+005        1.327        -2975.0/
+plog/ 1.0000   1.650e+007        0.973        -2010.0/
+plog/ 10.000   5.374e+009        0.287          280.0/
+plog/ 100.00   9.494e+018       -2.199         9769.0/
+
+! reaction 8
+! same reaction values as reaction 7 with different arrhenius line numbers
+! per line
+h + h => h2      3.502e+005        1.441        -3244.0
+plog/ 0.0100   1.502e+005        1.441        -3244.0/
+plog/ 0.0100   3.000e+005        1.441        -3244.0/
+plog/ 0.0100  -1.000e+005        1.441        -3244.0/
+plog/ 0.1000   4.854e+005        1.327        -2975.0/
+plog/ 0.1000   4.000e+005        1.327        -2975.0/
+plog/ 1.0000   1.650e+007        0.973        -2010.0/
+plog/ 10.000   5.374e+009        0.287          280.0/
+plog/ 10.000  -5.000e+008        0.287          280.0/
+plog/ 10.000  -1.000e+009        0.287          280.0/
+plog/ 10.000   1.500e+009        0.287          280.0/
+plog/ 100.00   0.094e+018       -2.199         9769.0/
+plog/ 100.00   9.400e+018       -2.199         9769.0/
+
+end

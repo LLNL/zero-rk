@@ -1,0 +1,61 @@
+diff -aruN parmetis-4.0.3/CMakeLists.txt parmetis-4.0.3_mod/CMakeLists.txt
+--- parmetis-4.0.3/CMakeLists.txt	2013-03-30 09:24:50.000000000 -0700
++++ parmetis-4.0.3_mod/CMakeLists.txt	2020-07-15 17:22:30.950417000 -0700
+@@ -1,20 +1,8 @@
+ cmake_minimum_required(VERSION 2.8)
+ project(ParMETIS)
+ 
+-set(GKLIB_PATH METIS/GKlib CACHE PATH "path to GKlib")
+-set(METIS_PATH METIS CACHE PATH "path to METIS")
+-
+-# Symlink ./metis to wherever metis is. This allows files to be
+-# included from metis/libmetis/.
+-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${METIS_PATH} metis)
+-
+-# Search for MPI.
+-# GK commented this out as it seems to be creating problems
+-# include(FindMPI)
+-# if(NOT MPI_FOUND)
+-#   message(FATAL_ERROR "mpi is not found")
+-# endif()
+-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_COMPILE_FLAGS}")
++set(GKLIB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/metis/GKlib)
++set(METIS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/metis)
+ 
+ # Prepare libraries.
+ if(SHARED)
+@@ -33,6 +21,7 @@
+ include_directories(${METIS_PATH}/include)
+ 
+ # List of directories that cmake will look for CMakeLists.txt
++add_subdirectory(${METIS_PATH}/include)
+ add_subdirectory(${METIS_PATH}/libmetis ${CMAKE_BINARY_DIR}/libmetis)
+ add_subdirectory(include)
+ add_subdirectory(libparmetis)
+diff -aruN parmetis-4.0.3/metis/include/CMakeLists.txt parmetis-4.0.3_mod/metis/include/CMakeLists.txt
+--- parmetis-4.0.3/metis/include/CMakeLists.txt	2013-03-30 09:24:50.000000000 -0700
++++ parmetis-4.0.3_mod/metis/include/CMakeLists.txt	2020-07-15 17:10:41.914428000 -0700
+@@ -1,3 +1,2 @@
+-if(METIS_INSTALL)
+-  install(FILES metis.h DESTINATION include)
+-endif()
++
++install(FILES metis.h DESTINATION include)
+diff -aruN parmetis-4.0.3/metis/libmetis/CMakeLists.txt parmetis-4.0.3_mod/metis/libmetis/CMakeLists.txt
+--- parmetis-4.0.3/metis/libmetis/CMakeLists.txt	2013-03-30 09:24:50.000000000 -0700
++++ parmetis-4.0.3_mod/metis/libmetis/CMakeLists.txt	2020-07-15 17:10:57.219424000 -0700
+@@ -8,9 +8,8 @@
+   target_link_libraries(metis m)
+ endif()
+ 
+-if(METIS_INSTALL)
+-  install(TARGETS metis
+-    LIBRARY DESTINATION lib
+-    RUNTIME DESTINATION lib
+-    ARCHIVE DESTINATION lib)
+-endif()
++install(TARGETS metis
++        LIBRARY DESTINATION lib
++        RUNTIME DESTINATION lib
++        ARCHIVE DESTINATION lib)
++

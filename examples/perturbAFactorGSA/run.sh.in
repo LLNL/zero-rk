@@ -1,0 +1,11 @@
+
+python create_lognormal_mtx.py
+
+app=perturbAFactorGSA_mpi.x
+inp=perturbAFactorGSA_example.yml
+
+@MPIEXEC_EXECUTABLE@ @MPIEXEC_NUMPROC_FLAG@ \
+  @MPIEXEC_EXAMPLE_NUMPROCS@ @MPIEXEC_PREFLAGS@ \
+  @CMAKE_INSTALL_PREFIX@/bin/$app @MPIEXEC_POSTFLAGS@ $inp
+
+

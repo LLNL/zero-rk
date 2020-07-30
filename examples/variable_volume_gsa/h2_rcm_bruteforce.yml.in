@@ -1,0 +1,164 @@
+#Chemkin Format Mechansim File
+#Type: string
+mechFile: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/h2_v1b_mech.txt
+
+#Chemkin Format Thermodynamics File
+#Type: string
+thermFile: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/h2_v1a_therm.txt
+
+#Mechanism Parser Log File
+#Type: string
+#Optional with default value of /dev/null
+mechLogFile: ./h2_v1b_mech.clog
+
+#Input file containing the multiplicative A-Factor perturbations
+#Type: string
+#gsaMatrixFile: hydrogen_00100.mtx
+gsaMatrixFile: hydrogen_bruteforce.mtx
+
+#File containing the volume time history (column 1 = time 
+#[s], column 2 = volume [m^3]) 
+#Type: string
+volumeFile: rcm-vol.dat
+
+#Stroke multiplier [-] to rescale the volume time history 
+#(preserves the minimum volume) 
+#Type: floating-point
+#Optional with default value of 1
+strokeMult: 1.0
+
+#Volume multiplier [-] to rescale the volume time history
+#Type: floating-point
+#Optional with default value of 1
+volumeMult: 1.0e-6
+
+#Reference heat release [J] to compute the fraction of 
+#chemical heat release (negative is exothermic) 
+#Type: floating-point
+#Optional with default value of -1
+#refHeatRelease: -1.0
+
+#Use the prescribed refHeatRelease value (1=true, 0=false), 
+#othherwise use the heat release computed for the 
+#unperturbed simulation 
+#Type: boolean
+#Optional with default value of 0
+useRefHeatRelease: n
+
+#Fraction(s) of chemical heat release at which the time is reported
+#Type: floating-point vector
+#Optional with default value of [0.1, 0.5, 0.9]
+burnFraction: [0.1, 0.5, 0.9]
+
+#Time history output file
+#Type: string
+thistFile: h2_bruteforce_rcm.thist
+
+#Minimum time change to print state to time history file
+#Type: floating-point
+#Optional with default value of 1e-06
+thistMinDt: 1.0e-5
+
+#Number of internal time steps before printing the state to 
+#the time history file 
+#Type: integer
+#Optional with default value of 10
+thistStepPeriod: 100
+
+#Echo time history to stdout (y=yes, n=no) 
+#Type: boolean
+#Optional with default value of y
+thistEcho: n
+
+#The period at which the task progress is reported to stdout 
+#Type: integer
+#Optional with default value of 50
+taskProgressPeriod: 10
+
+#Output file containing the time to max dP/dt for each set of 
+#A-Factor multipliers 
+#Type: string
+outFile: h2_bruteforce_rcm_max_dp_dt.dat
+
+#Output file with the A-Factor perturbation stats by reaction
+#Type: string
+checkFile: h2_bruteforce_gsa_stats_check.dat
+
+#Initial ODE system time
+#Type: floating-point
+initTime: 0.0
+
+#Final ODE system time
+#Type: floating-point
+finalTime: 1.0e-1
+
+#Maximum Internal Integrator Step Size
+#Type: floating-point
+#Optional with default value of 0.01
+maxDtInternal: 1.0e-3
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+maxSteps: 1000000
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+relTol: 1.0e-8
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+absTol: 1.0e-20
+
+#Reference temperature to normalize the ODE state variables
+#Type: floating-point
+#Optional with default value of 1000
+refTemp: 1000.0
+
+#Reference moles to normalize the ODE state variables
+#Type: floating-point
+#Optional with default value of 1
+refMoles: 0.25
+
+#Initial composition map
+#Type: string:floating-point map
+initComp: {
+h2: 1.0,
+o2: 0.5,
+n2: 1.8809523809523812
+}
+
+#Composition type (MOLE_FRACTION or MASS_FRACTION)
+#Type: string
+#Optional with default value of MOLE_FRACTION
+compType: MOLE_FRACTION
+
+#Initial temperature [K]
+#Type: floating-point
+initTemp: 400.0
+
+#Initial Pressure [Pa]
+#Type: floating-point
+initPres: 1.0e5
+
+#Maximum BDF
+#Type: integer
+#Optional with default value of 5
+maxOrder: 5
+
+#Maximum number of nonlinear interations
+#Type: integer
+#Optional with default value of 3
+maxNumNonLinIters: 3
+
+#Linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.1
+cvEpsLin: 0.1
+
+#Non-linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.05
+cvNlConvCoeff: 0.05

@@ -1,0 +1,12 @@
+elements
+h
+end
+
+species
+h
+h2
+end
+
+reactions cal/mol
+h + h => h2    2.0e12  0.0  0.0
+end

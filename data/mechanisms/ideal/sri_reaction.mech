@@ -1,0 +1,37 @@
+elements
+h c o
+end
+
+species 
+h
+ch3
+ch4
+end
+
+reaction    cal/mol ! default activation energy units
+
+! SRI blending function (5-parameter)
+! F = d*(a*exp(-b/T) + exp(-T/c))**X * T**e
+!
+! where X = 1.0/(1.0 + (ln(Pr))**2)
+!
+! and the reduced pressure for the falloff reaction is
+! 
+! Pr = k_0*[M]/k_inf with
+!
+! k_0   the low  pressure limit
+! k_inf the high pressure limit
+!
+! In the case of the 3-parameter SRI definition, d = 1 and e = 0.
+! Cantera does not accept a 4 parameter definition
+!
+ch3+h(+m)<=>ch4(+m)     6.0e16    -1.0    0.0
+    low / 8.0e26    -3.0    0.0 /
+    sri / 0.45    797.0    979.0 /
+    h2/2/  co/2/  co2/3/  h2o/5/
+ch3+h(+m)<=>ch4(+m)     6.0e16    -1.0    0.0
+    low / 8.0e26    -3.0    0.0 /
+    sri / 0.45    797.0    979.0   0.9    2.0/
+    h2/2/  co/2/  co2/3/  h2o/5/
+
+end

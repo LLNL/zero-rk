@@ -1,0 +1,57 @@
+
+This folder contains examples for the unsteady and steady laminar flame speed solvers.
+
+### Solver description
+
+# Unsteady solver:
+The unsteady solver does not require a user-provided initial guess/starting solution. Time marching will be used to reach a steady solution. The unsteady solver should be used to compute a small number of flame speeds at distant conditions and/or to generate an initial guess to be used with the steady solver.
+
+# Steady solver:
+When a good initial guess is available (such as a converged solution at neighboring conditions), the steady solver is preferred. It is particularly useful to perform sweeps over pressure, temperature, or equivalence ratio. The steady solver currently only supports constant Lewis numbers as the transport model.
+
+
+### Specifying input/run conditions ###
+
+The mechanism file, thermodynamic properties file, and transport properties file are specified in the solver input file (input.yml) along with the fuel and oxidizer compositions. The transport model (ConstantLewis, MixAvg, MixAvgSoret) is also specified there. No other parameters need to be modified in that file.
+
+The run conditions (pressure, temperature, and equivalence ratio) are specified in the sweep_unsteady.py and sweep_steady.py python files.
+
+
+Both the unsteady and steady solvers run in parallel. The user needs to specifiy the number of cores and nodes. The optimal number of cores varies with the mechanism size (see table below). It is recommended that the number of cores is a power of 2.
+
+Mechanism size       Suggested number of cores
+<~50 species     ->  1-8 cores
+50-500 species   ->  8-16 cores
+500-1000 species ->  16-32 cores
+>~1000 species   ->  32-64 cores
+
+For the steady solver, there no significant benefit to using more than 16 cores.
+
+The minimum number of grid points per flame thickness (min_pts_per_lF) will be used to determine the grid size. 10 to 15 pts per flame thickness is usually sufficient to achieve <1% accuracy on the flame speed.
+
+
+### Running the code ###
+
+The command to run the sweep is: python sweep_unsteady.py  (or python sweep_steady.py for the steady example).  These codes run the underlying flame solvers in parallel and may need to be modified for a given systems MPI and/or queuing implementation.  Current known mpiexecs are 'srun' (used on LLNL clusters) and 'mpirun' (generally provided by OpenMPI).
+
+The flame speeds will be appended to the flame_speeds file and the data and grid files will be saved for each condition.
+
+### Required modules/libraries/exports ###
+
+flamesolver.py needs to be in the local case folder or in the python path.
+The examples automatically include the default install location for flamesolver.py
+If you want to use an alternate location you can use PYTHON path, e.g.
+
+export PYTHONPATH=/path/to/flamesolver.py:$PYTHONPATH
+
+
+### TIPS FOR BEST CONVERGENCE ###
+
+-Use the steady solver as much as possible. Use the unsteady solver when you don't have an initial solution.
+
+-Do the following to reduce CPU time and increasing likelihood of convergence in steady sweeps:
+  -For equivalence ratio sweeps: start from a solution with an equivalence ratio close to 1 and do two sweeps, one (increasing phi) for the rich side and one (decreasing phi) for the lean side.
+  -For unburnt temperature sweeps: start from the higher temperature and sweep decreasing temperatures.
+  -For pressure sweeps: start from the higher pressure and sweep decreasing temperature
+
+-The steady solver can be used even if the initial solution was obtained with a different mechanism. New species will be initiated at 0 so it might not converge if important species are missing from the initial solution.

@@ -1,0 +1,2 @@
+This is file uses standard new line character LF '\n',
+but the last line does not.

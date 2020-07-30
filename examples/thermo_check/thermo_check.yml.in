@@ -1,0 +1,4 @@
+
+therm_file:  @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_therm.txt
+repair_file: thermo_repaired.dat
+change_file: changes.dat

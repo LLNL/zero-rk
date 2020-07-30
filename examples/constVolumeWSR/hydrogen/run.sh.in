@@ -1,0 +1,6 @@
+
+app=constVolumeWSR.x
+inp=hydrogen_TSweep.inp
+
+@CMAKE_INSTALL_PREFIX@/bin/$app $inp
+

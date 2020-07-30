@@ -1,0 +1,108 @@
+#Chemkin Format Mechansim File
+#Type: string
+mechFile: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt
+
+#Chemkin Format Thermodynamics File
+#Type: string
+thermFile: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+
+#Mechanism Parser Log File
+#Type: string
+#Optional with default value of /dev/null
+mechLogFile: h2_v1b_mech.clog
+
+#File containing the volume time history (column 1 = time 
+#[s], column 2 = volume [m^3]) 
+#Type: string
+volumeFile: unit_volume.dat
+
+#Not used
+thistFile: dummy.thist
+
+#Initial ODE system time
+#Type: floating-point
+initTime: 0.0
+
+#Final ODE system time
+#Type: floating-point
+finalTime: 1.0e-1
+
+#Maximum Internal Integrator Step Size
+#Type: floating-point
+#Optional with default value of 0.01
+maxDtInternal: 1.0e-3
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+maxSteps: 1000000
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+relTol: 1.0e-8
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+absTol: 1.0e-20
+
+#Reference temperature to normalize the ODE state variables
+#Type: floating-point
+#Optional with default value of 1000
+refTemp: 1000.0
+
+#Reference moles to normalize the ODE state variables
+#Type: floating-point
+#Optional with default value of 1
+refMoles: 0.25
+
+#Initial composition map
+#Type: string:floating-point map
+initComp: {
+h2: 1.0,
+o2: 0.5,
+n2: 1.8809523809523812
+}
+
+#Initial temperature [K]
+#Type: floating-point
+initTemp: 900.0
+
+#Initial Pressure [Pa]
+#Type: floating-point
+initPres: 2.0e6
+
+#Initial equivalence ratio (F/A)/(F/A)_{st} [-]
+#Type: floating-point
+initPhi: 0.0
+
+#partial pivot threshold.
+#Type: floating-point
+#Optional with default value of 0
+partialPivotThresh: 0.0
+
+#perm type.
+#Type: integer
+#Optional with default value of 1
+permutationType: 1
+
+#perm threshold.
+#Type: floating-point
+#Optional with default value of 0.3
+permThresh: 0.3
+
+#Maximum number of nonlinear interations
+#Type: integer
+#Optional with default value of 3
+maxNumNonLinIters: 3
+
+#Linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.1
+cvEpsLin: 0.1
+
+#Non-linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.05
+cvNlConvCoeff: 0.05

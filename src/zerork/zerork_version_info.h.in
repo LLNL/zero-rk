@@ -1,0 +1,22 @@
+
+#cmakedefine ZERORK_GIT_ID "@ZERORK_GIT_ID@"
+#cmakedefine ZERORK_GIT_COMMIT_TIMESTAMP "@ZERORK_GIT_COMMIT_TIMESTAMP@"
+#cmakedefine ZERORK_GIT_BRANCH "@ZERORK_GIT_BRANCH@"
+
+namespace zerork {
+#ifdef ZERORK_GIT_ID
+const char *git_commit_id = ZERORK_GIT_ID;
+#else
+const char *git_commit_id = "unversioned";
+#endif
+#ifdef ZERORK_GIT_COMMIT_TIMESTAMP
+const char *git_commit_timestamp = ZERORK_GIT_COMMIT_TIMESTAMP;
+#else
+const char *git_commit_timestamp = "no-time-stamp";
+#endif
+#ifdef ZERORK_GIT_COMMIT_TIMESTAMP
+const char *git_branch_name = ZERORK_GIT_BRANCH;
+#else
+const char *git_branch_name = "no-branch";
+#endif
+} // namespace zerork

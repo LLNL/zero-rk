@@ -1,0 +1,91 @@
+# ----------------------------------------------------------------------------
+# Mechanism file     : /share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt
+# Thermodynamics file: /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+# Conversion log file: h2_v1b_mech.clog
+# ----------------------------------------------------------------------------
+# Basic Mechanism Report
+#   number of species       : 10
+#   number of reactions     : 21
+#   number of 1-way steps   : 42
+#   max number of reactants : 2
+#   max number of products  : 2
+#     number of (1) => (1) steps : 0
+#     number of (1) => (2) steps : 6
+#     number of (2) => (1) steps : 6
+#     number of (2) => (2) steps : 30
+# ----------------------------------------------------------------------------
+# Species Summary Report:
+#   total number of species         : 10
+#   number of inert species         : 2
+#   number of lone reaction species : 0
+#   number of adduct species        : 0
+#   number of source species        : 0
+#   number of sink species          : 0
+# ----------------------------------------------------------------------------
+# Inert Species Report
+#   number of inert species : 2
+#   index, name (species index starts at 0)
+#       6  n2
+#       9  ar
+# ----------------------------------------------------------------------------
+# Adduct Species Report
+# An "adduct species" is defined as a species that is the only reactant
+# in all reaction steps in which it is involved. Here this excludes
+# reaction steps with a single reactant interacting with a third-body
+# falloff or otherwise.
+#   number of adduct species : 0
+# ----------------------------------------------------------------------------
+# Lone Reaction Species Report
+#   number of species in only one reaction : 0
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# Source Species Report
+# A "source species" is defined as a species that only appears as a
+# reactant. It may be defined in the initial composition, but will only
+# decrease in quantity. It will never be produced.
+#   number of source species : 0
+# ----------------------------------------------------------------------------
+# Sink Species Report
+# A "sink species" is defined as a species that only appears as a
+# product. It  will only increase in quantity, and will never be consumed.
+#   number of sink species : 0
+# ----------------------------------------------------------------------------
+# Negative Rate Report
+#   scanned temperature [ 300.00,3000.00] in increments of  96.428571
+#     no negative rates found
+# ----------------------------------------------------------------------------
+# Maximum Unimolecular Rate Report
+#   number of unimolecular steps : 0 (excluding 3rd-body & falloff)
+# ----------------------------------------------------------------------------
+# Maximum Unimolecular Rate Report
+#   number of unimolecular steps : 0 (excluding 3rd-body & falloff)
+# ----------------------------------------------------------------------------
+# Binary Collision Species Report:
+#   Hard sphere diameter used to estimate collision cross-sections calculated
+#   at T_ref = 1000 [K]
+#   Method flags: -1 == initialization
+#                  1 == estimated from molecular weight
+#                  2 == internal database
+#                  3 == external file
+#                                                                         [m]
+#                              [K]            [m]       [Pa-s]     hard sphere
+# index,  species, method, epsilon/k,        sigma,    mu(T_ref),    diameter
+  0              h      2    37.0000    2.7080e-10    1.6239e-05    2.2845e-10
+  1             h2      2    59.7000    2.8270e-10    1.9652e-05    2.4697e-10
+  2              o      2   106.7000    3.0500e-10    4.3589e-05    2.7833e-10
+  3             o2      2   106.7000    2.4670e-10    9.4223e-05    2.2513e-10
+  4             oh      2    79.8000    3.1470e-10    4.4127e-05    2.8088e-10
+  5            h2o      2   809.1000    2.6410e-10    3.5807e-05    3.1634e-10
+  6             n2      2    71.4000    3.7980e-10    3.9532e-05    3.3619e-10
+  7            ho2      1   282.3244    3.9648e-10    3.0951e-05    3.9585e-10
+  8           h2o2      2   289.3000    4.1960e-10    2.7892e-05    4.2015e-10
+  9             ar      2    93.3000    3.5420e-10    5.2137e-05    3.1991e-10
+# ----------------------------------------------------------------------------
+# Binary Collision Step Probabilty Report:
+#   Highest probability found over T-range [ 300.00 K,3000.00 K]
+#   scanning temperature steps dT =  100.0000 K
+#   and p =   2.0000e+06 Pa (will only impact PLOG reactions)
+#   highest probability step: 24 {ho2 + oh <=> h2o + o2 (fwd)}
+#   step      24 probability:  4.08226e-01
+#   Number of bimolecur steps reported with a peak reaction
+#   probability greater than or equal to 1.00e+00 [-]: 0

@@ -1,0 +1,45 @@
+
+import sys
+#Modify/remove to use a different flamesolver.py
+sys.path.append("@CMAKE_INSTALL_PREFIX@/lib/python/site-packages")
+
+from flamesolver import *
+
+######## ----- BEGIN USER INPUT ----- ########
+
+### BASIC INPUTS ###
+input_file = 'input.yml'
+
+# Equivalence ratio, can be an array for a sweep
+phi = [0.8, 1.0]
+
+# Unburnt temperature, can be an array for a sweep
+T = [400.0]
+
+# Pressure, can be an array for a sweep
+pressure = [1.0e5, 25.0e5]
+
+# Number of processors for final solution
+# Set to maximum number of processors available
+nprocs = 8
+nnodes = 1
+
+# Minimum nb of grid points per flame thickness for "final" solution
+min_pts_per_lF = 12.
+
+# Switch to steady solver when a reasonable solution is available
+steady = True #False
+
+######## ----- END USER INPUT ----- ########
+
+compute_unsteady_flame_speeds(input_file,
+                              phi,
+                              T,
+                              pressure,
+                              nprocs,
+                              nnodes,
+                              min_pts_per_lF,
+                              steady,
+                              nprocs_steady=2,
+                              mpiexec='@MPIEXEC_NAME@')
+

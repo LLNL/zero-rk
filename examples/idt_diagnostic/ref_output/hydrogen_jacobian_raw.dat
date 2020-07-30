@@ -1,0 +1,330 @@
+# Rate of Progress Derivative Report at t = 0 [s]
+# Last time step -    CVodeGetLastStep()    = 1.73289988000663027e-16 [s]
+# Current time step - CVodeGetCurrentStep() = 1.73289988000663036e-12 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 1
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.53205043807504743e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 7.19115618539706216e-08 [s]
+# Last time step -    CVodeGetLastStep()    = 2.47415631593837632e-09 [s]
+# Current time step - CVodeGetCurrentStep() = 2.47415631593837632e-09 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 2
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.53205043806751405e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 5.8797905893493567e-07 [s]
+# Last time step -    CVodeGetLastStep()    = 2.01381444848553349e-08 [s]
+# Current time step - CVodeGetCurrentStep() = 2.01381444848553349e-08 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 3
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.53205043797321395e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 5.91077081701391816e-06 [s]
+# Last time step -    CVodeGetLastStep()    = 9.70850823573569957e-07 [s]
+# Current time step - CVodeGetCurrentStep() = 9.70850823573569957e-07 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 4
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.53205043681947616e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.00121601863509499713 [s]
+# Last time step -    CVodeGetLastStep()    = 3.78657725336734296e-05 [s]
+# Current time step - CVodeGetCurrentStep() = 3.78657725336734296e-05 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 5
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.53204868587757927e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.00348796498711540859 [s]
+# Last time step -    CVodeGetLastStep()    = 5.72282834646744643e-05 [s]
+# Current time step - CVodeGetCurrentStep() = 5.72282834646744643e-05 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 6
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.53199753953287774e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.00798301193162849476 [s]
+# Last time step -    CVodeGetLastStep()    = 8.66234460537239462e-05 [s]
+# Current time step - CVodeGetCurrentStep() = 8.66234460537239462e-05 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 7
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.53102223786108672e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0115073145430255371 [s]
+# Last time step -    CVodeGetLastStep()    = 3.44128726924574038e-05 [s]
+# Current time step - CVodeGetCurrentStep() = 3.44128726924574038e-05 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 8
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.52729623717373358e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0127433553568471556 [s]
+# Last time step -    CVodeGetLastStep()    = 1.02442776270493445e-05 [s]
+# Current time step - CVodeGetCurrentStep() = 1.02442776270493445e-05 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 9
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.5217376270344901e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0130995000142117221 [s]
+# Last time step -    CVodeGetLastStep()    = 2.95422328539160461e-06 [s]
+# Current time step - CVodeGetCurrentStep() = 2.95422328539160461e-06 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 10
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.51537637169324243e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0131995059324058039 [s]
+# Last time step -    CVodeGetLastStep()    = 8.35411392078948878e-07 [s]
+# Current time step - CVodeGetCurrentStep() = 8.35411392078948878e-07 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 11
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.50863397116969201e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132301434565860725 [s]
+# Last time step -    CVodeGetLastStep()    = 1.74403984387646692e-07 [s]
+# Current time step - CVodeGetCurrentStep() = 1.74403984387646692e-07 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 12
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.50026842063952695e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.013236424496450792 [s]
+# Last time step -    CVodeGetLastStep()    = 3.76209374488388938e-08 [s]
+# Current time step - CVodeGetCurrentStep() = 3.76209374488388938e-08 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 13
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.49235679207186786e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132377949973030967 [s]
+# Last time step -    CVodeGetLastStep()    = 1.06096201175195862e-08 [s]
+# Current time step - CVodeGetCurrentStep() = 1.06096201175195862e-08 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 14
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.48448982414458601e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132382441542982076 [s]
+# Last time step -    CVodeGetLastStep()    = 3.13910616473586935e-09 [s]
+# Current time step - CVodeGetCurrentStep() = 3.13910616473586935e-09 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 15
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.46919844206149983e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132383785505892273 [s]
+# Last time step -    CVodeGetLastStep()    = 1.24648662776751272e-09 [s]
+# Current time step - CVodeGetCurrentStep() = 1.24648662776751272e-09 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 16
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.43037547830474545e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132384290927982026 [s]
+# Last time step -    CVodeGetLastStep()    = 6.62668413180789247e-10 [s]
+# Current time step - CVodeGetCurrentStep() = 6.62668413180789247e-10 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 17
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.33153497835152852e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132384681902345813 [s]
+# Last time step -    CVodeGetLastStep()    = 9.97828891756424636e-10 [s]
+# Current time step - CVodeGetCurrentStep() = 9.97828891756424636e-10 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 18
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.2542492269194102e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132385280599681271 [s]
+# Last time step -    CVodeGetLastStep()    = 9.97828891756424636e-10 [s]
+# Current time step - CVodeGetCurrentStep() = 9.97828891756424636e-10 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 19
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.22471373435350264e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132386440452092746 [s]
+# Last time step -    CVodeGetLastStep()    = 2.34588407810808548e-09 [s]
+# Current time step - CVodeGetCurrentStep() = 2.34588407810808548e-09 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 20
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.21564681281054882e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132389326776878521 [s]
+# Last time step -    CVodeGetLastStep()    = 1.25925946537566818e-08 [s]
+# Current time step - CVodeGetCurrentStep() = 1.25925946537566818e-08 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 21
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.21480887811418355e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description
+# Rate of Progress Derivative Report at t = 0.0132419009042879093 [s]
+# Last time step -    CVodeGetLastStep()    = 4.51975893070145213e-07 [s]
+# Current time step - CVodeGetCurrentStep() = 4.51975893070145213e-07 [s]
+# Number of Jacobians - CVSpilsGetNumPrecEvals() = 22
+# The concentration derivative of each step's rate of progress is sorted in
+# descending order by magnitude.  To facilitate calculation, the derivatives
+# are calculated for a strictly positive species concentration composition.
+# Specifically, the concentration C[i] of species 'i' is set as follows:
+#   C[i] = max(C_min,C[i]) with C_min = 2.21480697729687969e-29 [kmol/m^3].
+#
+# Note that ONLY rate of progress derivatives with a magnitude
+# greater than    1.000e+15 [Hz] are reported.
+#
+#       [Hz]   species  step
+#    d(ROP)/dC, index, index, description

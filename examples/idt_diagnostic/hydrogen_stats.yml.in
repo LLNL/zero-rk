@@ -1,0 +1,161 @@
+#Chemkin Format Mechansim File
+#Type: string
+mechFile: "@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt"
+
+#Chemkin Format Thermodynamics File
+#Type: string
+thermFile: "@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt"
+
+#Mechanism Parser Log File
+#Type: string
+#Optional with default value of /dev/null
+mechLogFile: "h2_v1b_mech.clog"
+
+#Mechanism Statistics File [output]
+#Type: string
+mechStatFile: "hydrogen_mech_stat.txt"
+
+#File containing the raw jacobian data [output]
+#Type: string
+jacobianRawFile: "hydrogen_jacobian_raw.dat"
+
+#File containing the jacobian element distributions [output]
+#Type: string
+jacobianStatFile: "hydrogen_jacobian_dist.dat"
+
+#File containing additional information about CVode errors and warnings [output]
+#Type: string
+integratorProbFile: "hydrogen_ode_prob.txt"
+
+#Output file
+#Type: string
+outFile: "hydrogen_stats.out"
+
+#Print the current state every printDeltaTime [s]
+#Type: double
+printDeltaTime: 1.0e-4
+
+#Fuel composition map
+#Type: string:floating-point map
+fuelComp: {
+h2: 1.0
+}
+
+#Oxidizer composition map
+#Type: string:floating-point map
+oxidizerComp: {
+n2: 0.79,
+o2: 0.21
+}
+
+#Maximum integration time
+#Type: floating-point
+maxTime: 1.4e-2
+
+#Maximum Internal Integrator Step Size
+#Type: floating-point
+#Optional with default value of 0.05
+maxDtInternal: 1e-3
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+maxSteps: 1000
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+relTol: 1.0e-8
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+absTol: 1.0e-20
+
+#Ignition Delay Metric: Rise in temperature
+#Type: floating-point vector
+#Optional with default value of [400]
+idtTemps: [400.0]
+
+#Reference temperature to normalize the ODE dT/dt equation
+#Type: floating-point
+#Optional with default value of 1000
+refTemp: 1000.0
+
+#Initial temperature [K]
+#Type: floating-point
+initTemp: 950.0
+
+#Initial Pressure [Pa]
+#Type: floating-point
+initPres: 2.0e6
+
+#Initial equivalence ratio (F/A)/(F/A)_{st} [-]
+#Type: floating-point
+initPhi: 1.0
+
+#Idealized exhaust gas recirculation fraction [-]
+#Type: floating-point
+#Optional with default value of 0
+initEgr: 0.0
+
+#Preconditioner threshold value
+#Type: floating-point
+#Optional with default value of 0
+precThresh: 0.0
+
+#Integrator max krylov dimension
+#Type: integer
+#Optional with default value of 5
+krylovDim: 5
+
+#Switch: fakeupdate.
+#Type: boolean
+#Optional with default value of 0
+doFakeUpdate: n
+
+#Switch: ILU.
+#Type: boolean
+#Optional with default value of 0
+doILU: n
+
+#Switch: Preconditioner Threshold Type.
+#Type: integer
+#Optional with default value of 1
+precThreshType: 1
+
+#partial pivot threshold.
+#Type: floating-point
+#Optional with default value of 0
+partialPivotThresh: 0.0
+
+#perm type.
+#Type: integer
+#Optional with default value of 1
+permutationType: 1
+
+#perm threshold.
+#Type: floating-point
+#Optional with default value of 0.3
+permThresh: 0.3
+
+#Switch
+#Type: boolean
+#Optional with default value of 0
+strictSamePattern: n
+
+#Maximum number of nonlinear interations
+#Type: integer
+#Optional with default value of 3
+maxNumNonLinIters: 3
+
+#Linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.1
+cvEpsLin: 0.1
+
+#Non-linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.05
+cvNlConvCoeff: 0.05
+

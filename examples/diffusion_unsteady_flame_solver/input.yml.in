@@ -1,0 +1,178 @@
+#Chemkin Format Mechansim File [input]
+#Type: string
+mech_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_mech.txt
+
+#Chemkin Format Thermodynamics File [input]
+#Type: string
+therm_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_therm.txt
+
+#Transport File [input]
+#Type: string
+trans_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_transport.txt
+
+#Mechanism parser log file
+#Type: string
+#Optional with default value '/dev/null'
+log_file: '/dev/null'
+
+#Transport model
+#Only 'ConstantLewis' is supported with
+#the steady flame solver
+transport_model: 'ConstantLewis'
+#transport_model: 'MixAvg'
+#transport_model: 'MixAvgSoret'
+
+#Unity Lewis number. When set to true [y], solves the unity Lewis number
+#flamelet equations.
+#Type: bool
+unity_Lewis: y
+
+#Scalar dissipation rate
+#Type: floating-point
+scalar_dissipation_rate: 5.0
+
+#Fuel composition mole fraction map for inlet
+#Type: string:floating-point map
+inlet_fuel_comp: {
+NC12H26: 1.0
+}
+
+#Oxidizer composition mole fraction map for inlet
+#Type: string:floating-point map
+inlet_oxidizer_comp: {
+N2: 3.76,
+O2: 1.0
+}
+
+#Fuel temperature [K]
+#Type: floating-point
+#Optional with default value of 300
+fuel_temperature: 300.0
+
+#Oxidizer temperature [K]
+#Type: floating-point
+#Optional with default value of 300
+oxidizer_temperature: 300.0
+
+#Full mole fraction map for inlet. Use if mixture composition cannot
+#be described with fuel, oxidizer, and equivalence ratio
+#If not empty, will overrule inlet_fuel_comp and inlet_oxidizer_comp
+#Type: string:floating-point map
+inlet_full_comp: {}
+
+#Soot flag. When set to true [y], computes PAH source terms
+#and density correction
+#Type: bool
+soot: n
+
+#Grid file, if provided, grid_file overrules num_points entry
+#Type: string
+#Optional with default value '/dev/null'
+#grid_file: grid_file
+
+#Lewis number file, only used with ConstantLewis transport model
+#Type: string
+Lewis_file: Lewis_file
+
+#Binary data file used for initialization
+#Type: string
+#Optional file with default value of '/dev/null'
+#restart_file: "data_0.000582"
+
+#Convective scheme type (0: first order upwind, 1: second order upwind,
+#2: second order centered)
+#Type: integer
+#Optional with default value of 2
+convective_scheme_type: 2
+
+#Reaction rate limiter
+#Type: floating-point
+#Optional with default value of 1e+300
+step_limiter : 1e+16
+
+#Ignition temperature [K] used for initialization if no restart_file provided
+#Type: floating-point
+#Optional with default value of 2200
+ignition_temperature : 2200
+
+#Pressure of the flame system [Pa]
+#Type: floating-point
+#Optional with default value of 101325
+pressure: 101325.0
+
+#Thickness of mixing region between inlet and initial compositions [m]
+#Type: floating-point
+#Optional with default value of 0.01
+thickness : 0.01
+
+#Maximum integration time [s]
+#Type: floating-point
+max_time: 0.05
+
+#Vector of species names (case sensitive) to track the
+#position of their maximum value in the domain. In the case
+#of multiple maxima at the same value, only the most
+#upstream position is reported. Note that temperature is
+#tracked automatically.
+#Type: string vector
+#Optional with default value of [not_a_species]
+track_max: [OH, CH, H2O2]
+
+#Print the basic stats every interval equal to stats_dt: 2e-06
+#Type: floating-point
+#Optional with default value of 0.001
+stats_dt: 2e-05
+
+#Print all the field variables at an interval equal to this
+#multiplier times stats_dt
+#Type: integer
+#Optional with default value of 100
+field_dt_multiplier: 100
+
+#Integrator type (0,1: unsupported, 2: exact J with SuperLU_DIST,
+#3: approx J with SuperLU+LAPACK)
+#Type: integer
+#Optional with default value of 3
+integrator_type: 3
+
+#Flag that when set to true [y] stores the jacobian data for
+#each grid point when computed by user
+#Type: boolean
+#Optional with default value of 0
+store_jacobian: y
+
+#Maximum Internal Integrator Step Size [s]
+#Type: floating-point
+#Optional with default value of 1e-06
+max_internal_dt: 2.0e-5
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+max_num_steps: 1000000
+
+#Maximum Number of iterations between jacobian updates
+#Only used by steady flame solver
+#Type: integer
+#Optional with default value of 10
+max_subiter: 10
+
+#Number of grid points
+#Type: integer
+#Optional with default value of 100
+num_points: 256
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+rel_tol: 1.0e-8
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+abs_tol: 1.0e-20
+
+#Reference temperature to normalize the ODE dT/dt equation
+#Type: floating-point
+#Optional with default value of 1000
+ref_temperature: 1000.0

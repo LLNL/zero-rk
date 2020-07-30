@@ -1,0 +1,370 @@
+Zero-RK Chemkin Format Mechanism Parser
+     derived from Cantera CKreader 1.0
+     see README for license information
+
+Tue Jul 28 15:12:35 2020
+
+        input file: /share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt
+  species database: /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+debugging disabled.
+
+
+reading elements...
+
+1.  h   1.00797
+2.  c   12.0112
+3.  o   15.9994
+4.  n   14.0067
+5.  ar  39.9480
+
+read 5 elements.
+
+reading species...
+
+1.  h
+2.  h2
+3.  o
+4.  o2
+5.  oh
+6.  h2o
+7.  n2
+8.  ho2
+9.  h2o2
+10.  ar
+
+read 10 species.
+
+looking up species definitions...
+
+reading default temperature ranges from /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+
+ default Tlow, Tmid, Thigh: 300.00  1000.00  5000.00
+no THERMO section in input file.
+searching external database /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt for species definitions...
+
+ default Tlow, Tmid, Thigh: 300.00  1000.00  5000.00
+
+found species h at line 13 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   120186h   1           
+   phase: g
+   composition: (1 h)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+2.50000000E+00  	+2.50000000E+00
+   a2  	+0.00000000E+00  	+0.00000000E+00
+   a3  	+0.00000000E+00  	+0.00000000E+00
+   a4  	+0.00000000E+00  	+0.00000000E+00
+   a5  	+0.00000000E+00  	+0.00000000E+00
+   a6  	+2.54716300E+04  	+2.54716300E+04
+   a7  	-4.60117600E-01  	-4.60117600E-01
+
+
+found species h2 at line 17 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   121286h   2           
+   phase: g
+   composition: (2 h)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+3.29812400E+00  	+2.99142300E+00
+   a2  	+8.24944200E-04  	+7.00064400E-04
+   a3  	-8.14301500E-07  	-5.63382900E-08
+   a4  	-9.47543400E-11  	-9.23157800E-12
+   a5  	+4.13487200E-13  	+1.58275200E-15
+   a6  	-1.01252100E+03  	-8.35034000E+02
+   a7  	-3.29409400E+00  	-1.35511000E+00
+
+
+found species o at line 21 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   120186o   1           
+   phase: g
+   composition: (1 o)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+2.94642900E+00  	+2.54206000E+00
+   a2  	-1.63816600E-03  	-2.75506200E-05
+   a3  	+2.42103200E-06  	-3.10280300E-09
+   a4  	-1.60284300E-09  	+4.55106700E-12
+   a5  	+3.89069600E-13  	-4.36805200E-16
+   a6  	+2.91476400E+04  	+2.92308000E+04
+   a7  	+2.96399500E+00  	+4.92030800E+00
+
+
+found species o2 at line 25 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   121386o   2           
+   phase: g
+   composition: (2 o)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+3.21293600E+00  	+3.69757800E+00
+   a2  	+1.12748600E-03  	+6.13519700E-04
+   a3  	-5.75615000E-07  	-1.25884200E-07
+   a4  	+1.31387700E-09  	+1.77528100E-11
+   a5  	-8.76855400E-13  	-1.13643500E-15
+   a6  	-1.00524900E+03  	-1.23393000E+03
+   a7  	+6.03473800E+00  	+3.18916600E+00
+
+
+found species oh at line 29 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:  0 rucich   1o   1    0 
+   phase: g
+   composition: (1 h, 1 o)
+   Tlow, Tmid, Thigh: (300.00, 1710.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+3.41896226E+00  	+2.85376040E+00
+   a2  	+3.19255801E-04  	+1.02994334E-03
+   a3  	-3.08292717E-07  	-2.32666477E-07
+   a4  	+3.64407494E-10  	+1.93750704E-11
+   a5  	-1.00195479E-13  	-3.15759847E-16
+   a6  	+3.45264448E+03  	+3.69949720E+03
+   a7  	+2.54433372E+00  	+5.78756825E+00
+
+
+found species h2o at line 33 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:    20387h   2o   1      
+   phase: g
+   composition: (2 h, 1 o)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+3.38684200E+00  	+2.67214600E+00
+   a2  	+3.47498200E-03  	+3.05629300E-03
+   a3  	-6.35469600E-06  	-8.73026000E-07
+   a4  	+6.96858100E-09  	+1.20099600E-10
+   a5  	-2.50658800E-12  	-6.39161800E-15
+   a6  	-3.02081100E+04  	-2.98992100E+04
+   a7  	+2.59023300E+00  	+6.86281700E+00
+
+
+found species n2 at line 37 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   121286n   2           
+   phase: g
+   composition: (2 n)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+3.29867700E+00  	+2.92664000E+00
+   a2  	+1.40824000E-03  	+1.48797700E-03
+   a3  	-3.96322200E-06  	-5.68476100E-07
+   a4  	+5.64151500E-09  	+1.00970400E-10
+   a5  	-2.44485500E-12  	-6.75335100E-15
+   a6  	-1.02090000E+03  	-9.22797700E+02
+   a7  	+3.95037200E+00  	+5.98052800E+00
+
+
+found species ho2 at line 41 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   L 5/89h   1o   2      
+   phase: g
+   composition: (1 h, 2 o)
+   Tlow, Tmid, Thigh: (200.00, 1000.00, 3500.00)
+
+   coefficients (low, high):
+   a1  	+4.30179801E+00  	+4.01721090E+00
+   a2  	-4.74912051E-03  	+2.23982013E-03
+   a3  	+2.11582891E-05  	-6.33658150E-07
+   a4  	-2.42763894E-08  	+1.14246370E-10
+   a5  	+9.29225124E-12  	-1.07908535E-14
+   a6  	+2.94808040E+02  	+1.11856713E+02
+   a7  	+3.71666245E+00  	+3.78510215E+00
+
+
+found species h2o2 at line 45 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   120186h   2o   2      
+   phase: g
+   composition: (2 h, 2 o)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+3.38875400E+00  	+4.57316700E+00
+   a2  	+6.56922600E-03  	+4.33613600E-03
+   a3  	-1.48501300E-07  	-1.47468900E-06
+   a4  	-4.62580600E-09  	+2.34890400E-10
+   a5  	+2.47151500E-12  	-1.43165400E-14
+   a6  	-1.76631500E+04  	-1.80069600E+04
+   a7  	+6.78536300E+00  	+5.01137000E-01
+
+
+found species ar at line 49 of /share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+   id/date:   120186ar  1           
+   phase: g
+   composition: (1 ar)
+   Tlow, Tmid, Thigh: (300.00, 1000.00, 5000.00)
+
+   coefficients (low, high):
+   a1  	+2.50000000E+00  	+2.50000000E+00
+   a2  	+0.00000000E+00  	+0.00000000E+00
+   a3  	+0.00000000E+00  	+0.00000000E+00
+   a4  	+0.00000000E+00  	+0.00000000E+00
+   a5  	+0.00000000E+00  	+0.00000000E+00
+   a6  	-7.45375000E+02  	-7.45375000E+02
+   a7  	+4.36600100E+00  	+4.36600100E+00
+
+
+validating species...
+   checking that all species have been defined... OK
+   checking that all species elements have been declared... OK
+   checking consistency of species thermo data... 
+   Checking that cp/R is positive... ok
+   Checking that the species entropies are positive... ok
+   Checking that properties are continuous at the midpoint temperature... ok 
+
+
+   Checking that cp is less that the high-temperature
+   limiting value predicted by equipartition of energy.
+   Note that this limit does not account for the electronic
+   contribution to cp, and so may be violated in some cases.
+
+
+Warning... species h2: cp(Tmax) greater than equipartition value 
+by 9.30134444E+00 percent.
+Warning... species o: cp(Tmax) greater than equipartition value 
+by 4.90467800E+00 percent.
+Warning... species o2: cp(Tmax) greater than equipartition value 
+by 1.39311306E+01 percent.
+Warning... species h2o: cp(Tmax) greater than equipartition value 
+by 1.90941625E+01 percent.
+Warning... species n2: cp(Tmax) greater than equipartition value 
+by 1.22395833E+00 percent.
+Warning... species ho2: cp(Tmax) greater than equipartition value 
+by 2.28879946E+01 percent.
+Warning... species h2o2: cp(Tmax) greater than equipartition value 
+by 8.88982778E+00 percent.OK
+
+reading reactions...
+
+
+read 21 reactions.
+checking that all reactions balance... OK
+WARNING: not checking for duplicate reactions......OK
+
+reaction 1
+   h + o2 <=> o + oh
+   rate coeff:  A, n, E = (1.915E+14, 0, 16440)
+   reverse rate coeff:  A, n, E = (5.481E+11, 0.39, -293)
+
+reaction 2
+   o + h2 <=> h + oh
+   rate coeff:  A, n, E = (50800, 2.67, 6292)
+   reverse rate coeff:  A, n, E = (26670, 2.65, 4880)
+
+reaction 3
+   oh + h2 <=> h + h2o
+   rate coeff:  A, n, E = (216000000, 1.51, 3430)
+   reverse rate coeff:  A, n, E = (2298000000, 1.4, 18320)
+
+reaction 4
+   o + h2o <=> oh + oh
+   rate coeff:  A, n, E = (2970000, 2.02, 13400)
+   reverse rate coeff:  A, n, E = (146500, 2.11, -2904)
+
+reaction 5
+   h2 + M <=> h + h + M
+   rate coeff:  A, n, E = (4.577E+19, -1.4, 104400)
+   reverse rate coeff:  A, n, E = (1.146E+20, -1.68, 820)
+   enhanced collision efficiencies:
+       h2 2.5,  h2o 12
+
+reaction 6
+   o2 + M <=> o + o + M
+   rate coeff:  A, n, E = (4.515E+17, -0.64, 118900)
+   reverse rate coeff:  A, n, E = (6.165E+15, -0.5, 0)
+   enhanced collision efficiencies:
+       ar 0.83,  h2 2.5,  h2o 12
+
+reaction 7
+   oh + M <=> o + h + M
+   rate coeff:  A, n, E = (9.88E+17, -0.74, 102100)
+   reverse rate coeff:  A, n, E = (4.714E+18, -1, 0)
+   enhanced collision efficiencies:
+       ar 0.75,  h2 2.5,  h2o 12
+
+reaction 8
+   h2o + M <=> h + oh + M
+   rate coeff:  A, n, E = (1.912E+23, -1.83, 118500)
+   reverse rate coeff:  A, n, E = (4.5E+22, -2, 0)
+   enhanced collision efficiencies:
+       ar 0.38,  h2 0.73,  h2o 12
+
+reaction 9
+   h + o2 (+ M) <=> ho2 (+ M)
+   high P rate coeff:  A, n, E = (1.475E+12, 0.6, 0)
+   low P rate coeff:  A, n, E = (3.482E+16, -0.411, -1115)
+   Troe falloff function: 
+      alpha, T***, T*, T** = (0.5, 1E-30, 1E+30, 1E+100)
+   enhanced collision efficiencies:
+       ar 0.67,  h2 1.3,  h2o 14
+
+reaction 10
+   ho2 + h <=> h2 + o2
+   rate coeff:  A, n, E = (1.66E+13, 0, 823)
+   reverse rate coeff:  A, n, E = (3.164E+12, 0.35, 55510)
+
+reaction 11
+   ho2 + h <=> oh + oh
+   rate coeff:  A, n, E = (7.079E+13, 0, 295)
+   reverse rate coeff:  A, n, E = (2.027E+10, 0.72, 36840)
+
+reaction 12
+   ho2 + o <=> oh + o2
+   rate coeff:  A, n, E = (3.25E+13, 0, 0)
+   reverse rate coeff:  A, n, E = (3.252E+12, 0.33, 53280)
+
+reaction 13
+   ho2 + oh <=> h2o + o2
+   rate coeff:  A, n, E = (2.89E+13, 0, -497)
+   reverse rate coeff:  A, n, E = (5.861E+13, 0.24, 69080)
+
+reaction 14
+   h2o2 + o2 <=> ho2 + ho2
+   rate coeff:  A, n, E = (4.634E+16, -0.35, 50670)
+   reverse rate coeff:  A, n, E = (4.2E+14, 0, 11980)
+   declared duplicate reaction. See reaction 0.
+
+reaction 15
+   h2o2 + o2 <=> ho2 + ho2
+   rate coeff:  A, n, E = (1.434E+13, -0.35, 37060)
+   reverse rate coeff:  A, n, E = (1.3E+11, 0, -1629)
+   declared duplicate reaction. See reaction 0.
+
+reaction 16
+   h2o2 (+ M) <=> oh + oh (+ M)
+   high P rate coeff:  A, n, E = (2.951E+14, 0, 48430)
+   low P rate coeff:  A, n, E = (1.202E+17, 0, 45500)
+   Troe falloff function: 
+      alpha, T***, T*, T** = (0.5, 1E-30, 1E+30, 1E+100)
+   enhanced collision efficiencies:
+       ar 0.64,  h2 2.5,  h2o 12
+
+reaction 17
+   h2o2 + h <=> h2o + oh
+   rate coeff:  A, n, E = (2.41E+13, 0, 3970)
+   reverse rate coeff:  A, n, E = (126900000, 1.31, 71410)
+
+reaction 18
+   h2o2 + h <=> h2 + ho2
+   rate coeff:  A, n, E = (6.025E+13, 0, 7950)
+   reverse rate coeff:  A, n, E = (1.041E+11, 0.7, 23950)
+
+reaction 19
+   h2o2 + o <=> oh + ho2
+   rate coeff:  A, n, E = (9550000, 2, 3970)
+   reverse rate coeff:  A, n, E = (8660, 2.68, 18560)
+
+reaction 20
+   h2o2 + oh <=> h2o + ho2
+   rate coeff:  A, n, E = (1E+12, 0, 0)
+   reverse rate coeff:  A, n, E = (1.838E+10, 0.59, 30890)
+   declared duplicate reaction. See reaction 0.
+
+reaction 21
+   h2o2 + oh <=> h2o + ho2
+   rate coeff:  A, n, E = (5.8E+14, 0, 9557)
+   reverse rate coeff:  A, n, E = (1.066E+13, 0.59, 40450)
+   declared duplicate reaction. See reaction 0.
+
+
+Success... elapsed CPU time = 0 s

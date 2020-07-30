@@ -1,0 +1,6 @@
+
+app=variable_volume.x
+inp=h2_rcm.yml
+
+@CMAKE_INSTALL_PREFIX@/bin/$app $inp
+

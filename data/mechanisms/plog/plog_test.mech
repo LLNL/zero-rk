@@ -1,0 +1,58 @@
+elements
+h
+end
+
+species
+h
+h2
+end
+
+reactions
+!
+! reaction 1:  k_fwd(T,P) = 1e8*(p/1 atm) [1/s] (linear in p)
+!
+h2 <=> h + h  4.577E+19 -1.400 1.044E+05 ! parameters from H2+M<=>H+H+M
+plog /0.01    1.0e6    0.0    0.0/
+plog /0.1     1.0e7    0.0    0.0/
+plog /1.0     1.0e8    0.0    0.0/
+plog /10.0    1.0e9    0.0    0.0/
+plog /100.0   1.0e10   0.0    0.0/
+!
+! reaction 2: k_fwd(T,P) = 1024*(p/1 atm)^2 [1/s] (quadratic in p)
+!
+h2 <=> h + h   4.577E+19 -1.400 1.044E+05 ! parameters from H2+M<=>H+H+M
+plog /0.5    256.0    0.0    0.0/
+plog /1.0   1024.0    0.0    0.0/
+plog /2.0   4096.0    0.0    0.0/
+plog /4.0  16384.0    0.0    0.0/
+!
+! reaction 3: k_fwd(T,P) = 1.6e12*sqrt(p/1 atm) [1/s]
+!
+h2 <=> h + h    4.577E+19 -1.400 1.044E+05 ! parameters from H2+M<=>H+H+M
+plog / 1.0  1.6e12     0.0    0.0/
+plog / 4.0  3.2e12     0.0    0.0/
+plog /16.0  6.4e12     0.0    0.0/
+!
+! reaction 4: k_fwd(T,P) = 8.192e+0*(5 atm/p)^3 [cm^3/mol/s]
+!                          8.192e-3*(5 atm/p)^3 [m^3/kmol/s]
+!
+h + h <=> h2   1.145E+20 -1.676 8.200E+02
+plog  / 5.0    8.192  0.0    0.0 /
+plog  /10.0    1.024  0.0    0.0 /  
+!
+! reaction 5: plog definition based on the tpgme reaction 'ch3+oh<=>ch2o+h2'
+!
+h+h<=>h2                                  3.502e+005     1.441   -3244.0
+plog/      0.0100     3.502e+005     1.441     -3244.0/
+plog/      0.1000     8.854e+005     1.327     -2975.0/
+plog/      1.0000     1.650e+007     0.973     -2010.0/
+plog/     10.0000     5.374e+009     0.287       280.0/
+plog/    100.0000     9.494e+018    -2.199      9769.0/
+!
+! reaction 6: 3rd body reaction from the iso-octane mechanism
+!
+h2+m<=>h+h+m 4.577E+19 -1.400 1.044E+05
+rev/ 1.145E+20 -1.676 8.200E+02 /
+h2/2.5/
+
+end

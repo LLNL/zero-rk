@@ -1,0 +1,114 @@
+#Chemkin Format Mechansim File
+#Type: string
+mechFile: '@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt'
+
+#Chemkin Format Thermodynamics File
+#Type: string
+thermFile: '@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt'
+
+#Mechanism Parser Log File
+#Type: string
+#Optional with default value of /dev/null
+mechLogFile: 'hydrogen.clog'
+
+#File containing initial conditions. (Column 1) Fuel mole 
+#fraction; (2) Ethanol mole fraction; (3) O2 mole fraction; 
+#(4) N2 mole fraction; (5) AR mole fraction; (6) Initial 
+#temperature [C]; (7) Inital pressure [bar]; and (8) volume 
+#history file [csv format t, vol] 
+#Type: string
+initialConditionsFile: 'initial_conditions.txt'
+
+#Path to directory containing volume histories
+#Type: string
+#Optional with default value of ./
+volumeFilePath: './volume_histories'
+
+#Stroke multiplier [-] to rescale the volume time history 
+#(preserves the minimum volume) 
+#Type: floating-point
+#Optional with default value of 1
+strokeMult: 1.0
+
+#Volume multiplier [-] to rescale the volume time history
+#Type: floating-point
+#Optional with default value of 1
+volumeMult: 1.0e-6
+
+#Time history output file
+#Type: string
+thistFile: 'dummy.thist'
+
+#Output summary file
+#Type: string
+outputFile: 'hydrogen.out'
+
+#Initial ODE system time
+#Type: floating-point
+initTime: 0.0
+
+#Final ODE system time
+#Type: floating-point
+finalTime: 0.4
+
+#Maximum Internal Integrator Step Size
+#Type: floating-point
+#Optional with default value of 0.01
+maxDtInternal: 1.0e-4
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+maxSteps: 1000000
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+relTol: 1.0e-8
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+absTol: 1.0e-20
+
+#Reference temperature to normalize the ODE state variables
+#Type: floating-point
+#Optional with default value of 1000
+refTemp: 1000.0
+
+#Reference moles to normalize the ODE state variables
+#Type: floating-point
+#Optional with default value of 1
+refMoles: 5.0e-5
+
+oxidizerSpecies: [ o2, n2, ar ]
+
+#Initial composition map
+#Type: string:floating-point map
+fuelComp: { h2:   1.0 }
+
+#Composition type (MOLE_FRACTION or MASS_FRACTION)
+#Type: string
+#Optional with default value of MOLE_FRACTION
+compType: MOLE_FRACTION
+
+#Maximum BDF
+#Type: integer
+#Optional with default value of 5
+maxOrder: 5
+
+#Maximum number of nonlinear interations
+#Type: integer
+#Optional with default value of 3
+maxNumNonLinIters: 3
+
+#Linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.1
+cvEpsLin: 0.1
+
+#Non-linear solver tolerance multiplier
+#Type: floating-point
+#Optional with default value of 0.05
+cvNlConvCoeff: 0.05
+

@@ -1,0 +1,83 @@
+#Chemkin Format Mechansim File
+#Type: string
+mechFile: "@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt"
+
+#Chemkin Format Thermodynamics File
+#Type: string
+thermFile: "@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt"
+
+#Mechanism Parser Log File
+#Type: string
+#Optional with default value of /dev/null
+mechLogFile: "h2_v1b_mech.clog"
+
+#Sensitivity output file
+#Type: string
+outFile: "h2_T875_sensOneDir.dat"
+
+#AFactor perturbation multiplier
+#Type: floating-point
+#Optional with default value of 2
+AFactorMultiplier: 2.0
+
+#Switch: compute the AFactor perturbation in both directions
+#Type: boolean
+#Optional with default value of n
+doBothDir: n
+
+#Initial temperature [K]
+#Type: floating-point
+initTemp: [875.0]
+
+#Initial Pressure [Pa]
+#Type: floating-point
+initPres: [2.0e6]
+
+#Initial equivalence ratio (F/A)/(F/A)_{st} [-]
+#Type: floating-point
+initPhi: [1.0]
+
+
+#Fuel composition map
+#Type: string:floating-point map
+fuelComp: {
+h2 : 1.0,
+h2o: 0.0,
+oh : 0.0
+}
+
+#Oxidizer composition map
+#Type: string:floating-point map
+oxidizerComp: {
+o2: 0.21,
+n2: 0.79
+}
+
+#Maximum integration time [s]
+#Type: floating-point
+maxTime: 1.0
+
+#Maximum Internal Integrator Step Size
+#Type: floating-point
+#Optional with default value of 0.05
+maxDtInternal: 0.05
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+maxSteps: 1000000
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+relTol: 1.0e-8
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+absTol: 1.0e-20
+
+#Ignition Delay Metric: Rise in temperature
+#Type: floating-point vector
+#Optional with default value of [400]
+idtTemps: [200.0, 50.0, 400.0,600.0, 100.0]

@@ -1,0 +1,6 @@
+
+app=perturbAFactor_serial.x
+inp=perturbAFactor_example.yml
+
+@CMAKE_INSTALL_PREFIX@/bin/$app $inp
+

@@ -1,0 +1,6 @@
+#ifndef ZERORK_CONF_H
+
+#cmakedefine ZERORK_EXP_LIBC @ZERORK_EXP_LIBC@
+#cmakedefine ZERORK_HAVE_MKL @ZERORK_HAVE_MKL@
+
+#endif
