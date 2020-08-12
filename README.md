@@ -78,7 +78,7 @@ If you use Zero-RK in a scholarly article, please cite the article(s) describing
 
 - For zero-dimensional solvers:
 
-> M. J. McNenly, R. A.Whitesides, and D. L. Flowers (2015). Faster solvers for large kinetic mechanisms using adaptive preconditioners. Proceedings of the Combustion Institute, 35(1), 581-587. https://doi.org/10.1016/j.proci.2014.05.113
+> M.J. McNenly, R.A. Whitesides, and D.L. Flowers, Faster solvers for large kinetic mechanisms using adaptive preconditioners. Proceedings of the Combustion Institute, 35(1) (2015) 581-587. https://doi.org/10.1016/j.proci.2014.05.113
 
 - For variable-volume solvers:
 
@@ -90,12 +90,14 @@ If you use Zero-RK in a scholarly article, please cite the article(s) describing
 
 - For one-dimensional, laminar flames solvers:
 
-> S. Lapointe, R. A. Whitesides, and M. J. McNenly (2019). Sparse, iterative simulation methods for one-dimensional laminar flames. Combustion and Flame, 204, 23-32. https://doi.org/10.1016/j.combustflame.2019.02.030
+> S. Lapointe, R.A. Whitesides, and M.J. McNenly, Sparse, iterative simulation methods for one-dimensional laminar flames. Combustion and Flame, 204 (2019) 23-32. https://doi.org/10.1016/j.combustflame.2019.02.030  
 > S. Lapointe, Y. Xuan, H. Kwon, R.A. Whitesides, M.J. McNenly, A computationally-efficient method for flamelet calculations, Combustion and Flame. 221 (2020) 94-102. https://doi.org/10.1016/j.combustflame.2020.07.035.
 
 - For the mechanism analysis/debugging tools:
 
-> N. J. Killingsworth, M. J. McNenly, R. A. Whitesides, and S. W. Wagnon (2020). Cloud based tool for analysis of chemical kinetic mechanisms. Combustion and Flame, in press.
+> N.J. Killingsworth, M.J. McNenly, R.A. Whitesides, and S.W. Wagnon, Cloud based tool for analysis of chemical kinetic mechanisms, Combustion and Flame. 221 (2020) 170-179. https://doi.org/10.1016/j.combustflame.2020.06.010.
+
+> 
 
 License
 ----------------
