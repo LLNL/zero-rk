@@ -426,13 +426,13 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-                                         &concentrations_[0],
-                                         &step_limiter[0],
-                                         &net_reaction_rates_[0],
-                                         &creation_rates_[0],
-                                         &destruction_rates_[0],
-                                         &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   // compute the mass specific heat of the mixture
   mix_mass_cp = mechanism_ptr->getMassCpFromTY(temperature,
@@ -509,13 +509,13 @@ ReactorError
     concentrations_[j] = density*state[j]*inv_molecular_mass_[j];
   }
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-                                         &concentrations_[0],
-                                         &step_limiter[0],
-                                         &net_reaction_rates_[0],
-                                         &creation_rates_[0],
-                                         &destruction_rates_[0],
-                                         &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   // compute the mass specific heat of the mixture
   mix_mass_cp = mechanism_ptr->getMassCpFromTY(temperature,
@@ -587,13 +587,13 @@ ReactorError
     concentrations_[j] = density*state[j]*inv_molecular_mass_[j];
   }
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-                                         &concentrations_[0],
-                                         &step_limiter[0],
-                                         &net_reaction_rates_[0],
-                                         &creation_rates_[0],
-                                         &destruction_rates_[0],
-                                         &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   // compute the rate of change of the mass fraction of each species
   for(int j=0; j<num_species; ++j) {
@@ -1364,13 +1364,13 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-                                         &concentrations_[0],
-                                         &step_limiter[0],
-                                         &net_reaction_rates_[0],
-                                         &creation_rates_[0],
-                                         &destruction_rates_[0],
-                                         &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -1593,13 +1593,13 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-    mechanism_ptr->getReactionRatesLimiter(temperature,
-                                         &concentrations_[0],
-                                         &step_limiter[0],
-                                         &net_reaction_rates_[0],
-                                         &creation_rates_[0],
-                                         &destruction_rates_[0],
-                                         &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -1686,8 +1686,7 @@ ReactorError
     -(temperature/mix_mass_cp)*enthalpy_sum;
 
   // compute the rate of change of the relative volume
-  // v - RuT/p/\sum_i (1/mw[i]*y[i]) = 0
-  // instead of dv/dt = v/T * dT/dt + RuT/p * \sum_i (1/mw[i] * dy[i]/dt)
+  // v - RuT/p/\sum_i (1/mw[i]*y[i]) = 0  instead of dv/dt = v/T * dT/dt + RuT/p * \sum_i (1/mw[i] * dy[i]/dt)
   // enforce ideal gas law
   original_derivative_[num_species] = relative_volume - RuT/pressure/mix_molecular_mass;
 
@@ -1829,13 +1828,13 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-                                         &concentrations_[0],
-                                         &step_limiter[0],
-                                         &net_reaction_rates_[0],
-                                         &creation_rates_[0],
-                                         &destruction_rates_[0],
-                                         &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -1924,8 +1923,7 @@ ReactorError
   original_derivative_[num_species+1] *= inv_ref_temperature;
 
   // compute the rate of change of the relative volume
-  // v - RuT/p/\sum_i (1/mw[i]*y[i]) = 0
-  // insted of dv/dt = v/T * dT/dt + RuT/p * \sum_i (1/mw[i] * dy[i]/dt)
+  // v - RuT/p/\sum_i (1/mw[i]*y[i]) = 0  insted of dv/dt = v/T * dT/dt + RuT/p * \sum_i (1/mw[i] * dy[i]/dt)
   // enforce ideal gas law
   original_derivative_[num_species] = relative_volume - RuT/pressure/mix_molecular_mass;
 
@@ -2066,13 +2064,13 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-					 &concentrations_[0],
-					 &step_limiter[0],
-					 &net_reaction_rates_[0],
-					 &creation_rates_[0],
-					 &destruction_rates_[0],
-					 &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -2178,7 +2176,9 @@ ReactorError
   original_derivative_[num_species] = (relative_volume/temperature)*
     original_derivative_[num_species+1] + (RuT/pressure)*mass_sum;
 
-  // rescale the temperature derivative
+  // rescale the derivatives
+  // TODO: non-dimensionalize relative volume
+  //  derivative[num_species]  = dv/dt *
   original_derivative_[num_species+1] *= inv_ref_temperature;
 
   // compute the temperature derivative row
@@ -2311,13 +2311,13 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-					 &concentrations_[0],
-					 &step_limiter[0],
-					 &net_reaction_rates_[0],
-					 &creation_rates_[0],
-					 &destruction_rates_[0],
-					 &step_rates_[0]);
+  mechanism_ptr->getReactionRates_perturbROP(temperature,
+                                             &concentrations_[0],
+                                             GetAMultipliers(),
+                                             &net_reaction_rates_[0],
+                                             &creation_rates_[0],
+                                             &destruction_rates_[0],
+                                             &step_rates_[0]);
 
   for(int j=0; j<num_species; j++) {
     jacobian[j] = -destruction_rates_[j]*inv_concentrations_[j];
