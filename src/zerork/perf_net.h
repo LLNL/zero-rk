@@ -10,7 +10,7 @@ namespace zerork {
 
 class perf_net
 {
- public: 
+ public:
   perf_net(info_net &netobj, rate_const &Kobj);
   virtual ~perf_net();
 
@@ -35,9 +35,9 @@ class perf_net
            double destroyOut[], double stepOut[]);
 
   // Compute the reaction rates and the rate-of-progress of each step after
-  // applying the step limiter to rate coefficient.  The step limiter is 
+  // applying the step limiter to rate coefficient.  The step limiter is
   // applied as follows (K is the rate coefficient, K_lim is the limited rate
-  // coefficient used to compute the rate of progress of each step, and L is 
+  // coefficient used to compute the rate of progress of each step, and L is
   // the limit value stored in the step_limiter array):
   //
   //    K_lim = K * [L/(K + L)]  note K_lim <= L
@@ -45,13 +45,23 @@ class perf_net
   // the relative error using the limiter is (K/L)/((K/L) + 1) so when
   // K is 1/100 of L the relative error is 0.01/1.01 or ~1%
   //
-  void calcRatesFromTC_StepLimiter(const double T, 
+  void calcRatesFromTC_StepLimiter(const double T,
                                    const double C[],
 		                   const double step_limiter[],
-			           double netOut[], 
+			           double netOut[],
                                    double createOut[],
 			           double destroyOut[],
                                    double stepOut[]);
+
+  void calcRatesFromTC_StepLimiter_perturbROP(const double T,
+                                              const double C[],
+                                              const double step_limiter[],
+                                              const double perturbMult[],
+                                              double netOut[],
+                                              double createOut[],
+                                              double destroyOut[],
+                                              double stepOut[]);
+
 
 //  void writeExplicitRateFunc(const char *fileName, const char *funcName);
 //  void writeExplicitRateFunc_minAssign(const char *fileName,
@@ -70,23 +80,23 @@ class perf_net
   int totProd;
   int totReac;
   int maxReactants;
-  
+
   // index storage arrays
   int *reactantSpcIdxList;
   int *reactantStepIdxList;
   int *productSpcIdxList;
   int *productStepIdxList;
-   
+
 
   // working arrays:
   double *stepRate;
   double *netSpcProdRate;
   double *spcDestroyRate;
   double *spcCreateRate;
-  
+
   rate_const *rateConstPtr;
   info_net *infoPtr;
-    
+
   bool use_external_rates;
   external_func_rates_t ex_func_calc_rates;
 

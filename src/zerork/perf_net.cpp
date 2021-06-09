@@ -27,7 +27,7 @@ static void UnsupportedFeature(const char filename[], const int line_num)
 
 static double getHighResolutionTime(void)
 {
-    struct timeval tod; 
+    struct timeval tod;
 
     gettimeofday(&tod, NULL);
     double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
@@ -51,7 +51,7 @@ perf_net::perf_net(info_net &netobj, rate_const &Kobj)
   reactantStepIdxList = new int[totReac];
   productSpcIdxList   = new int[totProd];
   productStepIdxList  = new int[totProd];
-  
+
   stepRate       = new double[nStep];
   netSpcProdRate = new double[nSpc];
   spcDestroyRate = new double[nSpc];
@@ -66,7 +66,7 @@ perf_net::perf_net(info_net &netobj, rate_const &Kobj)
   {
     // getOrderOfStep(j) returns -1 for non-integer reactions
     for(k=0; k<netobj.getOrderOfStep(j); k++)
-    { 
+    {
       reactantSpcIdxList[rCtr]  = netobj.getSpecIdxOfStepReactant(j,k);
       reactantStepIdxList[rCtr] = j;
       ++rCtr;
@@ -97,7 +97,7 @@ perf_net::perf_net(info_net &netobj, rate_const &Kobj)
   use_non_integer_network_ = true;
   if(non_integer_network_.GetNumNonIntegerSteps() == 0) {
     use_non_integer_network_ = false;
-  } 
+  }
 
   //Initialize timing data
   cpuKTime = cpuStepTime = cpuProdTime = cpuNetTime = 0.0;
@@ -154,7 +154,7 @@ void perf_net::calcRatesFromTC(const double T, const double C[],
 
       memset(createOut,0,nSpc*sizeof(double));
       memset(destroyOut,0,nSpc*sizeof(double));
-     
+
       if(use_non_integer_network_) {
         non_integer_network_.UpdateRatesOfProgress(C,stepOut);
 	non_integer_network_.GetCreationRates(stepOut,createOut);
@@ -167,7 +167,7 @@ void perf_net::calcRatesFromTC(const double T, const double C[],
         {destroyOut[reactantSpcIdxList[j]]+=stepOut[reactantStepIdxList[j]];}
 
       // compute the species creation rate by adding each steps rate of progress
-      // to the sum for each product species found 
+      // to the sum for each product species found
       for(j=0; j<totProd; ++j)
         {createOut[productSpcIdxList[j]]+=stepOut[productStepIdxList[j]];}
       cpuProdTime += getHighResolutionTime() - startTime;
@@ -181,10 +181,10 @@ void perf_net::calcRatesFromTC(const double T, const double C[],
   cpuNetTime += getHighResolutionTime() - startTime;
 }
 
-void perf_net::calcRatesFromTC_StepLimiter(const double T, 
+void perf_net::calcRatesFromTC_StepLimiter(const double T,
                                            const double C[],
 		                           const double step_limiter[],
-			                   double netOut[], 
+			                   double netOut[],
                                            double createOut[],
 			                   double destroyOut[],
                                            double stepOut[])
@@ -206,9 +206,9 @@ void perf_net::calcRatesFromTC_StepLimiter(const double T,
       //  printf("# INFO: In calcRatesFromTC_StepLimiter(...),\n");
       //  printf("# INFO:   step [%4d] %14.7e exceeds limit of %14.7e\n",
       //         j,stepOut[j],step_limiter[j]);
-      //}  
+      //}
       stepOut[j] *= step_limiter[j]/(step_limiter[j]+stepOut[j]);
-      
+
     }
   }
   fflush(stdout);
@@ -240,7 +240,7 @@ void perf_net::calcRatesFromTC_StepLimiter(const double T,
 
       memset(createOut,0,nSpc*sizeof(double));
       memset(destroyOut,0,nSpc*sizeof(double));
-     
+
       if(use_non_integer_network_) {
         non_integer_network_.UpdateRatesOfProgress(C,stepOut);
 	non_integer_network_.GetCreationRates(stepOut,createOut);
@@ -253,7 +253,98 @@ void perf_net::calcRatesFromTC_StepLimiter(const double T,
         {destroyOut[reactantSpcIdxList[j]]+=stepOut[reactantStepIdxList[j]];}
 
       // compute the species creation rate by adding each steps rate of progress
-      // to the sum for each product species found 
+      // to the sum for each product species found
+      for(j=0; j<totProd; ++j)
+        {createOut[productSpcIdxList[j]]+=stepOut[productStepIdxList[j]];}
+      cpuProdTime += getHighResolutionTime() - startTime;
+  }
+
+  startTime = getHighResolutionTime();
+  // compute the net species production rate = create - destroy
+  loopLim = nSpc;
+  for(j=0; j<loopLim; ++j)
+    {netOut[j]=createOut[j]-destroyOut[j];}
+  cpuNetTime += getHighResolutionTime() - startTime;
+}
+
+void perf_net::calcRatesFromTC_StepLimiter_perturbROP(const double T,
+                                                      const double C[],
+                                                      const double step_limiter[],
+                                                      const double perturbMult[],
+                                                      double netOut[],
+                                                      double createOut[],
+                                                      double destroyOut[],
+                                                      double stepOut[])
+
+{
+  int j,loopLim; //,reacId,stepId;
+  double startTime,tmpTime;
+
+  startTime = getHighResolutionTime();
+  rateConstPtr->updateK(T,&C[0],&stepOut[0]); // store K(T,p,C) in stepOut[]
+  cpuKTime += getHighResolutionTime() - startTime;
+
+  // Apply the step_limiter to each K
+  const int const_num_steps = nStep;
+  for(j=0; j<const_num_steps; ++j) {
+    if(0.0 < step_limiter[j] && step_limiter[j] < 1.0e+300) {
+
+      //if(stepOut[j] > step_limiter[j]) {
+      //  printf("# INFO: In calcRatesFromTC_StepLimiter(...),\n");
+      //  printf("# INFO:   step [%4d] %14.7e exceeds limit of %14.7e\n",
+      //         j,stepOut[j],step_limiter[j]);
+      //}
+      stepOut[j] *= step_limiter[j]/(step_limiter[j]+stepOut[j]);
+
+    }
+  }
+  fflush(stdout);
+
+  // apply the multiplicative perturbation to the ROP array
+  for(j=0; j<nStep; j++)
+    {stepOut[j]*=perturbMult[j];}
+
+
+  if(use_external_rates)
+  {
+      UnsupportedFeature(__FILE__, __LINE__);
+
+      startTime = getHighResolutionTime();
+      (*ex_func_calc_rates)(&C[0],&stepOut[0],&createOut[0],&destroyOut[0]);
+      tmpTime = getHighResolutionTime() - startTime;
+      //FIXME: Poor approximation below.
+      cpuStepTime += tmpTime/2;
+      cpuProdTime += tmpTime/2;
+  }
+  else
+  {
+      startTime = getHighResolutionTime();
+      // compute the rate of progress of each step
+      for(j=0; j<totReac; ++j)
+        {stepOut[reactantStepIdxList[j]]*=C[reactantSpcIdxList[j]];}
+      cpuStepTime += getHighResolutionTime() - startTime;
+
+      startTime = getHighResolutionTime();
+    // set the species creation and destruction rates to zero
+//      for(j=0; j<nSpc; ++j)
+//        {createOut[j]=destroyOut[j]=0.0;}
+
+      memset(createOut,0,nSpc*sizeof(double));
+      memset(destroyOut,0,nSpc*sizeof(double));
+
+      if(use_non_integer_network_) {
+        non_integer_network_.UpdateRatesOfProgress(C,stepOut);
+	non_integer_network_.GetCreationRates(stepOut,createOut);
+        non_integer_network_.GetDestructionRates(stepOut,destroyOut);
+      }
+
+      // compute the species destruction rate by adding each steps rate of progress
+      // to the sum for each reactant species found
+      for(j=0; j<totReac; ++j)
+        {destroyOut[reactantSpcIdxList[j]]+=stepOut[reactantStepIdxList[j]];}
+
+      // compute the species creation rate by adding each steps rate of progress
+      // to the sum for each product species found
       for(j=0; j<totProd; ++j)
         {createOut[productSpcIdxList[j]]+=stepOut[productStepIdxList[j]];}
       cpuProdTime += getHighResolutionTime() - startTime;
@@ -323,7 +414,7 @@ void perf_net::calcRatesFromTCM(const double T,
         {destroyOut[reactantSpcIdxList[j]]+=stepOut[reactantStepIdxList[j]];}
 
       // compute the species creation rate by adding each steps rate of progress
-      // to the sum for each product species found 
+      // to the sum for each product species found
       for(j=0; j<totProd; ++j)
         {createOut[productSpcIdxList[j]]+=stepOut[productStepIdxList[j]];}
       cpuProdTime += getHighResolutionTime() - startTime;
@@ -357,7 +448,7 @@ void perf_net::calcRatesFromExplicit(const double T, const double C[],
 
 void perf_net::calcRatesFromTC_perturbROP(const double T, const double C[],
            const double perturbMult[], double netOut[], double createOut[],
-           double destroyOut[], double stepOut[])
+                                       double destroyOut[], double stepOut[])
 {
   int j; //,reacId,stepId;
   rateConstPtr->updateK(T,&C[0],&stepOut[0]); // store K(T,p,C) in stepOut[]
@@ -387,7 +478,7 @@ void perf_net::calcRatesFromTC_perturbROP(const double T, const double C[],
     {destroyOut[reactantSpcIdxList[j]]+=stepOut[reactantStepIdxList[j]];}
 
   // compute the species creation rate by adding each steps rate of progress
-  // to the sum for each product species found 
+  // to the sum for each product species found
   for(j=0; j<totProd; ++j)
     {createOut[productSpcIdxList[j]]+=stepOut[productStepIdxList[j]];}
 
@@ -434,7 +525,7 @@ void perf_net::calcRatesFromTC_unroll16(const double T, const double C[],
       stepOut[reactantStepIdxList[k]]*=C[reactantSpcIdxList[k]]; ++k;
       stepOut[reactantStepIdxList[k]]*=C[reactantSpcIdxList[k]]; ++k;
     }
-  
+
 
 
   // set the species creation and destruction rates to zero
@@ -447,7 +538,7 @@ void perf_net::calcRatesFromTC_unroll16(const double T, const double C[],
     {destroyOut[reactantSpcIdxList[j]]+=stepOut[reactantStepIdxList[j]]; ++j;}
 
   // compute the species creation rate by adding each steps rate of progress
-  // to the sum for each product species found 
+  // to the sum for each product species found
   for(j=0; j<totProd; )
     {createOut[productSpcIdxList[j]]+=stepOut[productStepIdxList[j]]; ++j;}
 
@@ -460,7 +551,7 @@ void perf_net::calcRatesFromTC_unroll16(const double T, const double C[],
 void perf_net::writeExternalFuncs()
 {
   UnsupportedFeature(__FILE__, __LINE__);
- 
+
   FILE *fptr=fopen("external_funcs.cpp","w");
   if(fptr==NULL)
     {
@@ -501,7 +592,7 @@ void perf_net::write_func_check(FILE* fptr)
   fprintf(fptr,"}\n");
 }
 
-  
+
 void perf_net::write_func_rates(FILE* fptr)
 {
   UnsupportedFeature(__FILE__, __LINE__);
@@ -511,7 +602,7 @@ void perf_net::write_func_rates(FILE* fptr)
   char concVarName[]="C";
   char createVarName[]="cdot";
   char destroyVarName[]="ddot";
-  
+
   int *stepReactantList;
   vector< vector<int> > cdotRoPlist(nSpc, vector <int>(1,-1));
   vector< vector<int> > ddotRoPlist(nSpc, vector <int>(1,-1));
@@ -520,7 +611,7 @@ void perf_net::write_func_rates(FILE* fptr)
                 concVarName,ropVarName,createVarName,destroyVarName);
   fprintf(fptr,"{\n");
   fprintf(fptr,"  // compute the rate of progress for each step\n");
-  
+
   stepReactantList=new int[infoPtr->getMaxReactantsInStep()];
 
   for(j=0; j<nStep; j++)
@@ -561,7 +652,7 @@ void perf_net::write_func_rates(FILE* fptr)
 	  tmpIdx=infoPtr->getSpecIdxOfStepProduct(j,k);
 	  cdotRoPlist[tmpIdx].push_back(j);
 	}
-    }  
+    }
   //printf("here 2\n"); fflush(stdout);
   fprintf(fptr,"  // compute the total destruction rates for each species\n");
   for(j=0; j<nSpc; j++)
@@ -577,7 +668,7 @@ void perf_net::write_func_rates(FILE* fptr)
 	      if(k%5==0)
 		{fprintf(fptr,"\n             ");}
 	      fprintf(fptr,"+%s[%5d]",ropVarName,ddotRoPlist[j][k]);
-	      
+
 	    }
 	  fprintf(fptr,";\n");
 	}
@@ -601,7 +692,7 @@ void perf_net::write_func_rates(FILE* fptr)
 	  fprintf(fptr,";\n");
 	}
     }
-  
+
   fprintf(fptr,"}\n");
 
 
@@ -611,4 +702,3 @@ void perf_net::write_func_rates(FILE* fptr)
 
 
 } // namespace zerork
-

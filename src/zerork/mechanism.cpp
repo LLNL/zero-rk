@@ -431,10 +431,10 @@ double mechanism::getMassCpFromTY(const double T, const double y[],
   double cpMix=0.0;
   thermo->getCp_R(T,cpSpc);
   for(int j=0; j<nSpc; j++)
-    {
-      cpSpc[j]*=RuInvMolWt[j];
-      cpMix+=cpSpc[j]*y[j];
-    }
+  {
+    cpSpc[j]*=RuInvMolWt[j];
+    cpMix+=cpSpc[j]*y[j];
+  }
 
   return cpMix;
 }
@@ -543,9 +543,12 @@ void mechanism::getNetReactionRates(const double T,
 }
 
 void mechanism::getReactionRates_perturbROP(const double T,
-                                  const double C[], const double perturbMult[],
-                                  double netOut[], double createOut[],
-			          double destroyOut[], double stepOut[])
+                                            const double C[],
+                                            const double perturbMult[],
+                                            double netOut[],
+                                            double createOut[],
+                                            double destroyOut[],
+                                            double stepOut[])
 {
   perfNet->calcRatesFromTC_perturbROP(T,&C[0],&perturbMult[0],
 				      &netOut[0],&createOut[0],&destroyOut[0],
@@ -569,6 +572,24 @@ void mechanism::getReactionRatesLimiter(const double T,
 				       &stepOut[0]);
 }
 
+void mechanism::getReactionRatesLimiter_perturbROP(const double T,
+                                                   const double C[],
+                                                   const double step_limiter[],
+                                                   const double perturbMult[],
+                                                   double netOut[],
+                                                   double createOut[],
+                                                   double destroyOut[],
+                                                   double stepOut[])
+{
+  perfNet->calcRatesFromTC_StepLimiter_perturbROP(T,
+                                                  &C[0],
+                                                  &step_limiter[0],
+                                                  &perturbMult[0],
+                                                  &netOut[0],
+                                                  &createOut[0],
+                                                  &destroyOut[0],
+                                                  &stepOut[0]);
+}
 
 void mechanism::getEnthalpy_RT_mr(const int nReactors, const double T[], double h_RT[]) const
 {

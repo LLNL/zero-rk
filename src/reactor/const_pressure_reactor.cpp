@@ -426,13 +426,15 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
+
 
   // compute the mass specific heat of the mixture
   mix_mass_cp = mechanism_ptr->getMassCpFromTY(temperature,
@@ -508,14 +510,16 @@ ReactorError
   for(int j=0; j<num_species; ++j) {
     concentrations_[j] = density*state[j]*inv_molecular_mass_[j];
   }
+
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   // compute the mass specific heat of the mixture
   mix_mass_cp = mechanism_ptr->getMassCpFromTY(temperature,
@@ -586,14 +590,16 @@ ReactorError
   for(int j=0; j<num_species; ++j) {
     concentrations_[j] = density*state[j]*inv_molecular_mass_[j];
   }
+
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   // compute the rate of change of the mass fraction of each species
   for(int j=0; j<num_species; ++j) {
@@ -646,13 +652,14 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRatesLimiter(temperature,
-					 &concentrations_[0],
-					 &step_limiter[0],
-					 &net_reaction_rates_[0],
-					 &creation_rates_[0],
-					 &destruction_rates_[0],
-					 &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   // compute the mass specific heat of the mixture
   mix_mass_cp = mechanism_ptr->getMassCpFromTY(temperature,
@@ -1364,13 +1371,14 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -1593,13 +1601,14 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -1828,13 +1837,14 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -2064,13 +2074,14 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   // use the step rates and inverse concentrations with the elementary
   // Jacobian term lists to compute dwdot[i]/dC[j]
@@ -2311,13 +2322,14 @@ ReactorError
   }
 
   // compute the rate of change of the species concentration
-  mechanism_ptr->getReactionRates_perturbROP(temperature,
-                                             &concentrations_[0],
-                                             GetAMultipliers(),
-                                             &net_reaction_rates_[0],
-                                             &creation_rates_[0],
-                                             &destruction_rates_[0],
-                                             &step_rates_[0]);
+  mechanism_ptr->getReactionRatesLimiter_perturbROP(temperature,
+                                                    &concentrations_[0],
+                                                    &step_limiter[0],
+                                                    GetAMultipliers(),
+                                                    &net_reaction_rates_[0],
+                                                    &creation_rates_[0],
+                                                    &destruction_rates_[0],
+                                                    &step_rates_[0]);
 
   for(int j=0; j<num_species; j++) {
     jacobian[j] = -destruction_rates_[j]*inv_concentrations_[j];

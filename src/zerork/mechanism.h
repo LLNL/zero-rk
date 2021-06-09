@@ -141,6 +141,14 @@ class mechanism
 			       double destroyOut[],
                                double stepOut[]);
 
+  void getReactionRatesLimiter_perturbROP(const double T,
+                                          const double C[],
+                                          const double step_limiter[],
+                                          const double perturbMult[],
+                                          double netOut[],
+                                          double createOut[],
+                                          double destroyOut[],
+                                          double stepOut[]);
 
   // these may need to be inherited
   double getMolarAtomicOxygenRemainder(const double x[]) const;
