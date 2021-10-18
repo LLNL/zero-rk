@@ -1,0 +1,726 @@
+import numpy as np
+import struct
+import subprocess as sp
+import time
+import os
+import sys
+import glob
+
+KNOWN_MPIEXECS=['srun','mpirun','mpiexec']
+SCRIPT_LOCATION=os.path.realpath(__file__)
+if SCRIPT_LOCATION.endswith('.pyc') and os.path.exists(SCRIPT_LOCATION[:-1]):
+    SCRIPT_LOCATION = SCRIPT_LOCATION[:-1]
+
+#Get number of grid points and length
+def read_grid(gridfile):
+
+    grid = np.genfromtxt(gridfile, delimiter='')
+    num_points = len(grid)
+    length = grid[num_points-1] #assumes grid[0]=0
+    return num_points, length
+
+# Generate a grid of specified length and numpoints
+# The grid is uniform begin "fine_begin" and "fine_end"
+# and stretched on either sides. Saved as "grid_file"
+def generate_grid(num_points, length):
+
+    num_points += 2
+    z = np.linspace(0.0,length,num_points)
+    """
+    num_points = num_points + 2 # first and last points
+    num_points_fine= int(num_points*0.8)
+    fine_begin_rel = 0.2
+    fine_end_rel = 0.8
+    fine_begin = length*fine_begin_rel
+    fine_end = length*fine_end_rel
+
+    stretch_begin = 1.1
+    stretch_end = 1.1
+    dz_temp = (fine_end-fine_begin)/(num_points_fine-1)
+
+    print('New grid. dx = ', dz_temp)
+
+    num_points_begin = int( (num_points-num_points_fine)* ( fine_begin/(length-(fine_end-fine_begin)) ) )
+    num_points_end = num_points-num_points_fine-num_points_begin
+
+    for j in range(40):
+        stretch_begin = pow( ( ( fine_begin*(stretch_begin-1)/dz_temp ) + 1.0 ),1.0/num_points_begin)
+    for j in range(40):
+        stretch_end = pow( ( ( (length-fine_end)*(stretch_end-1)/dz_temp ) + 1.0 ),1.0/num_points_end)
+
+    z = np.zeros(num_points)
+
+    dz_temp = dz_temp*pow(stretch_begin,num_points_begin-1)
+    for j in range(1,num_points_begin):
+        z[j] = z[j-1] + dz_temp
+        dz_temp = dz_temp/stretch_begin
+
+    dz_temp = (fine_end-fine_begin)/(num_points_fine-1)
+    for j in range(num_points_begin, num_points_fine+num_points_begin):
+        z[j] = z[j-1] + dz_temp
+
+    for j in range(num_points_begin+num_points_fine, num_points):
+        z[j] = z[j-1] + dz_temp
+        dz_temp = dz_temp*stretch_end
+    """
+    fh = open("grid_file","w")
+    for i in range(num_points):
+        fh.write(str(z[i]) + '\n')
+    fh.close()
+
+# Interpolate data from data_in (corresponds grid_old)
+# to data_out with correspondings grid_file
+def interpolate_data(datafile1):
+
+    gridfile1= "grid_old"
+    gridfile2= "grid_file"
+    datafile2= "data_new"
+
+    ### Read grid files
+    grid1 = np.genfromtxt(gridfile1, delimiter='')
+    grid2 = np.genfromtxt(gridfile2, delimiter='')
+
+    # Read data file
+    data1 = open(datafile1, "rb").read()
+
+    (num_points1, num_vars, time) = struct.unpack_from("iid", data1)
+    index = 0
+    name = []
+    for j in range(num_vars):
+        name.append(struct.unpack_from("64c",data1,offset=4+4+8+index))
+        index += 64
+
+    Y1=np.zeros((num_vars+1,num_points1))
+    for j in range(num_vars+1):
+        for i in range(num_points1):
+            Y1[j,i] = struct.unpack_from("d",data1,offset=4+4+8+index)[0]
+            index += 8
+
+    # Interpolate data
+    num_points2 = len(grid2)
+
+    Y2 = np.zeros((num_vars+1,num_points2))
+    ww = np.zeros(2)
+
+    for j in range(num_vars+1):
+        for i2 in range(num_points2):
+            xd = grid2[i2]
+
+            # bisection to compute i1
+            if (xd < grid1[0]):
+                i1 = 0
+            elif (xd >= grid1[num_points1-1]):
+                i1 = num_points1-2
+            else:
+                il = 0
+                iu = num_points1-1
+
+                while(iu-il > 1):
+                    im = int((iu+il)/2)
+                    if(xd >= grid1[im]):
+                        il = im
+                    else:
+                        iu = im
+
+                i1=il
+            # end if
+
+            i1 = max(0,min(i1,num_points1-2))
+            wx1 = (grid1[i1+1]-xd)/(grid1[i1+1]-grid1[i1])
+
+            # Points outside the domain
+            if (xd < grid1[0]):
+                i1 = 1
+                wx1 = 1
+            if (xd > grid1[num_points1-1]):
+                i1 = num_points1-2
+                wx1 = 0
+
+            # Compute other coefficient
+            wx2 = 1 - wx1
+
+            # Combine coefficient
+            ww[0] = wx1
+            ww[1] = wx2
+
+            # Perform interpolation
+            for ni in range(0,(min(i1+1,num_points1-1)-i1)+1):
+                Y2[j,i2] = Y2[j,i2] + ww[ni]*Y1[j,i1+ni]
+
+    # Write data file
+    binfile = open(datafile2, 'wb')
+    data = struct.pack("i",num_points2)
+    binfile.write(data)
+    data = struct.pack("i",num_vars)
+    binfile.write(data)
+    data = struct.pack("d",time)
+    binfile.write(data)
+    for j in range(num_vars):
+        for i in range(64):
+            data = struct.pack("c",name[j][i])
+            binfile.write(data)
+    for j in range(num_vars+1):
+        for i in range(num_points2):
+            data = struct.pack("d",Y2[j,i])
+            binfile.write(data)
+
+
+# Get flame speed and thickness from log file
+def read_log(mult):
+
+    line=int(sp.check_output(["cat -n log | grep '  1  ' | awk '{print $1;}' | head -1"],shell=True))
+    line = line - 1
+    Tmax_old=float(sp.check_output(["awk", 'NR==%s {print $5}' % (line+1,), "log"]))
+    Tmax_new=float(sp.check_output(["awk", 'NR==%s {print $5}' % (line+mult-1,), "log"]))
+    lF_old = float(sp.check_output(["awk", 'NR==%s {print $4}' % (line+1,), "log"]))
+    lF_new = float(sp.check_output(["awk", 'NR==%s {print $4}' % (line+mult-1,), "log"]))
+    loc_new=float(sp.check_output(["awk", 'NR==%s {print $6}' % (line+mult-1,), "log"]))
+    error = abs((Tmax_new-Tmax_old)/Tmax_new)
+
+    return Tmax_new, lF_new, loc_new, error
+
+# Get flame speed and thickness from log file
+def read_log_steady():
+
+    #Check if ended in error
+    error=int(sp.check_output(["grep -r 'Error' log | wc -l"],shell=True))
+    if(error):
+        print('Simulation ended in error. No flame speed computed.')
+        return 0, 0, 0
+    else:
+        line=int(sp.check_output(["cat -n log | grep 'Final' | awk '{print $1;}' | head -1"],shell=True))
+        Tmax_new=float(sp.check_output(["awk", 'NR==%s {print $5}' % (line,), "log"]))
+        lF_new=float(sp.check_output(["awk", 'NR==%s {print $4}' % (line,), "log"]))
+        loc_new=float(sp.check_output(["awk", 'NR==%s {print $6}' % (line,), "log"]))
+        return Tmax_new, lF_new, loc_new
+
+
+# Check if need to generate a new grid
+def check_grid(length, num_points, lF_new, flame_loc, min_pts_per_lF, add_points):
+
+    max_points = 1024
+    regrid = False
+
+    #dx = (0.5*length)/(0.8*num_points)
+    dx = length/(num_points+1)
+    if (dx > lF_new/min_pts_per_lF):
+        num_points = min(num_points+add_points,max_points)
+        print('   Increasing grid points to ', num_points)
+        regrid = True
+
+    return regrid, num_points, length
+
+def estimate_end_time(pressure, temp):
+    end_time = 1e-1*((1.0e5/pressure)**0.5)*((300./temp)**2.0)
+    return end_time
+
+def estimate_time_regrid(pressure, temp):
+    time_regrid = 5.0e-3*((1.0e5/pressure)**0.5)*((300./temp)**2.0)
+    return time_regrid
+
+def set_conditions(pressure, Tf, To, mf, mo, input_file):
+    print('Tf=', Tf, 'To=', To, 'mf=', mf, 'mo=', mo, 'p=', pressure)
+
+    sp.call(['sed', '-i', 's/fuel_temperature.*/fuel_temperature: %s/g' % (Tf,), input_file])
+    sp.call(['sed', '-i', 's/oxidizer_temperature.*/oxidizer_temperature: %s/g' % (To,), input_file])
+    sp.call(['sed', '-i', 's/mass_flux_fuel.*/mass_flux_fuel: %s/g' % (mf,), input_file])
+    sp.call(['sed', '-i', 's/mass_flux_oxidizer.*/mass_flux_oxidizer: %s/g' % (mo,), input_file])
+    sp.call(['sed', '-i', 's/pressure.*/pressure: %s/g' % (pressure,), input_file])
+
+    #sp.call(['sed', '-i', 's/inlet_phi.*/inlet_phi: %s/g' % (1.0,), 'input_Le.yml'])
+    sp.call(['sed', '-i', 's/pressure.*/pressure: %s/g' % (pressure,), 'input_Le.yml'])
+
+
+def set_conditionsLe1(pressure, T, phi, input_file):
+    print('Tf=', Tf, 'To=', To, 'mf=', mf, 'mo=', mo, 'p=', pressure)
+
+    sp.call(['sed', '-i', 's/fuel_temperature.*/fuel_temperature: %s/g' % (Tf,), input_file])
+    sp.call(['sed', '-i', 's/oxidizer_temperature.*/oxidizer_temperature: %s/g' % (To,), input_file])
+    sp.call(['sed', '-i', 's/mass_flux_fuel.*/mass_flux_fuel: %s/g' % (mf,), input_file])
+    sp.call(['sed', '-i', 's/mass_flux_oxidizer.*/mass_flux_oxidizer: %s/g' % (mo,), input_file])
+    sp.call(['sed', '-i', 's/pressure.*/pressure: %s/g' % (pressure,), input_file])
+
+def set_sweep(pressure, Tf, To, mf, mo):
+    lenp = len(pressure)
+    lenTf = len(Tf)
+    lenTo = len(To)
+    lenmf = len(mf)
+    lenmo = len(mo)
+
+    length = lenp*lenTf*lenTo*lenmf*lenmo
+    if(length != max(lenp,lenTf,lenTo,lenmf,lenmo)):
+        print('Can only sweep one parameter at a time. Check sweep conditions.')
+        exit(1)
+
+    return length
+
+def set_conditions_sweep(isweep, pressurevec, Tfvec, Tovec, mfvec, movec, input_file):
+    lenp = len(pressurevec)
+    lenTf = len(Tfvec)
+    lenTo = len(Tovec)
+    lenmf = len(mfvec)
+    lenmo = len(movec)
+    # There's got to be a much better way
+    if(lenp > 1):
+        pressure = pressurevec[isweep]
+        Tf = Tfvec[0]
+        To = Tovec[0]
+        mf = mfvec[0]
+        mo = movec[0]
+    if(lenTf > 1):
+        pressure = pressurevec[0]
+        Tf = Tfvec[isweep]
+        To = Tovec[0]
+        mf = mfvec[0]
+        mo = movec[0]
+    if(lenTo > 1):
+        pressure = pressurevec[0]
+        Tf = Tfvec[0]
+        To = Tovec[isweep]
+        mf = mfvec[0]
+        mo = movec[0]
+    if(lenmf > 1):
+        pressure = pressurevec[0]
+        Tf = Tfvec[0]
+        To = Tovec[0]
+        mf = mfvec[isweep]
+        mo = movec[0]
+    if(lenmo > 1):
+        pressure = pressurevec[0]
+        Tf = Tfvec[0]
+        To = Tovec[0]
+        mf = mfvec[0]
+        mo = movec[isweep]
+    if(lenp == 1 and lenTf == 1 and lenTo ==1 and lenmf == 1 and lenmo == 1):
+        pressure = pressurevec[0]
+        Tf = Tfvec[0]
+        To = Tovec[0]
+        mf = mfvec[0]
+        mo = movec[0]
+
+    print('Tf=', Tf, 'To=', To, 'mf=', mf, 'mo=', mo, 'p=', pressure)
+
+    sp.call(['sed', '-i', 's/fuel_temperature.*/fuel_temperature: %s/g' % (Tf,), input_file])
+    sp.call(['sed', '-i', 's/oxidizer_temperature.*/oxidizer_temperature: %s/g' % (To,), input_file])
+    sp.call(['sed', '-i', 's/mass_flux_fuel.*/mass_flux_fuel: %s/g' % (mf,), input_file])
+    sp.call(['sed', '-i', 's/mass_flux_oxidizer.*/mass_flux_oxidizer: %s/g' % (mo,), input_file])
+    sp.call(['sed', '-i', 's/pressure.*/pressure: %s/g' % (pressure,), input_file])
+
+    sp.call(['sed', '-i', 's/inlet_phi.*/inlet_phi: %s/g' % (1.0,), 'input_Le.yml'])
+    sp.call(['sed', '-i', 's/pressure.*/pressure: %s/g' % (pressure,), 'input_Le.yml'])
+
+    return pressure, Tf, To, mf, mo
+
+
+def add_point(isweep, pressurevec,  Tfvec, Tovec, mfvec, movec):
+    if(isweep == 0):
+        print('First run failed. Try conditions closer to the initial guess.')
+        exit(1)
+
+    lenp = len(pressurevec)
+    lenTf = len(Tfvec)
+    lenTo = len(Tovec)
+    lenmf = len(mfvec)
+    lenmo = len(movec)
+    if(lenp > 1):
+        new_point = 0.5*(pressurevec[isweep]+pressurevec[isweep-1])
+        print('Attempting pressure=',new_point)
+        pressurevec = np.insert(pressurevec,isweep,new_point)
+        ncases = len(pressurevec)
+    if(lenTf > 1):
+        new_point = 0.5*(Tfvec[isweep]+Tfvec[isweep-1])
+        print('Attempting Tf=',new_point)
+        Tfvec = np.insert(Tfvec,isweep,new_point)
+        ncases = len(Tfvec)
+    if(lenTo > 1):
+        new_point = 0.5*(Tovec[isweep]+Tovec[isweep-1])
+        print('Attempting To=',new_point)
+        Tovec = np.insert(Tovec,isweep,new_point)
+        ncases = len(Tovec)
+    if(lenmf > 1):
+        new_point = 0.5*(mfvec[isweep]+mfvec[isweep-1])
+        print('Attempting mf=',new_point)
+        mfvec = np.insert(mfvec,isweep,new_point)
+        ncases = len(mfvec)
+    if(lenmo > 1):
+        new_point = 0.5*(movec[isweep]+movec[isweep-1])
+        print('Attempting mo=',new_point)
+        movec = np.insert(movec,isweep,new_point)
+        ncases = len(movec)
+
+    return ncases, pressurevec, Tfvec, Tovec, mfvec, movec
+
+
+def compute_steady_counterflowflame(start_file,
+                                    start_grid,
+                                    input_file,
+                                    length,
+                                    mf,
+                                    mo,
+                                    Tf,
+                                    To,
+                                    pressure,
+                                    nprocs=1,
+                                    nnodes=1,
+                                    min_pts_per_lF=10,
+                                    flameSolv='@CMAKE_INSTALL_PREFIX@/bin/counterflow_steady_flame_solver.x',
+                                    lewisGen='@CMAKE_INSTALL_PREFIX@/bin/lewisGenerator.x',
+                                    fix_Lewis=False,
+                                    mpiexec='srun'):
+
+    if mpiexec not in KNOWN_MPIEXECS:
+            print( ("ERROR: mpiexec not in {}.\n  Please use one of the"
+            " known mpiexecs or modify\n {}\n to work"
+            " with your system mpiexec.").format(KNOWN_MPIEXECS, SCRIPT_LOCATION))
+            sys.exit()
+
+    rel_tol_steady = 1.0e-2
+    add_points = max(nprocs,64)
+    max_fails = 3
+
+    num_points, length = read_grid(start_grid)
+
+    t = time.time()
+
+    sp.call(['cp',input_file,'input_Le.yml'])
+    sp.call(["sed -i 's/num_points.*/num_points: 1/g' input_Le.yml"], shell=True)
+    sp.call(["sed -i 's/transport_model.*/transport_model: MixAvg/g' input_Le.yml"], shell=True)
+    sp.call(["sed -i 's/inlet_temperature.*/inlet_temperature: 1500/g' input_Le.yml"], shell=True)
+
+    sp.call(['sed', '-i', 's/rel_tol.*/rel_tol: %s/g' % (rel_tol_steady,), input_file])
+    sp.call(['sed', '-i', 's/integrator_type.*/integrator_type: 3/g', input_file])
+    start_file = start_file.replace('/','\/') #need for relative paths
+    sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: "%s"/g' %(start_file,), input_file])
+    sp.call(['cp',start_grid,'grid_file'])
+    sp.call(['sed', '-i', 's/.*grid_file.*/grid_file: grid_file/g', input_file])
+
+    fh = open("flame_cf","a")
+    fh.write('# Tf To mf mo pressure Tmax loc \n')
+    fh.close()
+
+    ncases = set_sweep(pressure, Tf, To, mf, mo)
+
+    i, nfails = 0, 0
+    while i < ncases:
+        # Set conditions
+        pcur, Tfcur, Tocur, mfcur, mocur = set_conditions_sweep(i,pressure, Tf, To, mf, mo, input_file)
+
+        # Compute Lewis numbers
+        if(fix_Lewis == 0):
+            sp.call([lewisGen,'input_Le.yml'])
+
+        # Run steady solver
+        f = open("log", "w")
+        if(mpiexec == 'srun'):
+            sp.call(['srun', '-n', str(nprocs), '-N', str(nnodes), flameSolv, input_file], stdout=f)
+        else: #mpirun, mpiexec
+            sp.call([mpiexec, '-n', str(nprocs), flameSolv, input_file], stdout=f)
+
+        # Get flame speed
+        Tmax_new, lF_new, flame_loc = read_log_steady()
+        if(Tmax_new == 0):
+            nfails += 1
+            if (nfails > max_fails):
+                print('Reached maximum number of consecutive failures. Ending sweep.')
+                exit(1)
+            ncases, pressure, Tf, To, mf, mo = add_point(i,pressure,Tf,To,mf,mo)
+            continue
+        print('  Max Temperature:', Tmax_new, 'K')
+        print('  Flame thickness:', lF_new, 'm')
+        print('  Flame location:', flame_loc)
+
+        newest = max(glob.iglob('data*'), key=os.path.getctime)
+
+        regrid, num_points, length = check_grid(length, num_points, lF_new, flame_loc, min_pts_per_lF, add_points)
+
+        while(regrid):
+            sp.call(['cp','grid_file','grid_old'])
+            generate_grid(num_points, length)
+            interpolate_data(newest)
+            sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: data_new/g', input_file])
+            f = open("log", "w")
+            if(mpiexec == 'srun'):
+                 sp.call(['srun', '-n', str(nprocs), '-N', str(nnodes), flameSolv, input_file], stdout=f)
+            else: #mpirun, mpiexec
+                sp.call([mpiexec, '-n', str(nprocs), flameSolv, input_file], stdout=f)
+            Tmax_new, lF_new, flame_loc = read_log_steady()
+            if(Tmax_new == 0): #treat regrid fail differently?
+                print('Failed after regrid. TO DO: Recover from this!!')
+                exit(1)
+                #nfails += 1
+                #if (nfails > max_fails):
+                #    print 'Reached maximum number of consecutive failures. Ending sweep.'
+                #    exit(1)
+                #ncases, pressure, T, phi = add_point(i,pressure,T,phi)
+                #continue
+            print('  Max Temperature:', Tmax_new, 'K')
+            print('  Flame thickness:', lF_new, 'm')
+            print('  Flame location:', flame_loc)
+            svf = 0.0
+            if(os.path.exists('soot_output')):
+               s=np.genfromtxt('soot_output')
+               svf=s[:,1].max()
+               print('  Max soot VF:', svf)
+            newest = max(glob.iglob('data*'), key=os.path.getctime)
+            regrid, num_points, length = check_grid(length, num_points, lF_new, flame_loc, min_pts_per_lF, add_points)
+
+        filename = 'datasteady'+'p'+str(pcur)+'Tf'+str(Tfcur)+'To'+str(Tocur)+'mf'+str(mfcur)+'mo'+str(mocur)
+        logname = 'logsteady'+'p'+str(pcur)+'Tf'+str(Tfcur)+'To'+str(Tocur)+'mf'+str(mfcur)+'mo'+str(mocur)
+        gridname = 'gridsteady'+'p'+str(pcur)+'Tf'+str(Tfcur)+'To'+str(Tocur)+'mf'+str(mfcur)+'mo'+str(mocur)
+        sp.call(['cp','%s' %(newest,), filename])
+        sp.call(['mv','log', logname])
+        sp.call(['cp','grid_file', gridname])
+
+        sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: "%s"/g' %(newest,), input_file])
+
+        svf = 0.0
+        if(os.path.exists('soot_output')):
+            s=np.genfromtxt('soot_output')
+            svf=s[:,1].max()
+        fh = open("flame_cf","a")
+        fh.write(str(Tfcur) + ' ' + str(Tocur) + ' ' + str(mfcur) + ' ' + str(mocur) + ' ' + str(pcur) + ' ' + str(Tmax_new) + ' ' + str(flame_loc) + ' ' + str(svf) + '\n')
+        fh.close()
+
+        nfails = 0
+        i +=1
+
+    fh.close()
+
+    elapsed = time.time() - t
+    print('Time elapsed: ', elapsed)
+
+
+def compute_unsteady_counterflowflame(input_file,
+                                      length,
+                                      mf,
+                                      mo,
+                                      Tf,
+                                      To,
+                                      pressure,
+                                      nprocs=1,
+                                      nnodes=1,
+                                      min_pts_per_lF=12,
+                                      steady=True,
+                                      nprocs_steady=1,
+                                      flameSolv='@CMAKE_INSTALL_PREFIX@/bin/counterflow_unsteady_flame_solver.x',
+                                    steadySolv='@CMAKE_INSTALL_PREFIX@/bin/counterflow_steady_flame_solver.x',
+                                      lewisGen='@CMAKE_INSTALL_PREFIX@/bin/lewisGenerator.x',
+                                      fix_Lewis=False,
+                                      mpiexec='srun'):
+
+    if mpiexec not in KNOWN_MPIEXECS:
+            print( ("ERROR: mpiexec not in {}.\n  Please use one of the"
+            " known mpiexecs or modify\n {}\n to work"
+            " with your system mpiexec.").format(KNOWN_MPIEXECS, SCRIPT_LOCATION))
+            sys.exit()
+
+    nprocs_init = min(nprocs,16)
+    nnodes_init = 1
+
+    nprocs_steady = min(nprocs_steady,16)
+    nnodes_steady = 1
+
+    # Number of grid points
+    # minimum number of points for initial solution
+    min_points_init = max(nprocs_init*2,32)
+    # mininum number of points for "final" solution
+    min_points = max(nprocs*2,128)
+    # increment of points to add if grid is too coarse
+    add_points = max(nprocs,64)
+
+    # Second order
+    second_order = True
+
+    # Tolerance on Tmax
+    # maximum relative change in Tmax over 'time_regrid'
+    tol = 0.001 #0.004
+
+    # How long the initial (ignition on coarse grid) simulation is performed
+    # Default below is an estimate based on pressure/temperature scaling
+    Tmid = 0.5*(Tf[0]+To[0])
+    end_time = estimate_end_time(pressure[0],Tmid)
+
+    # time interval at which tol and grid resolution are assessed
+    # Default is an estimate based on pressure/temperature scaling
+    time_regrid = estimate_time_regrid(pressure[0],Tmid)
+
+    # Maximum time (if tol isn't reached before)
+    max_time = 10.0
+
+    # Output frequency in log file
+    stats_dt = 1.0e-4 #5e-6
+
+    # max internal CVode dt. Best to use large dt on coarse grid
+    max_dt_init = 2.0e-5
+    max_dt = 6.0e-6
+
+    # Rel tol
+    rel_tol = 1.0e-8
+    rel_tol_steady = 1.0e-2
+
+    t = time.time()
+
+    ## Setup input for Lewis number file
+    sp.call(['cp',input_file,'input_Le.yml'])
+    sp.call(["sed -i 's/num_points.*/num_points: 1/g' input_Le.yml"], shell=True)
+    sp.call(["sed -i 's/transport_model.*/transport_model: MixAvg/g' input_Le.yml"], shell=True)
+    sp.call(["sed -i 's/inlet_temperature.*/inlet_temperature: 1500/g' input_Le.yml"], shell=True)
+
+    sp.call(['sed', '-i', 's/stats_dt.*/stats_dt: %s/g' % (stats_dt,), input_file])
+    sp.call(['sed', '-i', 's/rel_tol.*/rel_tol: %s/g' % (rel_tol,), input_file])
+    sp.call(['sed', '-i', 's/integrator_type.*/integrator_type: 3/g', input_file])
+
+    fh = open("flame_cf","a")
+    fh.write('# Tf To mf mo pressure Tmax loc SVF \n')
+    fh.close()
+
+    for ipressure in pressure:
+        for iTf in Tf:
+            for iTo in To:
+                for imf,imo in zip(mf,mo):
+                #for imf in mf:
+                #    for imo in mo:
+
+                    # Set conditions
+                    set_conditions(ipressure, iTf, iTo, imf, imo, input_file)
+
+                    # Estimate based scales based on conditions
+                    Tmid = 0.5*(iTf+iTo)
+                    end_time = estimate_end_time(ipressure,Tmid)
+                    time_regrid = estimate_time_regrid(ipressure,Tmid)
+
+                    if(fix_Lewis==0):
+                        # Compute non-unity Lewis numbers
+                        sp.call([lewisGen,'input_Le.yml'])
+
+                    # Generate initial grid file
+                    num_points = min_points_init
+                    fine_grid = False
+                    generate_grid(num_points, length)
+                    sp.call(['sed', '-i', 's/.*grid_file.*/grid_file: grid_file/g', input_file])
+
+                    # Run first iteration
+                    mult = int(end_time/stats_dt)
+                    new_end_time = end_time
+                    sp.call(['sed', '-i', 's/rel_tol.*/rel_tol: %s/g' % (rel_tol,), input_file])
+                    sp.call(['sed', '-i', 's/integrator_type.*/integrator_type: 3/g', input_file])
+                    sp.call(['sed', '-i', 's/field_dt_multiplier.*/field_dt_multiplier: %s/g' % (mult,), input_file])
+                    sp.call(['sed', '-i', 's/.*restart_file.*/##restart_file: data_new/g', input_file])
+                    sp.call(['sed', '-i', 's/max_time.*/max_time: %s/g' % (new_end_time,), input_file])
+                    sp.call(['sed', '-i', 's/convective_scheme_type.*/convective_scheme_type: 0/g', input_file])
+                    sp.call(['sed', '-i', 's/max_internal_dt.*/max_internal_dt: %s/g' % (max_dt_init,), input_file])
+                    f = open("log", "w")
+                    runid = 1
+                    if(mpiexec == 'srun'):
+                        sp.call(['srun', '-n', str(nprocs_init), '-N', str(nnodes_init), flameSolv, input_file], stdout=f)
+                    else: #mpirun, mpiexec
+                        sp.call([mpiexec, '-n', str(nprocs_init), flameSolv, input_file], stdout=f)
+
+                    ## Get flame speed
+                    Tmax_new, lF_new, flame_loc, error = read_log(mult)
+                    print('  Max Temperature:', Tmax_new, 'm/s')
+                    print('  Flame thickness:', lF_new, 'm')
+                    print('  Flame location:',  flame_loc, 'm')
+
+                    # Set settings for fine grid and force regrid
+                    num_points = min_points
+                    regrid = True
+                    runs_since_regrid = 0
+
+                    while (error > tol and runid < 20):
+                        print('  Error: ', error, ' > ', tol)
+
+                        newest = max(glob.iglob('data*'), key=os.path.getctime)
+
+                        # Check if grid is OK
+                        if(fine_grid):
+                            regrid, num_points, length = check_grid(length, num_points, lF_new,  flame_loc, min_pts_per_lF, add_points)
+
+                        # Generate new grid if necessary
+                        if(regrid):
+                            sp.call(['cp','grid_file','grid_old'])
+                            generate_grid(num_points, length)
+                            interpolate_data(newest)
+                            sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: data_new/g', input_file])
+                            regrid = False
+                            fine_grid = True
+                            runs_since_regrid=0
+                        else:
+                            sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: "%s"/g' %(newest,), input_file])
+                            runs_since_regrid+=1
+
+                        # Second order for fine grid
+                        if(second_order and runid >= 2):
+                            sp.call(['sed', '-i', 's/convective_scheme_type.*/convective_scheme_type: 2/g', input_file])
+
+                        # Run for time_regrid
+                        mult = int(time_regrid/stats_dt)
+                        sp.call(['sed', '-i', 's/field_dt_multiplier.*/field_dt_multiplier: %s/g' % (mult,), input_file])
+                        new_end_time = new_end_time + time_regrid
+                        if (new_end_time > max_time):
+                            print('Max time reached')
+                            break
+                        sp.call(['sed', '-i', 's/max_time.*/max_time: %s/g' % (new_end_time,), input_file])
+                        sp.call(['sed', '-i', 's/max_internal_dt.*/max_internal_dt: %s/g' % (max_dt,), input_file])
+
+                        f = open("log", "w")
+                        if(steady and runid >=3 and runs_since_regrid > 1):
+                            print('Attempting steady solution')
+                            sp.call(['sed', '-i', 's/rel_tol.*/rel_tol: %s/g' % (rel_tol_steady,), input_file])
+                            sp.call(['sed', '-i', 's/integrator_type.*/integrator_type: 3/g', input_file])
+                            if(mpiexec == 'srun'):
+                                sp.call(['srun', '-n', str(nprocs_steady), '-N', str(nnodes_steady), steadySolv, input_file], stdout=f)
+                            else: #mpirun, mpiexec
+                                sp.call([mpiexec, '-n', str(nprocs_steady), steadySolv, input_file], stdout=f)
+                            Tmax_new, lF_new, flame_loc = read_log_steady()
+                            if(Tmax_new == 0):
+                                print('Simulation failed')
+                                Tmax_new, lF_new = np.nan, np.nan
+                                error = 0.0
+                                continue
+                            else:
+                                error = 0.0
+                        else:
+                            runid += 1
+                            if(mpiexec == 'srun'):
+                                sp.call(['srun', '-n', str(nprocs), '-N', str(nnodes), flameSolv, input_file], stdout=f)
+                            else: #mpirun, mpiexec
+                                sp.call([mpiexec, '-n', str(nprocs), flameSolv, input_file], stdout=f)
+
+                            # Get flame speed
+                            Tmax_new, lF_new, flame_loc, error = read_log(mult)
+                            if(runid < 3):
+                                error += tol*1.1
+                            print('  Max temperature:', Tmax_new, 'K')
+                            print('  Flame thickness:', lF_new, 'm')
+                            print('  Flame location:', flame_loc)
+                            svf = 0.0
+                            if(os.path.exists('soot_output')):
+                                s=np.genfromtxt('soot_output')
+                                svf=s[:,1].max()
+                                print('  Max soot VF:', svf)
+
+
+                    # Error while loop ended
+                    print(' While loop ended')
+                    print('  Error: ', error, ' < ', tol)
+                    newest = max(glob.iglob('data*'), key=os.path.getctime)
+                    filename = 'data'+'p'+str(ipressure)+'Tf'+str(iTf)+'To'+str(iTo)+'mf'+str(imf)+'mo'+str(imo)
+                    logname = 'log'+'p'+str(ipressure)+'Tf'+str(iTf)+'To'+str(iTo)+'mf'+str(imf)+'mo'+str(imo)
+                    gridname = 'grid'+'p'+str(ipressure)+'Tf'+str(iTf)+'To'+str(iTo)+'mf'+str(imf)+'mo'+str(imo)
+                    sp.call(['cp','%s' %(newest,), filename])
+                    sp.call(['rm data_*'], shell=True)
+                    sp.call(['mv','log', logname])
+                    sp.call(['cp','grid_file', gridname])
+
+                    svf = 0.0
+                    if(os.path.exists('soot_output')):
+                        s=np.genfromtxt('soot_output')
+                        svf=s[:,1].max()
+
+                    fh = open("flame_cf","a")
+                    fh.write(str(iTf) + ' ' + str(iTo) + ' ' + str(imf) + ' ' + str(imo) + ' ' + str(ipressure) + ' ' + str(Tmax_new) + ' ' + str(flame_loc) + ' ' + str(svf) + '\n')
+                    fh.close()
+
+    elapsed = time.time() - t
+    print('Time elapsed: ', elapsed)

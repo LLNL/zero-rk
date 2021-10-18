@@ -47,9 +47,6 @@
 # Zero-RK Control Parameters:
 #    preconditioner threshold [-]:    0.0000000e+00
 #-------------------------------------------------------------------------------
-# Total elapsed time            [s]:   8.10831e-02
-# Sum of all IDT solution times [s]:   7.50362e-01
-#----------------------------------------------------------------------------
 # Relative sensitivity: Srel = d(ln(IDT)) / d(ln(k)) = (k/IDT)*d(IDT)/d(k)
 #      approximated by: Srel = ln(IDT_2/IDT_1)/ln(k_2/k_1)
 #

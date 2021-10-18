@@ -76,9 +76,9 @@ void getHeaderInfo(int inpArgc,
       header += "#    species " + intToStr(j+1,"%4d") + " "
 	      + speciesName + ": "
 	      + dblToStr(ctrl->initMassFrac[j],"%16.7e") + " "
-              + dblToStr(ctrl->initMoleFrac[j],"%16.7e") + "\n";
+              + dblToStr(ctrl->initMoleFrac[j],"%16.7e") + "\n"; 
     }
-  }
+  }  
   header += "#-------------------------------------------------------------------------------\n";
   if(doFullReport) {
     header += "# CVode Control Parameters:\n";
@@ -110,7 +110,7 @@ void getHeaderInfo(int inpArgc,
     header += "#-------------------------------------------------------------------------------\n";
     header += "# ZeroRK Control Parameters:\n";
     header += "#    preconditioner threshold [-]: "
-      + dblToStr(ctrl->zerork_ctrl.precThresh,"%16.7e") + "\n";
+      + dblToStr(ctrl->zerork_ctrl.precThresh,"%16.7e") + "\n"; 
     header += "#-------------------------------------------------------------------------------\n";
   } // end doFullReport
 }
@@ -148,6 +148,92 @@ void getColHeaderInfo_IdtTask(idtControlParams *ctrl,
     double temp=ctrl->odeUserParams.redTempRoot[j]*ctrl->refTemp;
     header += "   dT =" + dblToStr(temp, "%6.1f") + " [K]";
   }
-  header += "\n";
-
+  header += "\n";   
+  
 }
+
+// void getColHeaderInfo_sensitivity(idtControlParams *ctrl,
+//                                   string &header)
+// {
+//   header.clear();
+//   header = "# Relative sensitivity: Srel = d(ln(IDT)) / d(ln(k)) = (k/IDT)*d(IDT)/d(k)\n";
+//   header += "#      approximated by: Srel = ln(IDT_2/IDT_1)/ln(k_2/k_1)\n";
+//   header += "#\n";
+//   header += "#      IDT_2 is the ignition delay after multiplying the rate of progress\n";
+//   header += "#      by the A-factor multiplier.  IDT_1 is the ignition delay of the original\n";
+//   header += "#      mechanism (unperturbed), or the IDT after dividing the rate of progress\n";
+//   header += "#      by the A-factor multiplier, depending on if doBothDir in the input file\n";
+//   header += "#      is set to 'n' or 'y' respectively.\n";
+//   header += "#------------------------------------------------------------------------------\n";
+//   header += "# rxn id";
+//   for(int j=0; j<ctrl->cvodeCtrl.nRoots; j++) {
+//     header += "      Srel [-] at";
+//   }
+//   header += "\n";
+//   header += "#       ";
+//   for(int j=0; j<ctrl->cvodeCtrl.nRoots; j++) {
+//     double temp=ctrl->odeUserParams.redTempRoot[j]*ctrl->refTemp;
+//     header += dblToStr(temp, "%13.4f") + " [K]";
+//   }
+//   header += "\n";   
+// }
+
+// // idt[]
+// void calcRxnSensitivity(const idtControlParams *ctrl,
+//                         const double idtOrig[],
+//                         const double idtPerturb[],
+//                         double rxnSens[],
+//                         int sortedRxnIdx[])
+// {
+//   int nRxn = ctrl->mech->getNumReactions();
+//   int nIdtTemp = ctrl->cvodeCtrl.nRoots;
+//   double currMax,currSens;
+//   maxRxnSens_t *maxRxnSensList;
+
+//   maxRxnSensList = new maxRxnSens_t[nRxn]; 
+
+//   for(int j=0; j<nRxn; j++) {
+//     currMax = 0.0;
+//     for(int k=0; k<nIdtTemp; k++) {
+//       if(ctrl->doBothDir) {
+//         currSens = log(idtPerturb[j*2*nIdtTemp+k]/
+//                        idtPerturb[j*2*nIdtTemp+nIdtTemp+k])/
+// 	           log(2.0*ctrl->AFactorMultiplier);
+//       }
+//       else {
+//         currSens = log(idtPerturb[j*nIdtTemp+k]/idtOrig[k])/
+// 	           log(ctrl->AFactorMultiplier);
+//       }
+//       if(fabs(currSens) > currMax) {
+//         currMax = fabs(currSens);
+//       }
+//       rxnSens[j*nIdtTemp+k] = currSens;
+//     }
+//     maxRxnSensList[j].rxnId = j;
+//     maxRxnSensList[j].maxRelSens = currMax;
+//   }
+
+//   // sort by the largest relative sensitivity magnitude
+//   qsort((void *)&maxRxnSensList[0],
+//         nRxn,
+//         sizeof(maxRxnSens_t),
+//         compare_maxRxnSens_t);
+
+//   for(int j=0; j<nRxn; j++) {
+//     sortedRxnIdx[j] = maxRxnSensList[j].rxnId;
+//   }
+//   delete [] maxRxnSensList;
+// }
+
+// int compare_maxRxnSens_t(const void *A, const void *B)
+// {
+//   maxRxnSens_t *Aptr =(maxRxnSens_t *)A;
+//   maxRxnSens_t *Bptr =(maxRxnSens_t *)B;
+//   if(Aptr->maxRelSens < Bptr->maxRelSens) {
+//     return 1;
+//   }
+//   else if (Aptr->maxRelSens > Bptr->maxRelSens) {
+//     return -1;
+//   }
+//   return 0;
+// }

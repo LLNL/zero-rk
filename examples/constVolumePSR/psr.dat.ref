@@ -1,0 +1,77 @@
+# Command line: /bin/constVolumePSR.x input.yml
+# ---------------------------------------------------------------------------
+# Zero-RK git commit information:
+#   commit id                 [hash] : 112e890
+#   commit time-stamp         [date] : 2021-04-06 21:42:05 -0700
+#   branch name               [word] : master
+#   exponential type          [word] : fmath
+# ---------------------------------------------------------------------------
+# Mechanism constants:
+#   mechanism definition      [path] : /share/zerork/mechanisms/iso-octane/species874/ic8_ver3_mech.txt
+#   thermodynamics definition [path] : /share/zerork/mechanisms/iso-octane/species874/prf_v3_therm_dat.txt
+#   parser log definition     [path] : mech_parsing.log
+#   number of species            [#] : 874
+#   number of reactions          [#] : 3796
+#   number of 1-way steps        [#] : 6934
+#   max non-zeros in species J   [#] : 18844
+#   max non-zeros in const vol J [#] : 20591
+# ---------------------------------------------------------------------------
+# Fuel composition (moles of species)/(moles of fuel):
+#            IC8H18: 1.0000
+# Oxid(izer) composition (moles of species)/(moles of oxid):
+#                N2: 0.7900
+#                O2: 0.2100
+# Global stoichiometry constants:
+#   fuel (excess mols of atomic-O)/(mols of fuel) : -25.0000
+#   oxid (excess mols of atomic-O)/(mols of oxid) : 0.4200
+#   (mols of oxid)/(mols of fuel) at phi=1        : 59.5238
+# ---------------------------------------------------------------------------
+# Simulation constants:
+#   ode print time               [s] : 1.0000e+00
+#   ode max time                 [s] : 1.0000e+02
+#   reference temperature        [K] : 1000.00
+#   total number of runs         [#] : 2
+# ---------------------------------------------------------------------------
+# Solver constants:
+#   ode relative tolerance            [-] : 1.0000e-08
+#   ode absolute tolerance            [-] : 1.0000e-20
+#   ode max internal timestep         [s] : 1.0000e+00
+#   ode max internal steps            [#] : 1000000
+#   linear solver rel error           [-] : 5.0000e-02
+#   non-linear solver rel error       [-] : 5.0000e-02
+#   cvode primary failures allowed    [#] : 5
+#   cvode secondary failures allowed  [#] : 2
+#   secondary failure P threshold     [-] : 1.0000e-06
+#   max Krylov dimension              [#] : 5
+#   use fake P update               [y/n] : no
+#   use incomplete LU factorization [y/n] : no
+#   partial pivot threshold           [-] : 0.0000e+00
+#   P threshold type code             [#] : absolute
+#   permutation type code             [#] : MMD_AT_PLUS_A
+# ---------------------------------------------------------------------------
+# Column  1: [#]      run id
+# Column  2: [K]      initial temperature
+# Column  3: [Pa]     initial pressure
+# Column  4: [-]      equivalence ratio
+# Column  5: [-]      EGR fraction
+# Column  6: [-]      preconditioner threshold
+# Column  7: [kg/m^3] initial density
+# Column  8: [s]      residence time
+# Column  9: [s]      execution wall clock time
+# Column 10: [#]      number of cvode errors
+# Column 11: [-]      initial mole frac of OH
+# Column 12: [-]      initial mole frac of CH2O
+# Column 13: [-]      final mole frac of OH
+# Column 14: [-]      final mole frac of CH2O
+# ----------------------------------------------------------------------------
+# run id |               Temp [K] |              Pres [Pa] |                phi [-] |           EGR frac [-] |           P thresh [-] |           dens [kg/m3] |         resid time [s] |           sim time [s] | cvode err [#] | init mlfrc          OH | init mlfrc        CH2O | final mlfrc         OH | final mlfrc       CH2O |
+       0   8.0000000000000000e+02   1.0000000000000000e+06   4.0000000000000002e-01   0.0000000000000000e+00   9.9999999999999995e-07   4.4230542800780492e+00   1.0000000000000001e-01   3.0636088848114014e+00               0   0.0000000000000000e+00   0.0000000000000000e+00   2.7133340118475134e-04   3.2005144054736481e-07
+       1   8.0000000000000000e+02   1.0000000000000000e+06   4.0000000000000002e-01   0.0000000000000000e+00   9.9999999999999995e-07   4.4230542800780492e+00   1.0000000000000000e+00   2.6134529113769531e+00               0   0.0000000000000000e+00   0.0000000000000000e+00   2.0344112587933756e-04   4.3813460273538588e-08
+
+
+# -----------------------------------------------------------------------------
+# Column 1: [-] preconditioner threshold
+# Column 2: [s] average simulation time
+# Column 3: [s] minimum simulation time
+# Column 4: [s] maximum simulation time
+ 1.0000000e-06   2.8385309e+00   2.6134529e+00   3.0636089e+00

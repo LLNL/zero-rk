@@ -539,6 +539,21 @@ int ConstPressureFlameLocal(int nlocal,
     ydot_ptr[temp_id] = rhs[temp_id];
   }
 
+  // Add time derivative term if pseudo unsteady
+  if(params->pseudo_unsteady_) {
+    for(int j=0; j<num_local_points; ++j) {
+      int rvol_id = j*num_states+num_species; // relative volume index of pt j
+      int temp_id = rvol_id+1 ;               // temperature index of pt j
+      int mom_id  = rvol_id+2;                // momentum index of pt j
+
+      for(int k=0; k<num_species; ++k) {
+        ydot_ptr[j*num_states+k] -= (y_ptr[j*num_states+k] - params->y_old_[j*num_states+k])/
+          params->dt_;
+      }
+      ydot_ptr[temp_id] -= (y_ptr[temp_id] - params->y_old_[temp_id])/params->dt_;
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Parallel communication for finite difference Jacobian
   // Move to a separate function?
@@ -1151,6 +1166,16 @@ int ReactorAFSetup(N_Vector y,      // [in]  state vector
 
     } //if soot
 
+    if(params->pseudo_unsteady_) {
+      for(int j=0; j<num_local_points; ++j) {
+        // Add -1/dt term to Yi, T
+        for(int k=0; k<num_species; ++k) {
+          params->saved_jacobian_[j*num_nonzeros+params->diagonal_id_[k]] -= 1.0/params->dt_;
+        }
+        params->saved_jacobian_[j*num_nonzeros+params->diagonal_id_[num_species+1]] -= 1.0/params->dt_;
+      }
+    }
+
     // Add/substract constant on diagonal
     for(int j=0; j<num_local_points; ++j)
       for(int k=0; k<num_states; ++k)
@@ -1198,6 +1223,14 @@ int ReactorAFSetup(N_Vector y,      // [in]  state vector
         &y_ptr[j*num_states],
         &params->step_limiter_[0],
         &params->reactor_jacobian_[0]);
+
+      if(params->pseudo_unsteady_) {
+        // Add -1/dt term to Yi, T
+        for(int k=0; k<num_species; ++k) {
+          params->saved_jacobian_[j*num_nonzeros+params->diagonal_id_[k]] -= 1.0/params->dt_;
+        }
+        params->saved_jacobian_[j*num_nonzeros+params->diagonal_id_[num_species+1]] -= 1.0/params->dt_;
+      }
 
       //Add/subtract constant on diagonal
       for(int k=0; k<num_states; ++k) {

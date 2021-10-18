@@ -5,19 +5,20 @@ project(superlu_dist_build)
 include(ExternalProject)
 ExternalProject_Add(
   superlu_dist
-  GIT_REPOSITORY https://github.com/xiaoyeli/superlu_dist
-  GIT_TAG        v5.2.2 #TODO: can we move forward without fixing code
-  GIT_SHALLOW    ON
-  CMAKE_ARGS -Denable_blaslib=OFF
-             -Denable_tests=OFF
+  URL https://github.com/xiaoyeli/superlu_dist/archive/refs/tags/v6.4.0.tar.gz
+  CMAKE_ARGS -Denable_tests=OFF
              -Denable_examples=OFF
              -Denable_complex16=OFF
+             -DTPL_ENABLE_PARMETISLIB=OFF
              -DXSDK_ENABLE_Fortran=OFF
-             -DTPL_PARMETIS_LIBRARIES=${parmetis_prefix}/lib/libparmetis.a
-             -DTPL_PARMETIS_INCLUDE_DIRS=${parmetis_prefix}/include
              -DCMAKE_INSTALL_PREFIX=${superlu_dist_prefix}
              -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
              -DCMAKE_C_COMPILER=${MPI_C_COMPILER}
+             -DCMAKE_CXX_COMPILER=${MPI_CXX_COMPILER}
              -DCMAKE_C_STANDARD=${CMAKE_C_STANDARD}
-             -DTPL_BLAS_LIBRARIES=${BLAS_LIBRARIES}
+             -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
+             -DTPL_ENABLE_INTERNAL_BLASLIB=OFF
+             -DTPL_BLAS_LIBRARIES="dummy"
+             -DTPL_ENABLE_LAPACKLIB=ON
+             -DTPL_LAPACK_LIBRARIES="dummy"
 )

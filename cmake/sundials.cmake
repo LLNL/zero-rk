@@ -4,7 +4,7 @@ if(${SUNDIALS_VERSION} EQUAL "5")
 set(SUNDIALS_IFACE_NUM "4")
 endif()
 
-set(sundials_libs nvecserial nvecparallel cvode cvodes kinsol arkode)
+set(sundials_libs nvecserial nvecparallel cvode cvodes kinsol ida arkode)
 
 set(sundials_system_working ON)
 if(EXISTS ${SYSTEM_SUNDIALS_ROOT})
@@ -56,6 +56,5 @@ foreach(LIBRARY ${sundials_libs})
   IMPORTED_LOCATION ${sundials_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}sundials_${LIBRARY}${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${sundials_prefix}/include
   INTERFACE_COMPILE_DEFINITIONS SUNDIALS${SUNDIALS_IFACE_NUM})
+  ##target_compile_definitions(sundials_${LIBRARY} INTERFACE SUNDIALS${SUNDIALS_IFACE_NUM} JACOBIAN_SIZE_LONG_INT)
 endforeach()
-
-

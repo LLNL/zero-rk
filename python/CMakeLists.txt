@@ -1,10 +1,9 @@
 
-set(INPUT_FILES ./flamesolver.py.in)
 
-foreach(INPUT_FILE ${INPUT_FILES})
-string(REGEX REPLACE "\.in$" "" OUTPUT_FILE ${INPUT_FILE})
-configure_file(${INPUT_FILE} ${OUTPUT_FILE} @ONLY)
-get_filename_component(OUT_DIR ${INPUT_FILE} DIRECTORY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_FILE} DESTINATION lib/python/site-packages/${OUT_DIR})
-endforeach()
+find_package (Python3 COMPONENTS Interpreter)
+
+if(Python3_FOUND)
+add_subdirectory(flame_solvers)
+add_subdirectory(rate_optimization)
+endif()
 

@@ -40,6 +40,7 @@ class FlameParams
   std::vector<int> fuel_species_id_;
   std::vector<int> oxidizer_species_id_;
   std::vector<int> full_species_id_;
+  std::vector<int> egr_species_id_;
 
   std::vector<double> inlet_mass_fractions_;
   std::vector<double> initial_mass_fractions_;
@@ -64,6 +65,7 @@ class FlameParams
   double ref_temperature_;
   double flame_speed_;
   double flame_thickness_;
+  double flame_thickness_alpha_;
   double max_temperature_;
   double mass_change_;
   double continuity_error_;

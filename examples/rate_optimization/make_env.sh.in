@@ -1,0 +1,8 @@
+#!/bin/bash
+
+python3 -m venv zerork_rate_optimization_env
+source zerork_rate_optimization_env/bin/activate
+cd @CMAKE_INSTALL_PREFIX@/share/zerork/python
+python3 setup.py install
+
+

@@ -173,6 +173,34 @@ Jsparse * alloc_Jsparse(zerork::mechanism &mechInp, double tol,
       exit(-1);
     }
 
+  w->num_noninteger_jacobian_nonzeros =
+    mechInp.getNonIntegerReactionNetwork()->GetNumJacobianNonzeros();
+  int* noninteger_row_id;
+  int* noninteger_column_id;
+  // non-integer reaction network
+  if(w->num_noninteger_jacobian_nonzeros > 0) {
+     noninteger_row_id = (int *)malloc(sizeof(int)*(w->num_noninteger_jacobian_nonzeros));
+     noninteger_column_id = (int *)malloc(sizeof(int)*(w->num_noninteger_jacobian_nonzeros));
+     w->noninteger_jacobian = (double *)malloc(sizeof(double)*(w->num_noninteger_jacobian_nonzeros));
+     w->noninteger_sparse_id = (int *)malloc(sizeof(int)*(w->num_noninteger_jacobian_nonzeros));
+
+     for(int j=0; j<w->num_noninteger_jacobian_nonzeros; ++j) {
+       noninteger_row_id[j] = 0;
+       noninteger_column_id[j] = 0;
+       w->noninteger_jacobian[j] = 0.0;
+       w->noninteger_sparse_id[j] = 0;
+     }
+
+     mechInp.getNonIntegerReactionNetwork()->GetJacobianPattern(
+        noninteger_row_id,noninteger_column_id);
+
+     for(int j=0; j<w->num_noninteger_jacobian_nonzeros; ++j) {
+       int dense_id = noninteger_row_id[j]+noninteger_column_id[j]*w->nSize;
+       isNonZero[dense_id]=1; // mark location in dense
+     }
+   } // end if(w->num_noninteger_jacobian_nonzeros > 0)
+
+
    // count the number of nonzero terms in the dense matrix
    w->nNonZero=1; // start the count at one so it can still serve as a flag
    w->mtxColSum[0]=0;
@@ -249,6 +277,16 @@ Jsparse * alloc_Jsparse(zerork::mechanism &mechInp, double tol,
        w->termList->fwdCreate[j].sparseIdx=nzAddr-1; // reset to sparse addr
      }
    
+   for(int j=0; j<w->num_noninteger_jacobian_nonzeros; ++j) {
+      int dense_id = noninteger_row_id[j]+noninteger_column_id[j]*w->nSize;
+      nzAddr=isNonZero[dense_id];
+      w->noninteger_sparse_id[j] = nzAddr-1;
+   }
+   if(w->num_noninteger_jacobian_nonzeros>0) {
+      free(noninteger_row_id);
+      free(noninteger_column_id);
+   }
+
    // Now the JsparseTermList should contain a consistent set of indexes
    // for processing the Jacobian term by term.  Note that each element
    // in the list is independent, so the lists of JsparseIdx can be sorted
@@ -417,6 +455,10 @@ void free_Jsparse(Jsparse *w)
       free(w->colElimTree);
   
       free_JsparseTermList(w->termList);
+      if(w->num_noninteger_jacobian_nonzeros>0) {
+        free(w->noninteger_sparse_id);
+        free(w->noninteger_jacobian);
+      }
       free(w);
     }
 }

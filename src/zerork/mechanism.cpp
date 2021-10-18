@@ -378,6 +378,13 @@ double mechanism::getMassEnthalpyFromTY(const double T, const double y[],
     }
   return hMix;
 }
+
+double mechanism::getMassEnthalpyFromTY(const double T, const double y[]) const
+{
+  std::vector<double> hSpc(nSpc);
+  return getMassEnthalpyFromTY(T, y, &hSpc[0]);
+}
+
 double mechanism::getMassIntEnergyFromTY(const double T, const double y[],
 					    double uSpc[]) const
 {
@@ -390,6 +397,12 @@ double mechanism::getMassIntEnergyFromTY(const double T, const double y[],
       uMix+=uSpc[j]*y[j];
     }
   return uMix;
+}
+
+double mechanism::getMassIntEnergyFromTY(const double T, const double y[]) const
+{
+  std::vector<double> eSpc(nSpc);
+  return getMassIntEnergyFromTY(T, y, &eSpc[0]);
 }
 
 
@@ -493,6 +506,78 @@ double mechanism::getMolarCvFromTC(const double T, const double c[]) const
 
 void mechanism::getNonDimGibbsFromT(const double T, double G_RT[]) const
 {thermo->getG_RT(T,G_RT);}
+
+double mechanism::getTemperatureFromEY(const double E, const double y[], const double temp_guess) const
+{
+    const int maximum_iterations = 400;
+    const double tolerance  = 1.0e-6;
+    const double min_temperature = 100;
+    const double max_temperature = 5000;
+
+    std::vector<double> tmp(nSpc);
+    double min_E = getMassIntEnergyFromTY(min_temperature, &y[0], &tmp[0]);
+    double max_E = getMassIntEnergyFromTY(max_temperature, &y[0], &tmp[0]);
+    if (E < min_E) {
+        //Extrapolate
+        double cv = getMassCvFromTY(min_temperature, &y[0], &tmp[0]);
+        return min_temperature - (min_E-E)/cv;
+    }
+    if (E > max_E) {
+        //Extrapolate
+        double cv = getMassCvFromTY(max_temperature, &y[0], &tmp[0]);
+        return max_temperature - (max_E-E)/cv;
+    }
+    double temp_iter = temp_guess;
+    if(temp_iter < min_temperature || temp_iter > max_temperature) {
+      temp_iter = min_temperature + (max_temperature-min_temperature)/(max_E-min_E)*(E-min_E);
+    }
+    for(int i = 0; i < maximum_iterations; ++i) {
+        double E_iter = getMassIntEnergyFromTY(temp_iter, &y[0], &tmp[0]);
+        double cv = getMassCvFromTY(temp_iter, &y[0], &tmp[0]);
+        double delta_temp = std::min(std::max( (E-E_iter)/cv, -100.), 100.);
+        if(std::abs(delta_temp) < tolerance || temp_iter+delta_temp == temp_iter) {
+           break;
+        }
+        temp_iter += delta_temp;
+    }
+    return temp_iter;
+}
+
+double mechanism::getTemperatureFromHY(const double H, const double y[], const double temp_guess) const
+{
+    const int maximum_iterations = 400;
+    const double tolerance  = 1.0e-6;
+    const double min_temperature = 100;
+    const double max_temperature = 5000;
+
+    std::vector<double> tmp(nSpc);
+    double min_H = getMassEnthalpyFromTY(min_temperature, &y[0], &tmp[0]);
+    double max_H = getMassEnthalpyFromTY(max_temperature, &y[0], &tmp[0]);
+    if (H < min_H) {
+        //Extrapolate
+        double cp = getMassCpFromTY(min_temperature, &y[0], &tmp[0]);
+        return min_temperature - (min_H-H)/cp;
+    }
+    if (H > max_H) {
+        //Extrapolate
+        double cp = getMassCvFromTY(max_temperature, &y[0], &tmp[0]);
+        return max_temperature - (max_H-H)/cp;
+    }
+    double temp_iter = temp_guess;
+    if(temp_iter < min_temperature || temp_iter > max_temperature) {
+      temp_iter = min_temperature + (max_temperature-min_temperature)/(max_H-min_H)*(H-min_H);
+    }
+    for(int i = 0; i < maximum_iterations; ++i) {
+        double H_iter = getMassEnthalpyFromTY(temp_iter, &y[0], &tmp[0]);
+        double cp = getMassCvFromTY(temp_iter, &y[0], &tmp[0]);
+        double delta_temp = std::min(std::max( (H-H_iter)/cp, -100.), 100.);
+        if(std::abs(delta_temp) < tolerance || temp_iter+delta_temp == temp_iter) {
+           break;
+        }
+        temp_iter += delta_temp;
+    }
+    return temp_iter;
+}
 
 void mechanism::getKrxnFromTC(const double T, const double C[],
 				  double Kfwd[], double Krev[])

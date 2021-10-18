@@ -1,4 +1,4 @@
-#include <fast_exps.h>
+#include "fast_exps.h"
 
 #include "zerork_conf.h"
 
@@ -17,7 +17,7 @@
 #endif
 
 #ifdef ZERORK_EXP_MKL
-#include <mkl.h>
+#include "mkl.h"
 #endif
 
 #if defined(ZERORK_EXP_FMATH) || defined(ZERORK_EXP_FMATH_NOCHECK)

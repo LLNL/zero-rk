@@ -58,7 +58,7 @@ void RefitKeepHigh(const int num_points,
   double T_slope_constraint,dCp_slope_constraint;
   double H_fixed, S_fixed;
   double new_T_match=RoundToTenPower(-T_resolution,T_match);
-
+  
   if(refit_T_match != NULL) {
     //printf("refit_T_match != NULL => [1] *refit_T_match = %.18g\n",
     //       *refit_T_match);
@@ -73,7 +73,7 @@ void RefitKeepHigh(const int num_points,
     if(*refit_T_match <= T_min || *refit_T_match >= T_max) {
       // don't change the T_match value
       printf("WARNING: attempt to find the best T_match failed\n");
-      printf("         keeping original T_match = %.18g\n",T_match);
+      printf("         keeping original T_match = %.18g\n",T_match); 
       *refit_T_match = T_match;
     }
     //printf("[2] refit_T_match = %.18g\n",*refit_T_match);
@@ -84,19 +84,19 @@ void RefitKeepHigh(const int num_points,
   }
   //printf("[4] refit_T_match = %.18g\n",*refit_T_match);
   //printf("new_T_match   = %.18g\n",new_T_match);
-
+  
   // set the constraints on Cp
   T_point_constraint[0] = T_fixed;
   T_point_constraint[1] = new_T_match;
   T_slope_constraint    = new_T_match;
 
   // use the original form to compute the fixed points
-  // TODO: decide if the Cp constraint should be evaluated always on the
+  // TODO: decide if the Cp constraint should be evaluated always on the 
   //       low branch
   Cp_point_constraint[0] = SpecificHeat(T_fixed,
                                         &coef_low[0]);
 
-  // evaluate the high temperature branch at the new matching point
+  // evaluate the high temperature branch at the new matching point 
   Cp_point_constraint[1] = SpecificHeat(new_T_match,
                                         &coef_high[0]);
   dCp_slope_constraint   = SpecificHeatDerivative(new_T_match,
@@ -109,7 +109,7 @@ void RefitKeepHigh(const int num_points,
   for(int j=0; j<num_points; ++j) {
     T_orig[j]  = T_min + (new_T_match-T_min)*
       static_cast<double>(j)/(num_points-1.0);
-    Cp_orig[j] = SpecificHeat(T_orig[j],&coef_low[0]);
+    Cp_orig[j] = SpecificHeat(T_orig[j],&coef_low[0]); 
   }
 
   // evaluate the new low temperature fits
@@ -206,8 +206,16 @@ void RefitKeepHigh(const int num_points,
       refit->high_coef[j] = original->low_coef[j];
     }
     return;
-  }
+  }    
+ 
 
+  //printf("num_points = %d\n",num_points);
+  //printf("T_resolution = %d\n",T_resolution);
+  //printf("T_fixed      = %.18g\n",T_fixed);
+  //printf("find_new_match = %d\n",find_new_match);
+  //PrintJanaf(*original);
+  //printf("orig %.18g refit %.18g\n",original->T_match,refit->T_match);
+  //fflush(stdout);
   if(find_new_match) {
 
     RefitKeepHigh(num_points,
@@ -234,8 +242,10 @@ void RefitKeepHigh(const int num_points,
                   NULL,
                   refit->low_coef,
                   refit->high_coef);
+    // initial set upon function entry
+    //refit->T_match = RoundToTenPower(-T_resolution,original->T_match); 
   }
-
+  
 
 }
 void RefitKeepHighGlobalTMatch(const int num_points,
@@ -258,19 +268,19 @@ void RefitKeepHighGlobalTMatch(const int num_points,
   double H_fixed, S_fixed;
   double new_T_match=RoundToTenPower(-T_resolution,global_T_match);
   //printf("new_T_match   = %.18g\n",new_T_match);
-
+  
   // set the constraints on Cp
   T_point_constraint[0] = T_fixed;
   T_point_constraint[1] = new_T_match;
   T_slope_constraint    = new_T_match;
 
   // use the original form to compute the fixed points
-  // TODO: decide if the Cp constraint should be evaluated always on the
+  // TODO: decide if the Cp constraint should be evaluated always on the 
   //       low branch
   Cp_point_constraint[0] = SpecificHeat(T_fixed,
                                         &coef_low[0]);
 
-  // evaluate the high temperature branch at the new matching point
+  // evaluate the high temperature branch at the new matching point 
   Cp_point_constraint[1] = SpecificHeat(new_T_match,
                                         &coef_high[0]);
   dCp_slope_constraint   = SpecificHeatDerivative(new_T_match,
@@ -284,12 +294,12 @@ void RefitKeepHighGlobalTMatch(const int num_points,
     T_orig[j]  = T_min + (new_T_match-T_min)*
       static_cast<double>(j)/(num_points-1.0);
     // set original Cp data according to the original T_match not the
-    // new_T_match
+    // new_T_match 
     if(T_orig[j] <= T_match) {
       Cp_orig[j] = SpecificHeat(T_orig[j],&coef_low[0]);
     } else {
       Cp_orig[j] = SpecificHeat(T_orig[j],&coef_high[0]);
-    }
+    } 
   }
 
   // evaluate the new low temperature fits
@@ -364,7 +374,7 @@ void RefitKeepHighGlobalTMatch(const int num_points,
      		               JanafThermoData *refit)
 {
   // copy the original min/max temperatures to the new JANAF fit, but
-  // use the global T_match for the refit
+  // use the global T_match for the refit 
   refit->T_min   = original->T_min;
   refit->T_match = RoundToTenPower(-T_resolution, global_T_match);
   refit->T_max   = original->T_max;
@@ -388,8 +398,8 @@ void RefitKeepHighGlobalTMatch(const int num_points,
       refit->high_coef[j] = original->low_coef[j];
     }
     return;
-  }
-
+  }    
+ 
   RefitKeepHighGlobalTMatch(num_points,
                 T_resolution, // decimal places for the match temperature
                 T_fixed,
@@ -411,7 +421,7 @@ void MatchEnthalpy(const double T_fixed,
 {
   double H_current = Enthalpy(T_fixed,&coef[0]);
   // a[5]/T coefficient
-  coef[5] += (H_fixed - H_current)*T_fixed;
+  coef[5] += (H_fixed - H_current)*T_fixed; 
 }
 void MatchEntropy(const double T_fixed,
                   const double S_fixed,
@@ -420,7 +430,7 @@ void MatchEntropy(const double T_fixed,
 {
   double S_current = Entropy(T_fixed,&coef[0]);
   // a[6] coefficient
-  coef[6] += S_fixed - S_current;
+  coef[6] += S_fixed - S_current; 
 }
 
 double MinSpecificHeatDelta(const double T_tol,
@@ -433,21 +443,21 @@ double MinSpecificHeatDelta(const double T_tol,
   const int MAX_ITER = 100;
   const double min_slope = 1.0e-32; // TODO using more meaniful bounds
                                     // e.g. the next iteration is out of range
-
+                                    
   double T_current = T_match;
   double T_next;
 
   int iter = 0;
-
+ 
   if(fabs(SpecificHeatDerivativeDelta(T_current,coef_low,coef_high)) >
      min_slope) {
-   T_next = T_current -
+   T_next = T_current - 
     SpecificHeatDelta(T_current,coef_low,coef_high)/
     SpecificHeatDerivativeDelta(T_current,coef_low,coef_high);
   } else { // change in dCp/dT slope may cause nan
     printf("INFO: Near zero difference in dCp/dT detected at T = %.18g\n",
 	   T_current);
-    if(fabs(SpecificHeatDelta(T_current,coef_low,coef_high) >
+    if(fabs(SpecificHeatDelta(T_current,coef_low,coef_high) > 
 	    min_slope*(T_max-T_min))) {
        printf("WARNING: In MinSpecificHeatDelta(...),\n");
        printf("         failed to converge after %d iterations\n",iter);
@@ -460,7 +470,7 @@ double MinSpecificHeatDelta(const double T_tol,
     }
   }
 
-  while(fabs(T_next-T_current) > T_tol &&
+  while(fabs(T_next-T_current) > T_tol && 
         T_min <= T_next &&
         T_next <= T_max) {
 
@@ -477,13 +487,13 @@ double MinSpecificHeatDelta(const double T_tol,
     }
     if(fabs(SpecificHeatDerivativeDelta(T_current,coef_low,coef_high)) >
        min_slope) {
-     T_next = T_current -
+     T_next = T_current - 
       SpecificHeatDelta(T_current,coef_low,coef_high)/
       SpecificHeatDerivativeDelta(T_current,coef_low,coef_high);
     } else { // change in dCp/dT slope may cause nan
       printf("INFO: Near zero difference in dCp/dT detected at T = %.18g\n",
              T_current);
-      if(fabs(SpecificHeatDelta(T_current,coef_low,coef_high) >
+      if(fabs(SpecificHeatDelta(T_current,coef_low,coef_high) > 
          min_slope*(T_max-T_min))) {
         printf("WARNING: In MinSpecificHeatDelta(...),\n");
         printf("         failed to converge after %d iterations\n",iter);
@@ -495,10 +505,10 @@ double MinSpecificHeatDelta(const double T_tol,
       }
     }
     // Can lead to divide by zero
-    // T_next = T_current -
+    // T_next = T_current - 
     //          SpecificHeatDelta(T_current,coef_low,coef_high)/
     //          SpecificHeatDerivativeDelta(T_current,coef_low,coef_high);
-  }
+  } 
   if(iter > MAX_ITER) {
     return 2.0*T_max;
   }
@@ -530,7 +540,7 @@ bool PolynomialFit(const int num_points,
   int index;
 
   A   = new double[num_points*(degree+1)];
-  rhs = new double[num_points];
+  rhs = new double[num_points];  
 
   // set up A matrix where A[k][j] = x[k]**j
   for(int k=0; k<num_points; ++k) {
@@ -609,7 +619,7 @@ bool PolynomialFit(const int num_points,
           // column 0
           B[k+j*num_constraints] = 0.0;
         } else if(j==1) {
-          // column 1
+          // column 1 
           B[k+j*num_constraints] = 1.0;
         }
         else {
@@ -624,7 +634,7 @@ bool PolynomialFit(const int num_points,
       if(k<num_fixed_points) {
         constraint_rhs[k] = f_fixed_points[k];
       } else {
-        constraint_rhs[k] = dfdx_fixed_slopes[k-num_fixed_points];
+        constraint_rhs[k] = dfdx_fixed_slopes[k-num_fixed_points]; 
       }
     }
     //info = LAPACKE_dgglse(LAPACK_COL_MAJOR, // matrix element ordering
@@ -637,7 +647,7 @@ bool PolynomialFit(const int num_points,
     //                      num_rows_B,      // leading dimension of B matrix
     //                      rhs,             // right hand side vector
     //                      constraint_rhs,
-    //                      coef);           // solution of linear constrained
+    //                      coef);           // solution of linear constrained 
     //                                       // least squares
     info = LapackDGGLSE(num_rows_A,
                         num_cols_A,
@@ -648,7 +658,7 @@ bool PolynomialFit(const int num_points,
                         num_rows_B,      // leading dimension of B matrix
                         rhs,             // right hand side vector
                         constraint_rhs,
-                        coef);           // solution of linear constrained
+                        coef);           // solution of linear constrained 
                                          // least squares
     if(info != 0) {
       //printf("WARNING: LAPACKE_dgglse(...), returned info code = %d\n",
@@ -661,7 +671,7 @@ bool PolynomialFit(const int num_points,
       delete [] constraint_rhs;
       return false;
     }
-
+    
     delete [] B;
     delete [] constraint_rhs;
 

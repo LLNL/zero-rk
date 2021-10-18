@@ -1,6 +1,0 @@
-
-app=constVolumeWSR.x
-inp=iso-octane_TSweep.inp
-
-@CMAKE_INSTALL_PREFIX@/bin/$app $inp
-

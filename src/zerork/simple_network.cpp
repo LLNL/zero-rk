@@ -24,12 +24,14 @@ simple_network::simple_network(ckr::CKReader *ckrobj,
       exit(-1);
     }
 
-  // determine the multiplier to convert the activation energy units in the 
+  // determine the multiplier to convert the activation energy units in the
   // prescribed mech into kelvin
   if(ckrobj->units.ActEnergy == ckr::Cal_per_Mole)
     {convertE = CAL_PER_MOL_TACT;}
   else if(ckrobj->units.ActEnergy == ckr::Kelvin)
     {convertE = 1.0;}
+  else if(ckrobj->units.ActEnergy == ckr::Kjoules_per_Mole)
+    {convertE = KJOULES_PER_MOL_TACT;}
   else
     {
       printf("ERROR: mechanism Activation Energy units type %d not recognized\n",
@@ -42,7 +44,7 @@ simple_network::simple_network(ckr::CKReader *ckrobj,
   if(ckrobj->units.Quantity == ckr::Moles)
     {
       // note that the length scale in the CKReader object is [cm]
-      // [mol/cm^3] * convertC = [kmol/m^3] 
+      // [mol/cm^3] * convertC = [kmol/m^3]
       convertC=1000.0;
     }
    else
@@ -51,7 +53,7 @@ simple_network::simple_network(ckr::CKReader *ckrobj,
 	     ckrobj->units.Quantity);
       exit(-1);
     }
- 
+
   thermoPtr=&tPtr;
 
   setRxnStepIdxMaps(ckrobj);
@@ -84,7 +86,7 @@ int simple_network::setRxnStepIdxMaps(ckr::CKReader *ckrobj)
     {
       printf("ERROR: allocation failure in simple_network::setRxnStepIdxMaps()\n");
       return -1;
-    }  
+    }
   stepIdxOfRevRxn = new int[nRxn];
   if(stepIdxOfRevRxn == NULL)
     {
@@ -98,12 +100,12 @@ int simple_network::setRxnStepIdxMaps(ckr::CKReader *ckrobj)
       stepIdxOfFwdRxn[j] = k; ++k;
 
       stepIdxOfRevRxn[j]=MIN_INT32;
-      if(ckrobj->reactions[j].isReversible && 
+      if(ckrobj->reactions[j].isReversible &&
 	 ckrobj->reactions[j].krev.A != 0.0)
 	{stepIdxOfRevRxn[j]=k; ++k;}
     }
   nStep=k;
-  
+
   rxnIdxOfStep = new int[nStep];
   if(rxnIdxOfStep == NULL)
     {
@@ -116,7 +118,7 @@ int simple_network::setRxnStepIdxMaps(ckr::CKReader *ckrobj)
     {
       rxnIdxOfStep[k] = j; ++k;
 
-      if(ckrobj->reactions[j].isReversible && 
+      if(ckrobj->reactions[j].isReversible &&
 	 ckrobj->reactions[j].krev.A != 0.0)
 	{rxnIdxOfStep[k]=j+nRxn; ++k;}
     }
@@ -149,14 +151,14 @@ int simple_network::setParticipants(ckr::CKReader *ckrobj)
       printf("ERROR: allocation failure in simple_network::setParticipants()\n");
       return -3;
     }
-    
+
   addrProductOfStep  = new int[nStep];
   if(addrProductOfStep  == NULL)
     {
       printf("ERROR: allocation failure in simple_network::setParticipants()\n");
       return -4;
     }
-  
+
   totProduct=totReactant=0;
   for(j=0; j<nStep; j++)
     {
@@ -202,7 +204,7 @@ int simple_network::setParticipants(ckr::CKReader *ckrobj)
 	  reactantCount=0.0;
 	  for(k=0; k<(int)ckrobj->reactions[rxnIdx].products.size(); k++)
 	    {reactantCount+=ckrobj->reactions[rxnIdx].products[k].number;}
-	  
+
 	  productCount=0.0;
 	  for(k=0; k<(int)ckrobj->reactions[rxnIdx].reactants.size(); k++)
 	    {productCount+=ckrobj->reactions[rxnIdx].reactants[k].number;}
@@ -214,7 +216,7 @@ int simple_network::setParticipants(ckr::CKReader *ckrobj)
       nProductOfStep[j]  = (int)(productCount  + 0.5);
       totProduct+=nProductOfStep[j];
     }
-  
+
   addrReactantOfStep[0]=0;
   addrProductOfStep[0]=0;
   maxReactantInStep=nReactantOfStep[0];
@@ -346,7 +348,7 @@ int setTemperatureTypeMaps(ckr::CKReader *ckrobj);
   auxArrheniusDistinct=new int[nRxn];
   A    = new double[nRxn*3];
   Texp = new double[nRxn*3];
-  Tact = 
+  Tact =
 }
 
 
@@ -367,7 +369,7 @@ void simple_network::print_info(const species *spcList)
   printf("# max   number of products  in a step          : %d\n",
 	 maxProductInStep);
   printf("# Reaction steps:\n");
-  
+
   if(spcList == NULL)
     {
       for(j=0; j<nStep; j++)
@@ -424,9 +426,8 @@ void simple_network::print_info(const species *spcList)
 	  printf("\n");
 	}
     }
-	      
+
 
 }
 
 } // namespace zerork
-

@@ -1,0 +1,16 @@
+Tf= 398.0 To= 310.0 mf= 0.204416 mo= 0.136439 p= 101325.0
+  Max Temperature: 1949.8882 m/s
+  Flame thickness: 0.0029723173 m
+  Flame location: 0.0049163763 m
+  Error:  0.47650747360797396  >  0.001
+  Max temperature: 1950.8076 K
+  Flame thickness: 0.0028636442 m
+  Flame location: 0.0049519283
+  Error:  0.0031079376356746395  >  0.001
+   Increasing grid points to  192
+  Max temperature: 1949.5484 K
+  Flame thickness: 0.0028429186 m
+  Flame location: 0.0049436705
+ While loop ended
+  Error:  0.0007955175670428  <  0.001
+Time elapsed:  22.17648482322693

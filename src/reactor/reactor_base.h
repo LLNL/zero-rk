@@ -33,7 +33,7 @@ class ReactorBase
   int GetNumReactions() const {return num_reactions_;}
   int GetNumSteps() const {return num_steps_;}
 
-  const char * GetMechanismName() const 
+  const char * GetMechanismName() const
     {return mechanism_name_.c_str();}
   const char * GetThermodynamicsName() const
     {return thermodynamics_name_.c_str();}
@@ -45,7 +45,7 @@ class ReactorBase
   ReactorError SetJacobianSize(const int jacobian_size);
 
   MatrixType GetMatrixType() const {return matrix_type_;}
-  void SetMatrixType(const MatrixType matrix_type) 
+  void SetMatrixType(const MatrixType matrix_type)
     {matrix_type_ = matrix_type;}
 
   const char * GetReactorInfo() const
@@ -61,13 +61,13 @@ class ReactorBase
   // A-Factor sensitivity utilities
   const double * GetAMultipliers() const {return &a_multipliers_.at(0);}
   double GetAMultiplierOfForwardReactionId(const int reaction_id) const;
-  ReactorError SetAMultiplierOfForwardReactionId(const int reaction_id, 
+  ReactorError SetAMultiplierOfForwardReactionId(const int reaction_id,
                                                  const double a_multiplier);
   double GetAMultiplierOfReverseReactionId(const int reaction_id) const;
-  ReactorError SetAMultiplierOfReverseReactionId(const int reaction_id, 
+  ReactorError SetAMultiplierOfReverseReactionId(const int reaction_id,
                                                  const double a_multiplier);
   double GetAMultiplierOfStepId(const int step_id) const;
-  ReactorError SetAMultiplierOfStepId(const int step_id, 
+  ReactorError SetAMultiplierOfStepId(const int step_id,
                                       const double a_multiplier);
 
   ReactorError BuildMechanism(const char mechanism_name[],
@@ -89,7 +89,7 @@ class ReactorBase
   // TODO: have a constant mechanism that can be returned
   zerork::mechanism * GetMechanism() {return mechanism_;}
 
-  double GetGasConstant() const 
+  double GetGasConstant() const
     {return mechanism_->getGasConstant();}
 
  private:

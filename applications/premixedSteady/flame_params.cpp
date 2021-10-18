@@ -17,7 +17,7 @@ FlameParams::FlameParams(const std::string &input_name, MPI_Comm &comm)
   comm_ = comm; // not nice
   MPI_Comm_size(comm_, &npes_);
   MPI_Comm_rank(comm_, &my_pe_);
-  nover_ = 2; //number of ghost cells
+  nover_ = 2;
 
   int error_code;
 
@@ -337,8 +337,39 @@ void FlameParams::SetInlet()
   // Add EGR
   double egr = parser_->egr();
   if(egr > 0.0) {
-    mechanism_->getMolarIdealExhaust(&inlet_mole_fractions[0],&exhaust_mole_fractions[0]);
+    if(parser_->egr_comp().size() == 0) {
+      //use ideal EGR formulation if egr_comp is not provided
+      mechanism_->getMolarIdealExhaust(&inlet_mole_fractions[0],&exhaust_mole_fractions[0]);
+    } else { //
+      // Get EGR composition from egr_comp field if provided
+      for(int j=0; j<num_species; ++j){exhaust_mole_fractions[j] = 0.0;}
+
+      mole_fraction_sum = 0.0;
+      for(iter=parser_->egr_comp().begin();
+          iter != parser_->egr_comp().end();
+          ++iter) {
+
+        std::string species_name=iter->first;
+        std::string state_name = std::string("MassFraction_")+species_name;
+        double mole_fraction = iter->second;
+        int species_id = reactor_->GetIdOfState(state_name.c_str());
+
+        if(0 <= species_id  && species_id < num_species) {
+          egr_species_id_.push_back(species_id);
+          exhaust_mole_fractions[species_id] = mole_fraction;
+          mole_fraction_sum += mole_fraction;
+        } else {
+          printf("# ERROR: did not find species %s in the mechanism\n",
+                 species_name.c_str());
+          exit(-1);
+        }
+      }
+
+      // renormalize inlet mole fractions
+      NormalizeComposition(num_species,&exhaust_mole_fractions[0]);
+    }
     mechanism_->getYfromX(&exhaust_mole_fractions[0],&exhaust_mass_fractions[0]);
+
     for(int j=0; j<num_species; j++) {
       inlet_mass_fractions_[j] = (1.0-egr)*inlet_mass_fractions_[j]+egr*exhaust_mass_fractions[j];
     }
@@ -809,8 +840,11 @@ void FlameParams::SetMemory()
     inv_molecular_mass_[j] = 1.0/inv_molecular_mass_[j];
   }
 
+  // "old" state vector for pseudo unsteady
+  y_old_.assign(num_local_points_*num_states, 0.0);
+
   // create the workspace for the species specific heats
-  species_specific_heats_.assign(num_species*(num_local_points), 0.0);
+  species_specific_heats_.assign(num_species*(num_local_points+1), 0.0);
 
   // create the workspace for the species mass fluxes and Lewis numbers
   species_mass_flux_.assign(num_species*(num_local_points+1), 0.0); //larger size for derivatives
@@ -820,7 +854,7 @@ void FlameParams::SetMemory()
   thermal_conductivity_.assign(num_local_points+1, 0.0);//larger size for derivatives
 
   // create the workspace for the mixture specific heat at each grid point
-  mixture_specific_heat_.assign(num_local_points, 0.0);
+  mixture_specific_heat_.assign(num_local_points+1, 0.0);
 
   // create the workspace for the mid point mixture specific heat
   mixture_specific_heat_mid_.assign(num_local_points+1, 0.0);
@@ -837,10 +871,15 @@ void FlameParams::SetMemory()
   // Get simulation type
   simulation_type_ = parser_->simulation_type();
 
+  // Sensitivity analysis flags
   flame_speed_sensitivity_ = parser_->flame_speed_sensitivity();
   sensitivity_ = parser_->sensitivity();
 
+  // Step limiter array
   step_limiter_.assign(reactor_->GetNumSteps(), parser_->step_limiter());
+
+  // Pseudo-unsteady solver
+  pseudo_unsteady_ = parser_->pseudo_unsteady();
 
   // Use SuperLU serial
   superlu_serial_ = parser_->superlu_serial();
@@ -854,6 +893,7 @@ void FlameParams::SetMemory()
   // integrators
   integrator_type_ = parser_->integrator_type();
   store_jacobian_  = parser_->store_jacobian();
+
 
   // Set Jacobian parameters
   // Case 3 is a block tridiagonal (potentially sparse) matrix solved with SuperLU

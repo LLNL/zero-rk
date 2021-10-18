@@ -11,6 +11,7 @@
 #if defined SUNDIALS2
 #include <cvode/cvode_dense.h>      // prototypes & constants for CVDense
 #elif defined SUNDIALS3
+#include <cvode/cvode_direct.h>
 #include <sunmatrix/sunmatrix_dense.h> /* access to dense SUNMatrix            */
 #include <sunlinsol/sunlinsol_dense.h> /* access to dense SUNLinearSolver      */
 #elif defined SUNDIALS4

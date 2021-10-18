@@ -1,0 +1,4 @@
+app=constVolumePSR.x
+inp=input.yml
+
+@CMAKE_INSTALL_PREFIX@/bin/$app $inp

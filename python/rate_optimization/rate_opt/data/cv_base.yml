@@ -1,0 +1,20 @@
+mechFile: chem.inp
+thermFile: therm.dat
+logFile: chem.cklog
+idtFile: idt.dat
+thistFile: /dev/null
+fuel_mole_fracs: { "O2": 1.0 }
+oxidizer_mole_fracs: { N2: 0.79, O2: 0.21, }
+temperature_deltas: [400.0]
+stop_time: 100.0
+continue_after_ignition : 0
+print_time: 100.0
+relative_tolerance: 1.0e-8
+absolute_tolerance: 1.0e-20
+initial_temperatures: [1000]
+initial_pressures: [ 1.0e5 ]
+initial_phis: [ 1.0 ]
+initial_egrs: [ 0.0 ]
+preconditioner_thresholds: [ 2.048e-3 ]
+eps_lin: 0.05
+nonlinear_convergence_coefficient: 0.05

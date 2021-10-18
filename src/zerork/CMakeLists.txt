@@ -22,8 +22,8 @@ set(public_headers atomicMassDB.h constants.h constants_api.h
    perf_net.h plog_reaction.h rate_const.h simple_network.h
    species.h utilities.h)
 target_link_libraries(zerork PUBLIC ckconverter dl m)
-if(ZERORK_HAVE_MKL)
-target_link_libraries(zerork PUBLIC blas) #for vmdExp in fast_exp.cpp
+if(${ZERORK_HAVE_MKL})
+target_link_libraries(zerork PUBLIC mkl) #for vmdExp in fast_exp.cpp
 endif()
 
 set_target_properties(zerork PROPERTIES

@@ -73,7 +73,7 @@ SparseMatrix_dist::SparseMatrix_dist(const int num_rows_loc, const int max_nonze
   options_slu_.SymPattern = NO;
   options_slu_.PrintStat = YES;
   options_slu_.ParSymbFact = NO;
-  options_slu_.ColPerm = PARMETIS;
+  options_slu_.ColPerm = MMD_AT_PLUS_A;
 
 }
 SparseMatrix_dist::~SparseMatrix_dist()
@@ -98,11 +98,11 @@ void SparseMatrix_dist::SparseMatrixClean_dist()
   }
   if(!is_first_factor_) {
     PStatFree(&stats_slu_);
-    ScalePermstructFree(&ScalePermstruct_);
-    Destroy_LU(num_rows_, &grid_, &LUstruct_);
+    dScalePermstructFree(&ScalePermstruct_);
+    dDestroy_LU(num_rows_, &grid_, &LUstruct_);
     if (options_slu_.SolveInitialized)
       dSolveFinalize(&options_slu_, &SOLVEstruct_);
-    LUstructFree(&LUstruct_);
+    dLUstructFree(&LUstruct_);
     superlu_gridexit(&grid_);
   }
 }
@@ -133,9 +133,9 @@ void SparseMatrix_dist::SetupFirstFactor_dist()
 				 SLU_D,
 				 SLU_GE);
 
-  ScalePermstructInit(num_rows_, num_rows_, &ScalePermstruct_);
+  dScalePermstructInit(num_rows_, num_rows_, &ScalePermstruct_);
 
-  LUstructInit(num_rows_, &LUstruct_);
+  dLUstructInit(num_rows_, &LUstruct_);
 
   PStatInit(&stats_slu_); // initialize SuperLU statistics
 
@@ -156,9 +156,9 @@ int SparseMatrix_dist::FactorSamePattern_dist(const double matrix[])
 
   // You must destroy the L and U before each new factorization, or
   // you will have a memory leak
-  //ScalePermstructFree(&ScalePermstruct_);
-  Destroy_LU(num_rows_, &grid_, &LUstruct_);
-  //LUstructFree(&LUstruct_);
+  //dScalePermstructFree(&ScalePermstruct_);
+  dDestroy_LU(num_rows_, &grid_, &LUstruct_);
+  //dLUstructFree(&LUstruct_);
 
   options_slu_.Fact = SamePattern;
   //options_slu_.Fact = SamePattern_SameRowPerm;
@@ -212,9 +212,9 @@ int SparseMatrix_dist::FactorNewPatternCCS_dist(const int new_num_nonzeros,
   } else {
     // You must destroy the L and U before each new factorization, or
     // you will have a memory leak
-    //ScalePermstructFree(&ScalePermstruct_);
-    Destroy_LU(num_rows_, &grid_, &LUstruct_);
-    //LUstructFree(&LUstruct_);
+    //dScalePermstructFree(&ScalePermstruct_);
+    dDestroy_LU(num_rows_, &grid_, &LUstruct_);
+    //dLUstructFree(&LUstruct_);
   }
   options_slu_.Fact = DOFACT;
 
@@ -278,9 +278,9 @@ int SparseMatrix_dist::FactorSamePatternCCS_dist(const int new_num_nonzeros,
   } else {
     // You must destroy the L and U before each new factorization, or
     // you will have a memory leak
-    //ScalePermstructFree(&ScalePermstruct_);
-    Destroy_LU(num_rows_, &grid_, &LUstruct_);
-    //LUstructFree(&LUstruct_);
+    //dScalePermstructFree(&ScalePermstruct_);
+    dDestroy_LU(num_rows_, &grid_, &LUstruct_);
+    //dLUstructFree(&LUstruct_);
   }
   //options_slu_.Fact = DOFACT;
   options_slu_.Fact = SamePattern;

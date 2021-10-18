@@ -234,6 +234,11 @@ int ConstPressureFlameLocal(int nlocal,
 				  &params->transport_input_.mass_fraction_[0],
 				  &params->species_specific_heats_[0]);
 
+    // Reset species cp
+    for(int k=0; k<num_species; k++) {
+      params->species_specific_heats_[num_species*j+k] = 0.0;
+    }
+
     //mixture molecular mass at mid point
     // for frozen thermo only
     double mass_fraction_weight_sum = 0.0;
@@ -258,7 +263,18 @@ int ConstPressureFlameLocal(int nlocal,
 				  &params->y_ext_[jext*num_states],
 				  &params->species_specific_heats_[num_species*j]);
     }
-
+    /*
+    // compute the species mass flux at the upstream mid point
+    transport_error = params->trans_->GetSpeciesMassFlux(
+    //  transport_error = params->trans_->GetSpeciesMassFluxUncorrected(
+				   params->transport_input_,
+				   num_species,
+				   &params->species_mass_flux_[j*num_species],
+				   &params->species_lewis_numbers_[j*num_species]);
+    */
+    // Frozen thermo is the default
+    // TO DO: switch between regular GetSpeciesMassFlux and FrozenThermo from the input file
+    /**/
     transport_error = params->trans_->GetSpeciesMassFluxFrozenThermo(
 					 params->transport_input_,
 					 num_species,
@@ -267,6 +283,7 @@ int ConstPressureFlameLocal(int nlocal,
 					 params->molecular_mass_mix_mid_[j],
 					 &params->species_mass_flux_[j*num_species],
 					 &params->species_lewis_numbers_[j*num_species]);
+    /**/
 
     if(transport_error != transport::NO_ERROR) {
       return transport_error;
@@ -403,6 +420,21 @@ int ConstPressureFlameLocal(int nlocal,
 
   } // for j<num_local_points
 
+  // Add time derivative term if pseudo unsteady
+  if(params->pseudo_unsteady_) {
+    for(int j=0; j<num_local_points; ++j) {
+      int mflux_id  = j*num_states+num_species; // relative volume index of pt j
+      int temp_id   = mflux_id+1;               // temperature index of pt j
+
+      for(int k=0; k<num_species; ++k) {
+        ydot_ptr[j*num_states+k] -= (y_ptr[j*num_states+k] - params->y_old_[j*num_states+k])/
+          params->dt_;
+      }
+
+      ydot_ptr[temp_id] -= (y_ptr[temp_id] - params->y_old_[temp_id])/params->dt_;
+    }
+  }
+
   //------------------------------------------------------------------
   // Parallel communication for finite difference jacobian
   // TO DO: Move to a separate function?
@@ -489,6 +521,15 @@ int ConstPressureFlameLocal(int nlocal,
   MPI_Allreduce(&local_max,&params->flame_thickness_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
   params->flame_thickness_ = (params->max_temperature_-params->inlet_temperature_)/
     params->flame_thickness_;
+
+  // Compute alternate flame thickness definition lF = K/rho/cp/SL (alpha = K/rho/cp)
+  // using inlet values
+  if(my_pe == 0) {
+    params->flame_thickness_alpha_ = params->thermal_conductivity_[0]/
+      params->inlet_relative_volume_/params->mixture_specific_heat_[0]/params->flame_speed_;
+  }
+  MPI_Bcast(&params->flame_thickness_alpha_, 1, MPI_DOUBLE, 0, comm);
+
 
   // compute the max thermal diffusivity using the average value of the
   // conductivity and the up and downstream interfaces
@@ -754,7 +795,7 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
   double *y_ptr          = NV_DATA_P(y);
   int error_flag = 0;
   bool Tfix = false;
-  double constant = 1.0e6;
+  double constant = 1.0e6;//1.0e6
   int my_pe  = params->my_pe_;
   const int nover = params->nover_;
 
@@ -946,6 +987,14 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
 	} //for k < num_nonzeros
       }//if fixed T point
 
+      if(params->pseudo_unsteady_) {
+        // Add -1/dt term to Yi and T
+        for(int k=0; k<num_species; ++k) {
+          params->saved_jacobian_chem_[j*num_nonzeros_zerod+params->diagonal_id_chem_[k]] -= 1.0/params->dt_;
+        }
+        params->saved_jacobian_chem_[j*num_nonzeros_zerod+params->diagonal_id_chem_[num_species+1]] -= 1.0/params->dt_;
+      }
+
       //Add/subtract identity
       for(int k=0; k<num_states; ++k) {
 	params->saved_jacobian_chem_[j*num_nonzeros_zerod+params->diagonal_id_chem_[k]] -= constant;
@@ -1019,6 +1068,14 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
 	  }
         }
       }//if fixed T point
+
+      if(params->pseudo_unsteady_) {
+        // Add -1/dt term to Yi and T
+        for(int k=0; k<num_species; ++k) {
+          params->saved_jacobian_chem_[j*num_nonzeros_zerod+params->diagonal_id_chem_[k]] -= 1.0/params->dt_;
+        }
+        params->saved_jacobian_chem_[j*num_nonzeros_zerod+params->diagonal_id_chem_[num_species+1]] -= 1.0/params->dt_;
+      }
 
       //Add/subtract identity
       for(int k=0; k<num_states; ++k) {

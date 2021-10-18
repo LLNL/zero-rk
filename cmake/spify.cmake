@@ -3,9 +3,7 @@
 include(FetchContent)
 FetchContent_Declare(
   spify
-  GIT_REPOSITORY https://github.com/LLNL/spify
-  GIT_TAG        v1.0.5
-  GIT_SHALLOW    ON
+  URL https://github.com/LLNL/spify/archive/refs/tags/v1.0.7.tar.gz
 )
 
 FetchContent_GetProperties(spify)

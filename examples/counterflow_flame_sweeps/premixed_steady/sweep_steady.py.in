@@ -1,0 +1,55 @@
+import sys
+#Modify/remove to use a different flamesolver.py
+sys.path.append("@CMAKE_INSTALL_PREFIX@/lib/python/site-packages")
+
+from counterflowpremixedflamesolver import *
+
+######## ----- BEGIN USER INPUT ----- ########
+
+### BASIC INPUTS ###
+input_file = 'input.yml'
+
+start_file = "datam2.25"
+start_grid = "gridm2.25"
+
+# Reactants temperature, can be an array for a sweep
+Tf = [300.0]
+
+# Reactants mass flux, can be an array for a sweep
+mf = [2.3, 2.4, 2.5, 2.7, 2.9, 3.2, 3.5, 3.9, 4.4]
+
+# Pressure, can be an array for a sweep
+pressure = [1.01325e5]
+
+# Phi, can be an array for a sweep
+phi = [0.75]
+
+# EGR, can be an array for a sweep
+egr = [0.0]
+
+# length of the grid (half burner separation for RtoR)
+length = 0.025
+
+# Number of processors for final solution
+# Set to maximum number of processors available
+nprocs = @MPIEXEC_EXAMPLE_NUMPROCS_SMALL@
+nnodes = 1
+
+# Minimum nb of grid points per flame thickness for "final" solution
+min_pts_per_lF = 10.
+
+######## ----- END USER INPUT ----- ########
+
+compute_steady_counterflowflame(start_file,
+                                start_grid,
+                                input_file,
+                                length,
+                                phi,
+                                mf,
+                                Tf,
+                                pressure,
+                                egr,
+                                nprocs,
+                                nnodes,
+                                min_pts_per_lF,
+                                mpiexec='@MPIEXEC_NAME@')

@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 
-from SpifyParserGenerator import SpifyParserGenerator as spg
+import os,sys
 
-#Name your parser
 spify_parser_name = "ZeroRKCFDPluginTesterIFP"
 
 spify_parser_params = []
-
-#Specify parameters
 spify_parser_params.append(
 {
-    'name':'mechFile',
+    'name':'mechanism_file',
     'type':'string',
     'shortDesc' : "Chemkin Format Mechansim File"
 }
@@ -18,7 +15,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'thermFile',
+    'name':'thermo_file',
     'type':'string',
     'shortDesc' : "Chemkin Format Thermodynamics File"
 }
@@ -26,24 +23,16 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'mechLogFile',
+    'name':'zerork_cfd_plugin_input',
     'type':'string',
-    'shortDesc' : "Mechanism Parser Log File",
-    'defaultValue' : '/dev/null'
+    'shortDesc' : "Zero-RK Configuration File"
 }
 )
 
-spify_parser_params.append(
-{
-    'name':'outFile',
-    'type':'string',
-    'shortDesc' : "Ignition Delay Output File",
-}
-)
 
 spify_parser_params.append(
 {
-    'name':'nReactors',
+    'name':'n_reactors',
     'type':'int',
     'shortDesc' : "Number of reactors to solve",
     'boundMin': 1
@@ -52,7 +41,17 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'fuelComp',
+    'name':'n_print_reactors',
+    'type':'int',
+    'shortDesc' : "Number of reactors to print history",
+    'defaultValue': 0,
+    'boundMin': 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'fuel_composition',
     'type':'m_string_double',
     'shortDesc' : "Fuel composition map"
 }
@@ -60,7 +59,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'oxidizerComp',
+    'name':'oxidizer_composition',
     'type':'m_string_double',
     'shortDesc' : "Oxidizer composition map"
 }
@@ -68,7 +67,33 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'deltaTign',
+    'name':'solution_time',
+    'type':'double',
+    'shortDesc' : "Total integration time"
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'print_dt',
+    'type':'double',
+    'shortDesc' : "Print Interval"
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'n_steps',
+    'type':'int',
+    'shortDesc' : "Number of 'cfd' steps",
+    'defaultValue': 1,
+    'boundMin': 1
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'delta_temperature_ignition',
     'type':'double',
     'defaultValue': 400.0,
     'boundMin': 50.0,
@@ -78,69 +103,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'reactorTime',
-    'type':'double',
-    'shortDesc' : "Total integration time"
-}
-)
-
-spify_parser_params.append(
-{
-    'name':'printDt',
-    'type':'double',
-    'shortDesc' : "Print Interval"
-}
-)
-
-spify_parser_params.append(
-{
-    'name':'maxDtInternal',
-    'type':'double',
-    'shortDesc' : "Maximum Internal Integrator Step Size",
-    'defaultValue' : 0.05
-}
-)
-
-spify_parser_params.append(
-{
-    'name' :'maxSteps',
-    'type':'int',
-    'shortDesc' : "Maximum Number of Integrator Steps",
-    'defaultValue':1000000
-}
-)
-
-spify_parser_params.append(
-{
-    'name':'relTol',
-    'type':'double',
-    'shortDesc':"Relative Integrator Tolerance",
-    'defaultValue':1.0e-8
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"absTol",
-    'type':'double',
-    'shortDesc':"Absolute Integrator Tolerance",
-    'defaultValue':1.0e-20
-}
-)
-
-
-spify_parser_params.append(
-{
-    'name':"refTemp",
-    'type':'double',
-    'shortDesc' : "Ignition Delat Metric: Maximum species concentration",
-    'defaultValue' : 1000.0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"TMin",
+    'name':"temperature_min",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over",
 }
@@ -148,7 +111,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"TMax",
+    'name':"temperature_max",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over"
 }
@@ -156,7 +119,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"pMin",
+    'name':"pressure_min",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over"
 }
@@ -164,7 +127,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"pMax",
+    'name':"pressure_max",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over"
 }
@@ -172,7 +135,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"phiMin",
+    'name':"phi_min",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over"
 }
@@ -180,7 +143,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"phiMax",
+    'name':"phi_max",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over"
 }
@@ -188,7 +151,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"egrMin",
+    'name':"egr_min",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over"
 }
@@ -196,7 +159,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"egrMax",
+    'name':"egr_max",
     'type':'double',
     'shortDesc' : "Array of initial temperatures to sweep over"
 }
@@ -204,150 +167,7 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"precThresh",
-    'type':'double',
-    'shortDesc' : "Preconditioner threshold values"
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"krylovDim",
-    'type':'int',
-    'shortDesc' : "Integrator max krylov dimension",
-    'defaultValue' : 5   #CVode default for CVSpgmr
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"oneStepMode",
-    'type':'bool',
-    'shortDesc' : "Switch: integrate in one step mode.",
-    'defaultValue' : 0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"printAllSteps",
-    'type':'bool',
-    'shortDesc' : "Switch: print every integrator step.",
-    'defaultValue' : 0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"doFakeUpdate",
-    'type':'bool',
-    'shortDesc' : "Switch: fakeupdate.",
-    'defaultValue' : 0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"partialPivotThresh",
-    'type':'double',
-    'shortDesc' : "partial pivot threshold.",
-    'defaultValue' : 0.0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"permThresh",
-    'type':'double',
-    'shortDesc' : "perm threshold.",
-    'defaultValue' : 0.3
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"strictSamePattern",
-    'type':'bool',
-    'shortDesc' : "Switch",
-    'defaultValue' : 0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"maxGammaOrderChange",
-    'type':'double',
-    'shortDesc' : "??",
-    'defaultValue' : 3.0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"cvStabLimDet",
-    'type':'bool',
-    'shortDesc' : "??",
-    'defaultValue' : 0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"maxNumNonLinIters",
-    'type':'int',
-    'shortDesc' : "??",
-    'defaultValue' : 3
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"maxOrd",
-    'type':'int',
-    'shortDesc' : "??",
-    'defaultValue' : 5
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"cvEpsLin",
-    'type':'double',
-    'shortDesc' : "??",
-    'defaultValue' : 0.1
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"cvNlConvCoeff",
-    'type':'double',
-    'shortDesc' : "??",
-    'defaultValue' : 0.05
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"reInitOnPrint",
-    'type':'bool',
-    'shortDesc' : "Re-initialize CVODE at every print interval",
-    'defaultValue' : 0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"dumpStateOnPrint",
-    'type':'bool',
-    'shortDesc' : "Dump system state at every print interval",
-    'defaultValue' : 0
-}
-)
-
-spify_parser_params.append(
-{
-    'name':"stateFiles",
+    'name':"state_files",
     'type':'v_string',
     'shortDesc' : "Files to read initial states from.",
     'defaultValue' : []   #empty
@@ -356,16 +176,52 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':"linearSolver",
+    'name':"reactor_history_file_prefix",
     'type':'string',
-    'shortDesc' : "",
-    'defaultValue' : "IterativeSparse",
-    'discreteValues': ["IterativeSparse","DirectDense","DirectDenseDVD"]
+    'shortDesc' : "Filename prefix for history files.",
+    'defaultValue' : "reactor_history"
 }
 )
 
-#Generate parser code
+spify_parser_params.append(
+{
+    'name':"log_species",
+    'type':'v_string',
+    'shortDesc' : "Species names to includie in history (defaults to fuel and oxidizer species).",
+    'defaultValue' : []   #empty
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"app_owns_aux_fields",
+    'type':'bool',
+    'shortDesc' : "If true, application over-rides library storage for auxilliary fields (reactor cost, dP/dt, etc.).",
+    'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"e_src",
+    'type':'double',
+    'shortDesc' : "Energy source in J/kg.",
+    'defaultValue' : 0.0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"constant_volume",
+    'type':'int',
+    'shortDesc' : "Energy form: constant volume or constant pressure.",
+    'defaultValue' : 1
+}
+)
+
+from SpifyParserGenerator import SpifyParserGenerator as spg
+
 spg().generate(spify_parser_name,spify_parser_params)
 #spg().make_master_file(spify_parser_name,spify_parser_params)
 
-#Done.
+

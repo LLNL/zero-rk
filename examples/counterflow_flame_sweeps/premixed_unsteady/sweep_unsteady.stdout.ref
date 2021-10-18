@@ -1,0 +1,27 @@
+phi= 0.75 Tf= 300.0 mf= 2.25 p= 101325.0 egr= 0.0
+  Max Temperature: 1843.2321 m/s
+  Flame thickness: 0.0015881165 m
+  Flame location: 0.021212121 m
+  Strain rate: 139.5035 1/s
+  Error:  0.4859108085194479  >  0.001
+  Max temperature: 1866.5462 K
+  Flame thickness: 0.00069382683 m
+  Flame location: 0.020777778 m
+  Strain rate: 149.38305 1/s
+  Error:  0.012165035518542172  >  0.001
+   Increasing grid points to  192
+   Moving fine region downstream to  0.017249999999999998
+  Max temperature: 1874.0773 K
+  Flame thickness: 0.00059415737 m
+  Flame location: 0.020604478 m
+  Strain rate: 151.94139 1/s
+  Error:  0.003415654199535962  >  0.001
+  Max temperature: 1892.5285 K
+  Flame thickness: 0.00061988087 m
+  Flame location: 0.02043097 m
+  Strain rate: 153.48624 1/s
+  Error:  0.009555787402937346  >  0.001
+Attempting steady solution
+ While loop ended
+  Error:  0.0  <  0.001
+Time elapsed:  117.73329567909241

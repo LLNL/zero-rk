@@ -1071,6 +1071,13 @@ next:
             *m_log << "CKParser::readReactions  ---> DEBUG MODE" << endl;
         }
 
+        char * split_rev_flag_char;
+        int split_rev_flag = 0;
+        split_rev_flag_char = getenv("ZERORK_SPLIT_REVERSIBLE_REACTIONS");
+        if (split_rev_flag_char!=NULL) {
+           split_rev_flag = atoi(split_rev_flag_char);
+        }
+
         while (1 > 0) {
 
             // skip blank or comment lines
@@ -1092,7 +1099,18 @@ next:
                     isFinalReactionValid(rxn,
                                          m_log,
                                          m_line);
-                    reactions.push_back(rxn);
+
+                    if(split_rev_flag > 0 &&
+                           rxn.isReversible && rxn.krev.A >= 0.0) {
+                       Reaction frxn = forwardReaction(rxn);
+                       reactions.push_back(frxn);
+                       nRxns++;
+                       Reaction rrxn = reverseReaction(rxn);
+                       rrxn.number = nRxns;
+                       reactions.push_back(rrxn);
+                    } else {
+                       reactions.push_back(rxn);
+                    }
                     //rxn.comment.clear();
                 }
                 if (nRxns > 0) return ok;
@@ -1163,7 +1181,17 @@ next:
                     isFinalReactionValid(rxn,
                                          m_log,
                                          m_line);
-                    reactions.push_back(rxn);
+                    if(split_rev_flag > 0 &&
+                           rxn.isReversible && rxn.krev.A >= 0.0) {
+                       Reaction frxn = forwardReaction(rxn);
+                       reactions.push_back(frxn);
+                       nRxns++;
+                       Reaction rrxn = reverseReaction(rxn);
+                       rrxn.number = nRxns;
+                       reactions.push_back(rrxn);
+                    } else {
+                       reactions.push_back(rxn);
+                    }
                 }
                 nRxns++;
                 rxn = Reaction();

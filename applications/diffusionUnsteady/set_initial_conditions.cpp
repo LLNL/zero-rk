@@ -160,7 +160,6 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
           break;
         }
         if (i==num_vars_file-1 && state_name != file_state_names[i]) {
-          // Variable not found
           cerr << "WARNING: " << state_name << " not found in restart file.\n";
         }
       } // for i<num_vars_file

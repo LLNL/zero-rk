@@ -51,7 +51,9 @@ int getROPTempDerivative(idtControlParams *idtCtrl,
 
 void writeROPTempDerivativeReport(idtControlParams *idtCtrl,
                                   const double t_current,
+                                  const double min_value,
                                   FILE *fptr);
+
 void updateROPDerivativeDistribution(idtControlParams *idtCtrl,
                                      const double t_current,
                                      zerork::utilities::Distribution *order1_cum,

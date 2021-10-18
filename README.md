@@ -20,7 +20,7 @@ Zero-RK builds with cmake and depends on cmake version 3.12 or higher.  Zero-RK 
     $ ctest                                       #test
     $ make install                                #install
 
-This "vanilla" build process will download and install most dependencies (including `sundials`, `superlu`, `superlu_dist`, `parmetis`, and `spify`).  The user will need to supply a working MPI implementation as well as blas and lapack libraries.  The core code base can be built without MPI by invoking cmake as `cmake ../ -DENABLE_MPI=OFF`, however this will disable parallel applications including the flame solvers and global sensitivity analysis (GSA) codes.  The build will attempt to use the Intel Math Kernel Libraries (MKL) if the environment variable MKLROOT is set.
+This "vanilla" build process will download and install most dependencies (including `sundials`, `superlu`, `superlu_dist`, and `spify`).  The user will need to supply a working MPI implementation as well as blas and lapack libraries.  The core code base can be built without MPI by invoking cmake as `cmake ../ -DENABLE_MPI=OFF`, however this will disable parallel applications including the flame solvers and global sensitivity analysis (GSA) codes.  The build will attempt to use the Intel Math Kernel Libraries (MKL) if the environment variable MKLROOT is set.
 
 ### Parallel Builds
 
@@ -28,14 +28,13 @@ To speed up the build process, parallel builds can be enabled for the build depe
 
 ### Optional System Installed Libraries
 
-*Optionally*, for each of `SUNDIALS`, `SUPERLU`, `SUPERLU_DIST`, and `PARMETIS` the user may supply their own system installed version of the relevant packages by specifying, for example, `-DSYSTEM_SUNDIALS_ROOT=/path/to/sundials/install` as an option to the `cmake` command.  Supported versions of packages are shown below:
+*Optionally*, for each of `SUNDIALS`, `SUPERLU`, and `SUPERLU_DIST` the user may supply their own system installed version of the relevant packages by specifying, for example, `-DSYSTEM_SUNDIALS_ROOT=/path/to/sundials/install` as an option to the `cmake` command.  Supported versions of packages are shown below:
 
 | package            |           versions          |
 | -------            |           --------          |
 | `sundials`         | 2.7.0, 3.2.1, 4.1.0, 5.3.0  |
 | `SuperLU`          | 5.2.1                       | 
-| `SuperLU_DIST`     | 5.2.1                       | 
-| `parmetis`         | 4.0.3                       |
+| `SuperLU_DIST`     | 6.4.0                       | 
 
 Other versions may work, but have not been tested.  For older `sundials` versions the cmake variable `SUNDIALS_VERSION` needs to be set to the appropriate major version number (e.g. `cmake ../ -DSUNDIALS_VERSION=4`).
 
@@ -50,23 +49,28 @@ The applications, libraries, and examples should be installed to `CMAKE_INSTALL_
 Applications
 ----------------
 
-The current release includes applications in four major categories:
- - Zero-dimensional, constant- or variable-volume reactors with variants for batched and parallel computation as well as global sensitivity analysis:
+The current release includes applications in five major categories:
+ - Zero-dimensional, constant- or variable-volume reactors with variants for batched and parallel computation as well as global sensitivity analysis.  Also included are an accelerated sensitiviy analysis tool using the tangent linear approximation (based on work of Almohammadi et al: https://doi.org/10.1016/j.combustflame.2021.111426) and a solver for perfectly stirred reactors:
    - `constVolumeWSR`
+   - `constVolumeWSR_TLA`
+   - `constVolumePSR`
    - `perturbAFactor`
    - `perturbAFactorGSA`
    - `variable_volume`
    - `variable_volume_batch`
    - `variable_volume_gsa`
-- One-dimensional, laminar, premixed- and diffusion-flames solvers:
+- One-dimensional, laminar, premixed-, diffusion-, and counterflow-flames solvers:
    - `premixed_steady_flame_solver`
    - `premixed_unsteady_flame_solver`
    - `diffusion_steady_flame_solver`
    - `diffusion_unsteady_flame_solver`
+   - `counterflow_steady_flame_solver`
+   - `counterflow_unsteady_flame_solver`
  - Mechanism analysis/debugging tools:  
    - `thermo_check`
    - `idt_diagnostic`
  - A plugin for coupling to reacting CFD: `cfd_plugin`
+ - A tool to optimize kinetic rate parameters to tune a reduced model to match a detailed model: `rate_optimization`
 
 Examples for all the applications are installed at `${CMAKE_INSTALL_PREFIX}/share/zerork/examples`.  The inputs for most applications are in YAML format and options are described in the example input files.  The examples also include reference output so that the user can verify that their installation is working as expected.
 

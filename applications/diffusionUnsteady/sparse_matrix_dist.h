@@ -47,9 +47,9 @@ class SparseMatrix_dist
 
   // For Distributed
   SuperMatrix A_;
-  ScalePermstruct_t ScalePermstruct_;
-  LUstruct_t LUstruct_;
-  SOLVEstruct_t SOLVEstruct_;
+  dScalePermstruct_t ScalePermstruct_;
+  dLUstruct_t LUstruct_;
+  dSOLVEstruct_t SOLVEstruct_;
   gridinfo_t grid_;
 
   int nrhs_, ldb_, ldx_;

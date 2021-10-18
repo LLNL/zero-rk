@@ -1,6 +1,18 @@
 #!/bin/bash
 
-outputs_dir=outputs.`date +%Y%m%d%H%M`
+zerork_exe=@CMAKE_INSTALL_PREFIX@/bin/zerork_cfd_plugin_tester.x
+
+if [ ! -f $zerork_exe ]
+then
+  echo "No cfd_plugin_tester app. Try rebuildiing with SUNDIALS_VERSION=2."
+  exit 0
+fi
+
+outputs_dir=outputs
+if [ -d ${outputs_dir} ]
+then
+  rm -r ${outputs_dir}
+fi
 mkdir ${outputs_dir}
 
 setYMLScalar()
@@ -30,40 +42,49 @@ runSims() {
   initOxidMassFracs=`echo $initOxidMassFracs`  #strip newlines
 
   infile=${outputs_dir}/${name}_input.yml
-  cp inputs/base.yml $infile
+  zrkfile=${outputs_dir}/${name}_zerork.yml
+  cp inputs/base_tester.yml $infile
+  cp inputs/base_plugin.yml $zrkfile
 
-  setYMLScalar $infile mechFile $mechFile
-  setYMLScalar $infile thermFile $thermFile
-  setYMLScalar $infile reactorTime $simTime
-  setYMLScalar $infile precThresh $sparseThresh
-  setYMLScalar $infile fuelComp "{ $initFuelMassFracs }"
-  setYMLScalar $infile oxidizerComp "{ $initOxidMassFracs }"
-  setYMLScalar $infile mechLogFile ${outputs_dir}/${name}.cklog
-  setYMLScalar $infile outFile ${outputs_dir}/${name}_mr_run.log
-  
-  zerork_exe=@CMAKE_INSTALL_PREFIX@/bin/zerork_cfd_plugin_tester.x
+  setYMLScalar $infile mechanism_file $mechFile
+  setYMLScalar $infile thermo_file $thermFile
+  setYMLScalar $infile solution_time $simTime
+  setYMLScalar $infile fuel_composition "{ $initFuelMassFracs }"
+  setYMLScalar $infile oxidizer_composition "{ $initOxidMassFracs }"
+  setYMLScalar $infile zerork_cfd_plugin_input $zrkfile
+  setYMLScalar $infile n_reactors 32 
+
+  setYMLScalar $zrkfile preconditioner_threshold $sparseThresh
+  setYMLScalar $zrkfile mechanism_parsing_log ${outputs_dir}/${name}.cklog
+
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib64
 
   #Dense 
   if [ "x"$dodense == "xY" ]
   then
     echo "Running ${name} Dense"
-    setYMLScalar $infile cuda off
-    setYMLScalar $infile linearSolver DirectDenseDVD
-    setYMLScalar $infile nReactors 32 
-    setYMLScalar $infile nMatrixReactors 32 
-    setYMLScalar $infile outFile ${outputs_dir}/${name}_mr_run_dense.log
-    $zerork_exe $infile > ${outputs_dir}/log_${name}_dense
+    setYMLScalar $zrkfile gpu 0
+    setYMLScalar $zrkfile dense 1
+    setYMLScalar $zrkfile analytic 0
+    setYMLScalar $zrkfile iterative 0
+    setYMLScalar $zrkfile reactor_timing_log ${outputs_dir}/${name}_dense.log
+    setYMLScalar $infile reactor_history_file_prefix ${outputs_dir}/${name}_dense
+    $zerork_exe $infile >& ${outputs_dir}/${name}_dense.stdout
   fi
 
   #Sparse
   echo "Running ${name} Sparse"
-  setYMLScalar $infile cuda off
-  setYMLScalar $infile linearSolver IterativeSparse 
-  setYMLScalar $infile nReactors 32 
-  setYMLScalar $infile nMatrixReactors 32 
-  setYMLScalar $infile outFile ${outputs_dir}/${name}_mr_run_sparse.log
-  $zerork_exe $infile > ${outputs_dir}/log_${name}_sparse
+  setYMLScalar $zrkfile gpu 0
+  setYMLScalar $zrkfile dense 0
+  setYMLScalar $zrkfile analytic 1
+  setYMLScalar $zrkfile iterative 1
+  setYMLScalar $zrkfile reactor_timing_log ${outputs_dir}/${name}_sparse.log
+  setYMLScalar $infile reactor_history_file_prefix ${outputs_dir}/${name}_sparse
+  $zerork_exe $infile >& ${outputs_dir}/${name}_sparse.stdout
+
   rm $infile
+  rm $zrkfile
 }
 
 

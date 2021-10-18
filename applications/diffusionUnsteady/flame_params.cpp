@@ -754,7 +754,6 @@ void FlameParams::SetMemory()
     dense_to_sparse_offdiag_.assign(num_states*num_states, 1); // 1 to force dense!!
     printf("# WARNING: USING DENSE BLOCK TRIDIAGONAL JACOBIAN\n");
 
-    // Begin: set sparse terms if not using a dense block tridiagonal J
     // Chemical jacobian pattern -- only for diagonal block
     for (int j=0; j<num_nonzeros; j++) {
       dense_id = num_states*col_id_zerod[j] + row_id_zerod[j];
@@ -772,7 +771,6 @@ void FlameParams::SetMemory()
         }
       }
     }
-    // End: set sparse terms
 
     // Count non-zeros
     num_off_diagonals_ = nover_*num_states;

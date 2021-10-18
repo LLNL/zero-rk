@@ -145,6 +145,10 @@ field_dt_multiplier: 100
 #Optional with default value of 3
 integrator_type: 3
 
+#Type: integer
+#Optional with default value of 3
+integrator_type: 3
+
 #Flag that when set to true [y] stores the jacobian data for
 #each grid point when computed by user
 #Type: boolean

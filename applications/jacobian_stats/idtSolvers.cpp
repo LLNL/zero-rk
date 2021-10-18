@@ -384,6 +384,7 @@ void writeCVodeWarningsErrors(idtControlParams *idtCtrl,
   fprintfDashedLine(check_file);
   writeROPTempDerivativeReport(idtCtrl,
                                t_current,
+                               -1.0,
                                check_file);
    // state vector, rhs, normalized rhs?
   // error sorting

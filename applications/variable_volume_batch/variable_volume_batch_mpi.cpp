@@ -134,7 +134,7 @@ int root(int argc, char* argv[]) {
   fprintf(fptr,"# Column  2: [Pa] initial pressure\n");
   fprintf(fptr,"# Column  3: [-] mole fraction of composition specified by input file fuelComp map\n");
   fprintf(fptr,"# Column  4: [string] volume time history file\n");
-  fprintf(fptr,"# Column  5: [#] CVode error flag (negative values -> error)\n");
+  fprintf(fptr,"# Column  5: [#] CVode error flag (negative values -> error, positive values -> max steps reached)\n");
   fprintf(fptr,"# Column  6: [s] elapsed time from recorded min volume to max dp/dt\n");
   fprintf(fptr,"# Column  7: [s] time at min volume in time history file\n");
   fprintf(fptr,"# Column  8: [m^3] min volume in time history file\n");

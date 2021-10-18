@@ -5,9 +5,6 @@ project(sundials5_build)
 include(ExternalProject)
 ExternalProject_Add(
   sundials5
-  #GIT_REPOSITORY https://github.com/LLNL/sundials.git
-  #GIT_TAG        v5.3.0
-  #GIT_SHALLOW    ON
   URL        https://github.com/LLNL/sundials/archive/v5.3.0.tar.gz
   URL_HASH   MD5=38042e72ae79e3fc59223918526c3ff8
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${sundials_prefix}
@@ -15,5 +12,6 @@ ExternalProject_Add(
              -DEXAMPLES_INSTALL=OFF
              -DMPI_ENABLE=${ENABLE_MPI}
              -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-             -DCMAKE_C_COMPILER=${MPI_C_COMPILER})
-
+             -DCMAKE_C_COMPILER=${MPI_C_COMPILER}
+             -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+)

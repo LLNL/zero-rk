@@ -28,7 +28,7 @@ pressure = [1.0e5]
 
 # Number of processors for final solution
 # Set to maximum number of processors available
-nprocs = 8
+nprocs = @MPIEXEC_EXAMPLE_NUMPROCS_SMALL@
 nnodes = 1
 
 # Minimum nb of grid points per flame thickness

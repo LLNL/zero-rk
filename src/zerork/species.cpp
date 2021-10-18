@@ -60,7 +60,7 @@ void species::setSpecies(const int idx, const char *nm,
   if(name!=NULL)
     {free(name);}
   name=(char *)malloc(sizeof(char)*nameLength);
-  strcpy(name,nm);
+  strncpy(name,nm,nameLength);
   index=idx;
   nConstituent=count.size();
   constituentCount.resize(nConstituent);

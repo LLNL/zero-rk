@@ -242,7 +242,7 @@ int info_net::setParticipants(ckr::CKReader *ckrobj)
         for(k=0; k<(int)ckrobj->reactions[rxnIdx].reactants.size(); k++)
         {
           count=ckrobj->reactions[rxnIdx].reactants[k].number;
-          intCount=(int)(count+0.5*STOICH_TOL);
+          intCount=(int)(count+0.5);
           if(fabs(count-(double)intCount) >= STOICH_TOL)
           {
             printf("# ERROR: non-integer stoichiometric coefficient\n");
@@ -447,7 +447,7 @@ void info_net::setReactionFlags(ckr::CKReader *ckrobj)
     // scan the reactants for non-integer stoichiometric coefficients
     for(k=0; k<(int)ckrobj->reactions[j].reactants.size(); ++k) {
       count = ckrobj->reactions[j].reactants[k].number;
-      int_count = (int)(count + 0.5*STOICH_TOL);
+      int_count = (int)(count + 0.5);
       if(fabs(count-(double)int_count) > STOICH_TOL) {
         // set flag that a non-integer stoichiometric coefficient is found
         isNonIntegerStoich[j] = 1;
@@ -458,7 +458,7 @@ void info_net::setReactionFlags(ckr::CKReader *ckrobj)
       // scan the products for non-integer stoichiometric coefficients
       for(k=0; k<(int)ckrobj->reactions[j].products.size(); ++k) {
         count = ckrobj->reactions[j].products[k].number;
-        int_count = (int)(count + 0.5*STOICH_TOL);
+        int_count = (int)(count + 0.5);
         if(fabs(count-(double)int_count) > STOICH_TOL) {
           // set flag that a non-integer stoichiometric coefficient is found
           isNonIntegerStoich[j] = 1;

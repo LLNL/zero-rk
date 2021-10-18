@@ -65,6 +65,9 @@ class FlameParams
   std::vector<double> y_ext_;
   std::vector<double> rhs_ext_;
 
+  std::vector<double> y_old_;
+  double dt_;
+
   double fuel_temperature_;
   double fuel_molecular_mass_;
   double fuel_relative_volume_;
@@ -128,6 +131,8 @@ class FlameParams
 
   bool store_jacobian_;
   bool valid_jacobian_structure_;
+
+  bool pseudo_unsteady_;
 
   bool unity_Lewis_;
   bool full_equations_;

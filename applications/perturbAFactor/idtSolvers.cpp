@@ -13,8 +13,8 @@
 // odeUserParams.redTempRoot[j] = (parser.idtTemps()[j]+initTemp)/refTemp
 // in void idtControlParams::setupCVodeUserParams(AFactorIFP &parser).
 //
-// The integration ends when either the integration time exceeds
-// parser.maxTime(), or the last root is found with
+// The integration ends when either the integration time exceeds 
+// parser.maxTime(), or the last root is found with 
 // parser.stopAfterLastIdtTemp() set to true. The latter assumes
 // the roots are previously sorted in ascending order and that temperature
 // increase monotonically.  In situations where temperature is not
@@ -53,12 +53,14 @@ int solveIdtSimple(idtControlParams *idtCtrl,
   double *state = NV_DATA_S(idtCtrl->systemState);
   N_Vector chemical_heat_release_rate;
   chemical_heat_release_rate = N_VNew_Serial(2);
-
+  //printf("# DEBUG: solveIdtSimple(...), after variables\n"); fflush(stdout);
+  
+   
   rootsFound = new int[num_roots];
 
   max_heat_release_rate[0] = -INFINITY;
   max_heat_release_rate[1] = -INFINITY;
-
+                     
   idtCtrl->resetIdtSim();           // reset CVode
 
   species_max.assign(num_track_species_max, 0.0);
@@ -81,7 +83,7 @@ int solveIdtSimple(idtControlParams *idtCtrl,
                  idtCtrl->systemState,
                  &tcurr,
                  CV_ONE_STEP);
-    // record heat release ratesand max species if no error (flag < 0) was
+    // record heat release ratesand max species if no error (flag < 0) was 
     // found
     if(flag >= 0) {
       int flag_hrr;
@@ -126,7 +128,7 @@ int solveIdtSimple(idtControlParams *idtCtrl,
         printf("WARNING: CVode() returned error flag=%d\n",flag);
         printf("         attempting CVodeReInit at t=%.18g [s]\n", tcurr);
         printf("         with preconditioner threshold reset to zero.\n");
-
+	
         change_JsparseThresh(idtCtrl->odeUserParams.sparseMtx,
                              0.0);
         flagr = CVodeReInit(idtCtrl->cvodeCtrl.cvodeMemPtr,
@@ -157,7 +159,7 @@ int solveIdtSimple(idtControlParams *idtCtrl,
       // Scan the roots found and overwrite idt with the current time.
       // This means that if the root is found repeatedly (i.e., the
       // temperature is oscillating) only the time of the last root is
-      // recorded.
+      // recorded. 
       flagr = CVodeGetRootInfo(idtCtrl->cvodeCtrl.cvodeMemPtr,
                                rootsFound);
       if(check_flag(&flagr, "CVodeGetRootInfo", 1)) {
@@ -177,7 +179,7 @@ int solveIdtSimple(idtControlParams *idtCtrl,
       }
       if(rootsFound[idtCtrl->num_idt_temperatures_-1] != 0 &&
          idtCtrl->stop_after_last_idt_temp_) {
-        // found the last temperature root, so now advance the time past
+        // found the last temperature root, so now advance the time past 
         // the stopping time
         tcurr=2.0*tmax;
       }
@@ -196,10 +198,27 @@ int solveIdtSimple(idtControlParams *idtCtrl,
   results[num_roots+num_track_species_max+2] = time_at_max_heat_release_rate[1];
   results[num_roots+num_track_species_max+3] = max_heat_release_rate[1];
 
+  // for(j=0; j<num_results; ++j) {
+  //   printf("# DEBUG: results[%d] = %22.15e\n", j, results[j]);
+  // }
+
+  // if(idtCtrl->print_level_ > 0) {
+  //   printf("# Max heat release rate (-E_f(298)*dy/dt): %14.7e at t = %14.7e [s]\n",max_heat_release_rate[0],time_at_max_heat_release_rate[0]);
+  //   printf("# Max heat release rate        (-E*dy/dt): %14.7e at t = %14.7e [s]\n",max_heat_release_rate[1],time_at_max_heat_release_rate[1]);
+
+  //   for(j=0; j<num_track_species_max; ++j) {
+  //     printf("# Max mass fraction %16s: %14.7e at t = %14.7e [s]\n",
+  //            idtCtrl->mech->getSpeciesName(idtCtrl->track_species_max_id_[j]),
+  //            species_max[j],
+  //            time_at_species_max[j]);
+  //   }
+    
+  // }
+
   delete [] rootsFound;
   N_VDestroy_Serial(chemical_heat_release_rate);
   *solveTime=getHighResolutionTime()-startTime;
-
+  //printf("# DEBUG: Leaving solveIdtSimple(...)\n");
   return 0;
 }
 
@@ -241,7 +260,7 @@ int solveIdtPerturbRxn(const int rxnId,
                            &results[idtCtrl->num_results_],
                            &innerTime);
     idtCtrl->unsetROPMultiplierOfRxn(rxnId);
-  }
+  } 
 
   (*solveTime)=getHighResolutionTime()-startTime;
   return retFlag;

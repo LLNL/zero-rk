@@ -6,41 +6,44 @@
 extern "C" {
 #endif
 
-void zerork_cfd_plugin_setup_defaults(double rtol, double atol,
-                       double sparse_threshold);
+typedef enum _zerork_field_type {
+  ZERORK_FIELD_DPDT,
+  ZERORK_FIELD_COST,
+  ZERORK_FIELD_Y_SRC,
+  ZERORK_FIELD_E_SRC
+} zerork_field_type;
 
-void zerork_cfd_plugin_close(void);
+typedef struct zerork_handle_impl* zerork_handle;
+zerork_handle zerork_reactor_init(const char* input_filename,
+                        const char* mech_file,
+                        const char* therm_file);
 
+int zerork_reactor_solve(const int n_cycle, const double time,
+                         const double dt, const int n_reactors,
+                         double *T, double *P,
+                         double *mf,
+                         zerork_handle handle);
 
-void zerork_cfd_plugin_setup_full
-(
-    int verbosity,
-    int maxsteps,
-    int maxord,
-    double rtol,
-    double atol,
-    int abstol_dens,
-    double maxdt_internal,
-    double sparsethresh,
-    double nlconvcoef,
-    double epslin,
-    int lsolver,
-    const char* mech_filename,
-    const char* therm_filename,
-    const char* ck_log_filename,
-    const char* reactor_log_filename,
-    int* multireac,
-    int* gpu_id
-);
+int zerork_reactor_set_aux_field_pointer(zerork_field_type ft, double * field_pointer, zerork_handle handle);
 
-void zerork_solve_reactors(const int nReactors, const double dt,
-                        const double *T, const double *P,
-                        double *massFracPtr, double* cost, double* gpu);
+int zerork_reactor_set_int_option(const char* option_name_chr,
+                                  int option_value,
+                                  zerork_handle handle);
 
-long int zerork_cfd_plugin_solve(const double dt, const double T, const double P, double *massFracPtr);
+int zerork_reactor_set_double_option(const char* option_name_chr,
+                                     double option_value,
+                                     zerork_handle handle);
 
-void zerork_print_stats();
-void zerork_reset_stats();
+int zerork_reactor_get_int_option(const char* option_name_chr,
+                                  int* option_value,
+                                  zerork_handle handle);
+
+int zerork_reactor_get_double_option(const char* option_name_chr,
+                                     double* option_value,
+                                     zerork_handle handle);
+
+int zerork_reactor_free(zerork_handle handle); 
+
 
 #ifdef __cplusplus
 }

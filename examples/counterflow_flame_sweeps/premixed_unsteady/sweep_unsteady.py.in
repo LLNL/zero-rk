@@ -1,0 +1,52 @@
+import sys
+#Modify/remove to use a different flamesolver.py
+sys.path.append("@CMAKE_INSTALL_PREFIX@/lib/python/site-packages")
+
+from counterflowpremixedflamesolver import *
+
+######## ----- BEGIN USER INPUT ----- ########
+
+### BASIC INPUTS ###
+input_file = 'input.yml'
+
+# Equivalence ratio, can be an array for a sweep
+phi = [0.75]
+
+# Inlet stream temperature, can be an array for a sweep
+Tf = [300.0]
+
+# Inlet stream mass flux, can be an array for a sweep
+mf = [2.25]
+
+# Pressure, can be an array for a sweep
+pressure = [1.01325e5]
+
+# length of the grid (distance between fuel and oxidizer BCs)
+length = 0.025
+
+# Number of processors for final solution
+# Set to maximum number of processors available
+nprocs = @MPIEXEC_EXAMPLE_NUMPROCS@
+nnodes = 1
+
+# Minimum nb of grid points per flame thickness for "final" solution
+min_pts_per_lF = 10.
+
+# Switch to steady solver when a reasonable solution is available
+steady = True #False
+
+######## ----- END USER INPUT ----- ########
+
+compute_unsteady_counterflowflame(input_file,
+                                  length,
+                                  phi,
+                                  mf,
+                                  Tf,
+                                  pressure,
+                                  egr=[0.0],
+                                  nprocs=nprocs,
+                                  nnodes=nnodes,
+                                  min_pts_per_lF=min_pts_per_lF,
+                                  steady=steady,
+                                  nprocs_steady=4,
+                                  mpiexec='@MPIEXEC_NAME@')

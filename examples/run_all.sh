@@ -2,25 +2,32 @@
 examples_dir=$PWD
 
 for d in \
-  constVolumeWSR/hydrogen \
-  constVolumeWSR/hydrogen_yml \
-  constVolumeWSR/iso_octane \
-  diffusion_steady_flame_solver \
-  diffusion_unsteady_flame_solver \
+  constVolumeWSR \
+  constVolumeWSR_TLA \
+  constVolumePSR \
   idt_diagnostic \
-  lewisGenerator \
-  flame_speed/steady \
-  flame_speed/unsteady \
   perturbAFactor \
   perturbAFactorGSA \
-  premixed_steady_flame_solver \
-  premixed_unsteady_flame_solver \
-  thermo_check \
   variable_volume/cv \
   variable_volume/rcm \
   variable_volume_batch \
   variable_volume_gsa \
-  cfd_plugin_tester
+  lewisGenerator \
+  premixed_steady_flame_solver \
+  premixed_unsteady_flame_solver \
+  diffusion_steady_flame_solver \
+  diffusion_unsteady_flame_solver \
+  counterflow_steady_flame_solver \
+  counterflow_unsteady_flame_solver \
+  flame_speed/steady \
+  flame_speed/unsteady \
+  counterflow_flame_sweeps/diffusion_steady \
+  counterflow_flame_sweeps/diffusion_unsteady \
+  counterflow_flame_sweeps/premixed_steady \
+  counterflow_flame_sweeps/premixed_unsteady \
+  thermo_check \
+  cfd_plugin_tester \
+  rate_optimization
 do
   cd $d
   echo "Running test $d ..."

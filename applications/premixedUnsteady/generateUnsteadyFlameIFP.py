@@ -177,9 +177,20 @@ spify_parser_params.append(
 {
     'name':'inlet_full_comp',
     'type':'m_string_double',
-    'shortDesc' : "Full composition mole fraction map for inlet"
+    'shortDesc' : "Full composition mole fraction map for inlet",
+    'defaultValue': {}
 }
 )
+
+spify_parser_params.append(
+    {
+        'name':'egr_comp',
+	'type':'m_string_double',
+        'shortDesc' : "EGR composition mole fraction map for the inlet",
+        'defaultValue': {}
+    }
+)
+
 
 spify_parser_params.append(
 {

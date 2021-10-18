@@ -25,7 +25,7 @@ namespace ckr {
 
     Reaction reverseReaction(const Reaction& rxn) {
         Reaction r(rxn);
-        if (rxn.isReversible && (r.krev.A > 0.0) ) {
+        if (rxn.isReversible && (r.krev.A >= 0.0) ) {
             r.isReversible = false;
             r.products = rxn.reactants;
             r.reactants = rxn.products;

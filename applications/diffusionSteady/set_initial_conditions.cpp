@@ -140,6 +140,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
       y[k] = 0.0;
     }
 
+    /**/
     for(int j=0; j<num_states; ++j) {
       string state_name = flame_params.reactor_->GetNameOfStateId(j);
       for(int i=0; i<num_vars_file; ++i) {
@@ -169,6 +170,27 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
         }
       } // for i<num_vars_file
     } // for j<num_states
+    /**/
+
+    /*
+    for(int j=0; j<num_states; ++j) {
+      int i=j;
+      // Read interior data
+      disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
+        + i*2*sizeof(double) // Left & right BCs from previous variables
+        + sizeof(double) // Left BC from current variable
+        + (my_pe + i*npes)*num_local_points*sizeof(double);
+      MPI_File_set_view(restart_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
+      MPI_File_read(restart_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
+      // Set y values
+      for (int k=0; k<num_local_points; ++k) {
+        y[k*num_states + j] = buffer[k];
+        if(j==num_states-1){
+          y[k*num_states + j] /= flame_params.ref_temperature_;
+        }
+      }
+    } // for j<num_states
+    */
 
     MPI_File_close(&restart_file);
 

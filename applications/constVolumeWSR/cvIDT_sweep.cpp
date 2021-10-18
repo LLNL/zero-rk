@@ -1,11 +1,29 @@
+///////////////////////////////////////////////////////////////////////
+//
+//     This demonstration program builds an object representing a
+//     reacting gas mixture, and uses it to compute thermodynamic
+//     properties, chemical equilibrium, and transport properties.
+//
+///////////////////////////////////////////////////////////////////////
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
+#include <algorithm>
+#include <numeric>
+
+#ifdef ZERORK_MPI
+#include "mpi.h"
+#endif
 
 const int MAX_SPECNAME_LEN=256;
 const int MAX_FLOAT_LEN=256;
-const int MAX_THIST_LINE=20000;
+
+//#include <culapack.h>
 
 #include <cvode/cvode.h>            // prototypes for CVODE fcts. and consts.
 #include <nvector/nvector_serial.h> // serial N_Vector types, fcts., and macros
@@ -39,41 +57,50 @@ int setMoleFracFromFile(zerork::mechanism &mechInp, const char *fileName,
 			double moleFrac[]);
 
 static int check_flag(void *flagvalue, const char *funcname, int opt);
+#ifdef ZERORK_MPI
+static void mpi_sendrecv_string(int from, int to, std::string& in, std::string* out, MPI_Comm comm);
+#endif
 
 void getTimeHistLine_full(const double currTime,
                           const double *sysState,
                           const idt_sweep_params *idt_ctrl,
                           const cv_param *cvp,
                           const double wallTime,
-                          char *thistLine);
+                          std::string *thistLine);
 
 void getTimeHistHeader_full(const idt_sweep_params *idt_ctrl,
                             const cv_param *cvp,
-                            char *thistHead);
-int getIdtLine(const double initMoleFrac[],
+                            std::string *thistHead);
+void getIdtLine(const double initMoleFrac[],
                const idt_sweep_params *idt_ctrl,
-               const double idt,
+               const std::vector<double> idts,
                const double runTime,
                const int nCvodeFails,
-               const int maxBuffer,
-               char *idtLine);
-int getIdtHeader(const idt_sweep_params *idt_ctrl,
+               std::string *idtLine);
+void getIdtHeader(const idt_sweep_params *idt_ctrl,
                  const cv_param *cvp,
-                 const int maxBuffer,
-                 char *idtHeader);
+                 std::string *idtHeader);
 
 
-int getSimHeader_full(const int inp_argc,
+void getSimHeader_full(const int inp_argc,
                       char **inp_argv,
                       const idt_sweep_params *idt_ctrl,
                       const cv_param *cvp,
-                      const int max,
-                      char *simHead);
+                      std::string *simHead);
 
 
 void cvReactor(int inp_argc, char **inp_argv)
 {
-  double idt,tmax,dtprint;
+  int mpi_rank = 0;
+  int mpi_size = 1;
+#ifdef ZERORK_MPI
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+#endif
+
+
+  double tmax,dtprint;
+  std::vector<std::vector<double>> idts;
   int isIdtFound;
   double nRunsPerThresh;
 
@@ -93,7 +120,7 @@ void cvReactor(int inp_argc, char **inp_argv)
 #endif
   int flag;
 
-  char thistLine[MAX_THIST_LINE];
+  std::string thistLine;
   int did_cvodeFail;
   int isBadStep;
 
@@ -103,9 +130,16 @@ void cvReactor(int inp_argc, char **inp_argv)
 
   if(inp_argc != 2)
     {
+      if(mpi_rank == 0)
+      {
       printf("ERROR: incorrect command line usage\n");
       printf("       use instead %s <idt sweep input>\n",inp_argv[0]);
-      fflush(stdout); exit(-1);
+          fflush(stdout);
+      }
+#ifdef ZERORK_MPI
+      MPI_Barrier(MPI_COMM_WORLD);
+#endif
+      exit(-1);
     }
 
   startTime=getHighResolutionTime();
@@ -122,11 +156,17 @@ void cvReactor(int inp_argc, char **inp_argv)
   std::vector<double> avgTime(idt_ctrl.getNumThreshRuns(), 0.0);
   std::vector<double> minTime(idt_ctrl.getNumThreshRuns(), 1.0e300);
   std::vector<double> maxTime(idt_ctrl.getNumThreshRuns(), -1.0e300);
+#ifdef ZERORK_MPI
+  std::vector<double> global_avgTime(idt_ctrl.getNumThreshRuns(), 0.0);
+  std::vector<double> global_minTime(idt_ctrl.getNumThreshRuns(), 1.0e300);
+  std::vector<double> global_maxTime(idt_ctrl.getNumThreshRuns(), -1.0e300);
+#endif
 
   systemState = N_VNew_Serial(nState);
   double* massFracPtr=NV_DATA_S(systemState); // caution: assumes realtype == double
   std::vector<double> moleFracCurr(nSpc);
   std::vector<double> moleFracInit(nSpc);
+
 
   // set up the system parameters
   systemParam.nSpc=idt_ctrl.getNumSpecies();
@@ -134,6 +174,8 @@ void cvReactor(int inp_argc, char **inp_argv)
   systemParam.sqrtUnitRnd=sqrt(UNIT_ROUNDOFF);
   systemParam.Tref=idt_ctrl.getRefTemp();
   systemParam.mech=idt_ctrl.getMechPtr();
+  systemParam.numTempRoots = idt_ctrl.getTemperatureDeltas().size();
+  systemParam.tempRoots.resize(systemParam.numTempRoots);
 
   // don't forget to reset densities for each calculations
   //systemParam.Dens=gasMech->getDensityFromTPY(tempSweep[0],pres0,massFracPtr);
@@ -184,8 +226,8 @@ void cvReactor(int inp_argc, char **inp_argv)
   flag = CVodeSStolerances(cvode_mem,idt_ctrl.getRTol(),idt_ctrl.getATol());
   if (check_flag(&flag, "CVodeSStolerances", 1)) exit(-1);
 
-  /* Call CVodeRootInit to specify the root function with 1 component */
-  flag = CVodeRootInit(cvode_mem, 1, tempRootFunc);
+  /* Call CVodeRootInit to specify the root function */
+  flag = CVodeRootInit(cvode_mem, systemParam.numTempRoots, tempRootFunc);
   //flag = CVodeRootInit(cvode_mem, 2, tempRoot2);
   if (check_flag(&flag, "CVodeRootInit", 1)) exit(-1);
 
@@ -259,55 +301,68 @@ void cvReactor(int inp_argc, char **inp_argv)
 
   // ready for integration
 
-  // open ignition delay and time history files for write
-  idtFilePtr=fopen(idt_ctrl.getIdtFileName(),"w");
-  if(idtFilePtr==NULL)
-    {
-      printf("ERROR: could not open output file %s for write\n",
-	     idt_ctrl.getIdtFileName());
-      exit(-1);
-    }
-  thistFilePtr=fopen(idt_ctrl.getTHistFileName(),"w");
-  if(thistFilePtr==NULL)
-    {
-      printf("ERROR: could not open output file %s for write\n",
-	     idt_ctrl.getTHistFileName());
-      exit(-1);
-    }
-  // create the simulation header stored in a character array
-  getSimHeader_full(inp_argc,
-                    &inp_argv[0],
-                    &idt_ctrl,
-                    &systemParam,
-                    MAX_THIST_LINE,
-                    thistLine);
-  // write the simulation  header to stdout, idt file and thist file
-  printf("%s",thistLine);
-  fflush(stdout);
-  fprintf(thistFilePtr,"%s",thistLine);
-  fflush(thistFilePtr);
-  fprintf(idtFilePtr,"%s",thistLine);
-  fflush(idtFilePtr);
+  if(mpi_rank == 0) {
+    // open ignition delay and time history files for write
+    idtFilePtr=fopen(idt_ctrl.getIdtFileName(),"w");
+    if(idtFilePtr==NULL)
+      {
+        printf("ERROR: could not open output file %s for write\n",
+               idt_ctrl.getIdtFileName());
+        exit(-1);
+      }
+    thistFilePtr=fopen(idt_ctrl.getTHistFileName(),"w");
+    if(thistFilePtr==NULL)
+      {
+        printf("ERROR: could not open output file %s for write\n",
+               idt_ctrl.getTHistFileName());
+        exit(-1);
+      }
+    // create the simulation header stored in a character array
+    getSimHeader_full(inp_argc,
+                      &inp_argv[0],
+                      &idt_ctrl,
+                      &systemParam,
+                      &thistLine);
+    // write the simulation  header to stdout, idt file and thist file
+    printf("%s",thistLine.c_str());
+    fflush(stdout);
+    fprintf(thistFilePtr,"%s",thistLine.c_str());
+    fflush(thistFilePtr);
+    fprintf(idtFilePtr,"%s",thistLine.c_str());
+    fflush(idtFilePtr);
 
-  // create the time history header stored in a character array
-  getTimeHistHeader_full(&idt_ctrl, &systemParam, thistLine);
-  // write the time history header to stdout and the time history file
-  printf("%s",thistLine);
-  fflush(stdout);
-  fprintf(thistFilePtr,"%s",thistLine);
-  fflush(thistFilePtr);
+    // create the time history header stored in a character array
+    getTimeHistHeader_full(&idt_ctrl, &systemParam, &thistLine);
+    // write the time history header to stdout and the time history file
+    printf("%s",thistLine.c_str());
+    fflush(stdout);
+    fprintf(thistFilePtr,"%s",thistLine.c_str());
+    fflush(thistFilePtr);
 
-  // create the idt file header stored in a character array
-  getIdtHeader(&idt_ctrl, &systemParam, MAX_THIST_LINE, thistLine);
-  // write the idt header to the idt file
-  fprintf(idtFilePtr,"%s",thistLine);
-  fflush(idtFilePtr);
+    // create the idt file header stored in a character array
+    getIdtHeader(&idt_ctrl, &systemParam, &thistLine);
+    // write the idt header to the idt file
+    fprintf(idtFilePtr,"%s",thistLine.c_str());
+    fflush(idtFilePtr);
+  }
 
   tmax    = idt_ctrl.getStopTime();
   dtprint = idt_ctrl.getPrintTime();
 
-  for(j=0; j<idt_ctrl.getRunTotal(); j++)
+  std::vector<std::string> idt_lines;
+  std::vector<std::string> thist_lines;
+  int local_idx = 0;
+
+  //Each rank starts at correct offset
+  for(j = 0; j < mpi_rank; ++j)
     {
+      idt_ctrl.incrementRunId();
+    }
+  for(j=mpi_rank; j<idt_ctrl.getRunTotal(); j+=mpi_size, local_idx++)
+    {
+      idt_lines.push_back(std::string(""));
+      thist_lines.push_back(std::string(""));
+
       // initialize the run counters
       systemParam.sparseMtx->reduceNNZ=0; // won't be set until the first J
       systemParam.sparseMtx->LUnnz = 0; // won't be set until the first J
@@ -327,8 +382,14 @@ void cvReactor(int inp_argc, char **inp_argv)
       did_cvodeFail=0;
       isIdtFound=0;
 
-      // reset the ignition delay threshold
-      systemParam.tempRoot=idt_ctrl.getDeltaTign()+idt_ctrl.getInitTemp();
+      // reset the ignition delay thresholds
+      double initTemp = idt_ctrl.getInitTemp();
+      std::vector<double> tempDeltas = idt_ctrl.getTemperatureDeltas();
+      for(k=0; k < systemParam.numTempRoots; ++k) {
+         systemParam.tempRoots[k] = tempDeltas[k]+initTemp;
+      }
+      idts.clear();
+      idts.resize(systemParam.numTempRoots);
 
       // reset the preconditioner threshold
       change_JsparseThresh(systemParam.sparseMtx,idt_ctrl.getThresh());
@@ -337,30 +398,32 @@ void cvReactor(int inp_argc, char **inp_argv)
       idt_ctrl.getInitMassFrac(massFracPtr);
       systemParam.Dens=idt_ctrl.getDensity();
       systemParam.invDens=1.0/systemParam.Dens;
-      NV_Ith_S(systemState,nSpc)=
-	idt_ctrl.getInitTemp()/idt_ctrl.getRefTemp();
+      NV_Ith_S(systemState,nSpc) = initTemp/idt_ctrl.getRefTemp();
 
       // reset the time
       tcurr=0.0;
-      tnext=dtprint;
-      idt=tmax;
+      tnext=std::min(dtprint,tmax);
 
       // reinitialize cvode
       flag = CVodeReInit(cvode_mem, tcurr, systemState);
       isBadStep = 0;
 
       getTimeHistLine_full(tcurr,NV_DATA_S(systemState),&idt_ctrl,
-                           &systemParam,0.0,thistLine);
-      printf("%s",thistLine);
+                           &systemParam,0.0,&thistLine);
+#ifdef ZERORK_MPI
+      thist_lines[local_idx] += std::string(thistLine);
+#else
+      printf("%s",thistLine.c_str());
       fflush(stdout);
-      fprintf(thistFilePtr,"%s",thistLine);
+      fprintf(thistFilePtr,"%s",thistLine.c_str());
       fflush(thistFilePtr);
+#endif
       startTime=getHighResolutionTime();
 
       while(tcurr<tmax)
   	{
           if(idt_ctrl.oneStep()) {
-            flag = CVode(cvode_mem, tnext, systemState, &tcurr, CV_ONE_STEP);
+            flag = CVode(cvode_mem, tmax, systemState, &tcurr, CV_ONE_STEP);
           }
           else {
   	    flag = CVode(cvode_mem, tnext, systemState, &tcurr, CV_NORMAL);
@@ -373,8 +436,8 @@ void cvReactor(int inp_argc, char **inp_argv)
             if(did_cvodeFail <= idt_ctrl.getMaxPrimaryCvodeFails()) {
 
 	      printf("WARNING: attempting CVodeReInit at t=%.18g [s]\n",tcurr);
-	      printf("         after cvode failure count = %d\n",
-              did_cvodeFail);
+	      printf("         after cvode failure count = %d for reactor %d\n",
+              did_cvodeFail,j);
 
 	      flag = CVodeReInit(cvode_mem, tcurr, systemState);
             }
@@ -387,8 +450,8 @@ void cvReactor(int inp_argc, char **inp_argv)
                                    idt_ctrl.getSafetyThreshold());
 
 	      printf("WARNING: attempting CVodeReInit at t=%.18g [s]\n",tcurr);
-	      printf("         after cvode failure count = %d\n",
-                     did_cvodeFail);
+	      printf("         after cvode failure count = %d for reactor %d\n",
+                     did_cvodeFail,j);
 
               flag = CVodeReInit(cvode_mem, tcurr, systemState);
 	    }
@@ -405,26 +468,50 @@ void cvReactor(int inp_argc, char **inp_argv)
                                &idt_ctrl,
                                &systemParam,
                                getHighResolutionTime()-startTime,
-                               thistLine);
-          printf("%s",thistLine);
+                               &thistLine);
+#ifdef ZERORK_MPI
+          thist_lines[local_idx] += std::string(thistLine);
+#else
+          printf("%s",thistLine.c_str());
           fflush(stdout);
-          fprintf(thistFilePtr,"%s",thistLine);
+          fprintf(thistFilePtr,"%s",thistLine.c_str());
           fflush(thistFilePtr);
+#endif
 
   	  if(flag == CV_ROOT_RETURN) {
-            idt=tcurr;
-            isIdtFound=1;
-            if(idt_ctrl.continueAfterIDT() == 0) {
+            std::vector<int> roots_found(systemParam.numTempRoots);
+            flag = CVodeGetRootInfo(cvode_mem, &roots_found[0]);
+            if(flag != CV_SUCCESS) {
+              printf("ERROR: CVodeGetRootInfo failed.\n");
+              exit(1);
+            }
+            for(k=0; k < systemParam.numTempRoots; ++k) {
+              if(roots_found[k] != 0) { //both rising and falling are kept
+                idts[k].push_back(tcurr);
+              }
+            }
+            if(idts[systemParam.numTempRoots-1].size() > 0 &&
+               idt_ctrl.continueAfterIDT() == 0) {
               tcurr=2.0*tmax; // advance time past the stopping criteria
 	    }
           }
   	  else if(!idt_ctrl.oneStep() && isBadStep==0)
   	    {tnext+=dtprint;}
-          else if(tcurr >= tnext) {
-            tnext += dtprint;
-            flag = CVodeReInit(cvode_mem, tcurr, systemState);
-          }
 	}
+
+      std::vector<double> idts_out(systemParam.numTempRoots,tmax);
+      for(k=0; k<systemParam.numTempRoots; ++k) {
+         if(idts[k].size() == 0) {
+           idts[k].push_back(tmax);
+         }
+         if(idt_ctrl.getIDTMethod() == 0) {
+           idts_out[k] = idts[k][0];
+         } else if(idt_ctrl.getIDTMethod() == 1) {
+           idts_out[k] = idts[k].back();
+         } else { // assume 2
+           idts_out[k] = std::accumulate(idts[k].begin(),idts[k].end(),0.0)/idts[k].size(); 
+         }
+      }
 
       if(idt_ctrl.dumpJacobian()) {
           char jacFileName[32];
@@ -440,14 +527,21 @@ void cvReactor(int inp_argc, char **inp_argv)
       stopTime=getHighResolutionTime();
       simTime=stopTime-startTime;
       // add new-line to separate the time histories
+#ifdef ZERORK_MPI
+      thist_lines[local_idx] += std::string("\n");
+#else
       printf("\n");
       fprintf(thistFilePtr,"\n");
+#endif
 
       idt_ctrl.getInitMoleFrac(&moleFracInit[0]);
-      getIdtLine(&moleFracInit[0],&idt_ctrl,idt,simTime,did_cvodeFail,
-                 MAX_THIST_LINE,thistLine);
-      fprintf(idtFilePtr,"%s",thistLine);
+      getIdtLine(&moleFracInit[0],&idt_ctrl,idts_out,simTime,did_cvodeFail, &thistLine);
+#ifdef ZERORK_MPI
+      idt_lines[local_idx] = std::string(thistLine);
+#else
+      fprintf(idtFilePtr,"%s",thistLine.c_str());
       fflush(idtFilePtr);
+#endif
 
       avgTime[idt_ctrl.getThreshId()]+=simTime;
       if(simTime > maxTime[idt_ctrl.getThreshId()])
@@ -455,29 +549,74 @@ void cvReactor(int inp_argc, char **inp_argv)
       if(simTime < minTime[idt_ctrl.getThreshId()])
 	{minTime[idt_ctrl.getThreshId()]=simTime;}
 
-      idt_ctrl.incrementRunId();
+      for(int jj = 0; jj < mpi_size; ++jj) {
+        idt_ctrl.incrementRunId();
+      }
     }
 
-  // report the threshold statistics
-  fprintf(idtFilePtr,"\n\n");
-  fprintf(idtFilePtr,"# -----------------------------------------------------------------------------\n");
-  fprintf(idtFilePtr,"# Column 1: [-] preconditioner threshold\n");
-  fprintf(idtFilePtr,"# Column 2: [s] average simulation time\n");
-  fprintf(idtFilePtr,"# Column 3: [s] minimum simulation time\n");
-  fprintf(idtFilePtr,"# Column 4: [s] maximum simulation time\n");
-  nRunsPerThresh=(double)(idt_ctrl.getRunTotal()/
-			  idt_ctrl.getNumThreshRuns());
-  for(j=0; j<idt_ctrl.getNumThreshRuns(); j++)
+#ifdef ZERORK_MPI
+  for(j = 0; j < (idt_ctrl.getRunTotal()+mpi_size-1)/mpi_size; ++j)
+  {
+    for(k = 0; k < mpi_size; ++k)
     {
+      int current_run = mpi_size*j+k;
+      if(current_run >= idt_ctrl.getRunTotal())
+      {
+        break;
+      }
+      std::string current_thist_lines;
+      std::string current_idt_lines;
+      if(k != 0) {
+        mpi_sendrecv_string(k, 0, thist_lines[j], &current_thist_lines, MPI_COMM_WORLD);
+        mpi_sendrecv_string(k, 0, idt_lines[j], &current_idt_lines, MPI_COMM_WORLD);
+      } else {
+        if(mpi_rank == 0) {
+          current_thist_lines = thist_lines[j];
+          current_idt_lines = idt_lines[j];
+        }
+      }
+      if(mpi_rank == 0)
+      {
+          printf("%s",current_thist_lines.c_str());
+          fflush(stdout);
+          fprintf(thistFilePtr,"%s",current_thist_lines.c_str());
+          fflush(thistFilePtr);
+
+          fprintf(idtFilePtr,"%s",current_idt_lines.c_str());
+          fflush(idtFilePtr);
+      }
+    }
+  }
+
+  MPI_Reduce(&maxTime[0],&global_maxTime[0],maxTime.size(),MPI_DOUBLE,MPI_MAX,0,MPI_COMM_WORLD);
+  MPI_Reduce(&minTime[0],&global_minTime[0],minTime.size(),MPI_DOUBLE,MPI_MIN,0,MPI_COMM_WORLD);
+  MPI_Reduce(&avgTime[0],&global_avgTime[0],avgTime.size(),MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
+  maxTime = global_maxTime; //over-writing to save mpi logic during printing
+  minTime = global_minTime;
+  avgTime = global_avgTime;
+#endif
+
+  if(mpi_rank == 0) {
+    // report the threshold statistics
+    fprintf(idtFilePtr,"\n\n");
+    fprintf(idtFilePtr,"# -----------------------------------------------------------------------------\n");
+    fprintf(idtFilePtr,"# Column 1: [-] preconditioner threshold\n");
+    fprintf(idtFilePtr,"# Column 2: [s] average simulation time\n");
+    fprintf(idtFilePtr,"# Column 3: [s] minimum simulation time\n");
+    fprintf(idtFilePtr,"# Column 4: [s] maximum simulation time\n");
+    nRunsPerThresh=(double)(idt_ctrl.getRunTotal()/
+          		  idt_ctrl.getNumThreshRuns());
+    for(j=0; j<idt_ctrl.getNumThreshRuns(); j++) {
       avgTime[j]/=nRunsPerThresh;
       fprintf(idtFilePtr,"%14.7e  %14.7e  %14.7e  %14.7e\n",
-	      idt_ctrl.getThreshFromId(j),avgTime[j],minTime[j],maxTime[j]);
+              idt_ctrl.getThreshFromId(j),avgTime[j],minTime[j],maxTime[j]);
     }
-  fflush(idtFilePtr);
+    fflush(idtFilePtr);
+    fclose(idtFilePtr);
+    fclose(thistFilePtr);
+  }
 
   // clean up procedures
-  fclose(idtFilePtr);
-  fclose(thistFilePtr);
  // Free ode system parameter memory
   free(systemParam.molWt);
   free(systemParam.invMolWt);
@@ -507,7 +646,13 @@ void cvReactor(int inp_argc, char **inp_argv)
 
 int main(int argc, char **argv)
 {
+#ifdef ZERORK_MPI
+  MPI_Init(&argc, &argv);
+#endif
   cvReactor(argc, argv);
+#ifdef ZERORK_MPI
+  MPI_Finalize();
+#endif
   exit(0);
 }
 
@@ -532,7 +677,7 @@ void getTimeHistLine_full(const double currTime,
                           const idt_sweep_params *idt_ctrl,
                           const cv_param *cvp,
                           const double wallTime,
-                          char *thistLine)
+                          std::string *thistLine)
 {
   int j;
   int nSpc   = cvp->mech->getNumSpecies();
@@ -541,7 +686,6 @@ void getTimeHistLine_full(const double currTime,
   double currPres,currTemp, initTemp;
   double *currMoleFrac;
   long int nsteps,netfails,nniters,nncfails;
-
   double molWt, cvMixPerMass, intEnergyMixPerMass, intEnergyMixPerMassInit;
 
   nsteps=netfails=nniters=nncfails=0;
@@ -549,6 +693,9 @@ void getTimeHistLine_full(const double currTime,
   CVodeGetNumSteps(cvp->cvodeMemPtr, &nsteps);
   CVodeGetNumErrTestFails(cvp->cvodeMemPtr, &netfails);
   CVodeGetNumNonlinSolvIters(cvp->cvodeMemPtr, &nniters);
+  if(nsteps == 0) {
+    nniters = 0; //Fix bug in CVode that doesn't reset this on ReInit
+  }
   CVodeGetNumNonlinSolvConvFails(cvp->cvodeMemPtr, &nncfails);
 
   currMoleFrac = new double[nSpc];
@@ -575,71 +722,70 @@ void getTimeHistLine_full(const double currTime,
   // currMoleFrac[] is recalculated with mole fraction
   cvp->mech->getXfromY(&sysState[0],currMoleFrac);
 
-  // sprintf return the number of characters written excluding the '\0'
-  // string termination character
+  std::stringstream ss;
+
+  ss << std::setw(8);
+  ss << idt_ctrl->getRunId();
+  int width = 16;
+  ss << std::setprecision(7);
+  ss << std::scientific;
   if(idt_ctrl->longOutput()) {
-    strLen=sprintf(thistLine,
-  		 "%8d  %24.16e  %24.16e  %24.16e  %24.16e  %24.16e  %24.16e  %24.16e",
-		 idt_ctrl->getRunId(),
-		 currTime,
-		 currTemp,
-		 currPres,
-		 1.0/cvp->invDens,
-                 molWt,
-                 cvMixPerMass,
-                 intEnergyMixPerMass-intEnergyMixPerMassInit);
-    strPos=strLen;
-    for(j=0; j<nTrack; j++)
-      {
-        strLen=sprintf(&thistLine[strPos],
-                "  %24.16e",
-                currMoleFrac[idt_ctrl->getTrackSpeciesId(j)]);
-        strPos+=strLen;
+    width = 26;
+    ss << std::setprecision(16);
+  }
+  ss << std::setw(width) << currTime
+     << std::setw(width) << currTemp
+     << std::setw(width) << currPres
+     << std::setw(width) << 1.0/cvp->invDens 
+     << std::setw(width) << molWt
+     << std::setw(width) << cvMixPerMass
+     << std::setw(width) << intEnergyMixPerMass-intEnergyMixPerMassInit;
+  for(j=0; j<nTrack; j++) {
+      ss << std::setw(width) << currMoleFrac[idt_ctrl->getTrackSpeciesId(j)];
+   }
+  if(idt_ctrl->printNetProductionRates()) {
+    for(j=0; j<nTrack; j++) {
+      ss << std::setw(width) << cvp->netProd[idt_ctrl->getTrackSpeciesId(j)];
+    }
+  }
+  if(idt_ctrl->printNetRatesOfProgress()) {
+    int nRxn = cvp->mech->getNumReactions();
+    int nStep=idt_ctrl->getNumSteps();
+    int fwdStepIdx, revStepIdx;
+    double netROP; 
+    for(j=0; j<nRxn; j++) {
+      cvp->mech->getStepIdxOfRxn(j, &fwdStepIdx, &revStepIdx);
+      netROP = cvp->fwdROP[fwdStepIdx];
+      if(revStepIdx > 0) {
+         netROP -= cvp->fwdROP[revStepIdx];
       }
-  } else {
-    strLen=sprintf(thistLine,
-  		 "%8d  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e",
-		 idt_ctrl->getRunId(),
-		 currTime,
-		 currTemp,
-		 currPres,
-		 1.0/cvp->invDens,
-                 molWt,
-                 cvMixPerMass,
-                 intEnergyMixPerMass-intEnergyMixPerMassInit);
-    strPos=strLen;
-    for(j=0; j<nTrack; j++)
-      {
-        strLen=sprintf(&thistLine[strPos],
-                "  %14.7e",
-                currMoleFrac[idt_ctrl->getTrackSpeciesId(j)]);
-        strPos+=strLen;
-      }
+      ss << std::setw(width) << netROP;
+    }
   }
 
-  strLen=sprintf(&thistLine[strPos],
-                 "  %6ld  %6ld  %6ld  %6ld  %6d  %6d  %6d  %6d  %6d  %6d  %6d  %6d",
-                 nsteps,
-                 netfails,
-                 nniters,
-                 nncfails,
-                 cvp->nJacSetup,
-                 cvp->nColPerm,
-                 cvp->nJacFactor,
-                 cvp->nBackSolve,
-                 cvp->nFunc,
-	         cvp->sparseMtx->nNonZero,
-	         cvp->sparseMtx->reduceNNZ,
-	         cvp->sparseMtx->LUnnz);
-  strPos+=strLen;
-  strLen=sprintf(&thistLine[strPos],
-                 "  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e  %14.7e\n",
-                 cvp->jacSetupTime,
-                 cvp->colPermTime,
-                 cvp->jacFactorTime,
-                 cvp->backsolveTime,
-                 cvp->funcTime,wallTime);
+  ss << std::setw(8) << nsteps
+     << std::setw(8) << netfails
+     << std::setw(8) << nniters
+     << std::setw(8) << nncfails
+     << std::setw(8) << cvp->nJacSetup
+     << std::setw(8) << cvp->nColPerm
+     << std::setw(8) << cvp->nJacFactor
+     << std::setw(8) << cvp->nBackSolve
+     << std::setw(8) << cvp->nFunc
+     << std::setw(8) << cvp->sparseMtx->nNonZero
+     << std::setw(8) << cvp->sparseMtx->reduceNNZ
+     << std::setw(8) << cvp->sparseMtx->LUnnz;
 
+  ss << std::setprecision(7);
+  ss << std::setw(16) << cvp->jacSetupTime
+     << std::setw(16) << cvp->colPermTime
+     << std::setw(16) << cvp->jacFactorTime
+     << std::setw(16) << cvp->backsolveTime
+     << std::setw(16) << cvp->funcTime
+     << std::setw(16) << wallTime
+     << std::endl;
+
+  *thistLine = ss.str();
   delete [] currMoleFrac;
 }
 
@@ -662,427 +808,324 @@ void getTimeHistLine_full(const double currTime,
 // overwrite the data, which needs to be fixed.
 void getTimeHistHeader_full(const idt_sweep_params *idt_ctrl,
                             const cv_param *cvp,
-                            char *thistHead)
+                            std::string *thistHead)
 {
   int j;
   int nSpc   = cvp->mech->getNumSpecies();
   int nTrack = idt_ctrl->getNumTrackSpecies();
-  int strPos,strLen, colNum;
+  int colNum;
+  std::stringstream ss;
 
-  strPos=0;
-  strLen=sprintf(&thistHead[strPos],
-                 "%s%s%s%s%s%s%s%s",
-                 "# Column  1: [#]       run id\n",
-                 "# Column  2: [s]       simulated ODE time\n",
-                 "# Column  3: [K]       temperature\n",
-                 "# Column  4: [Pa]      pressure\n",
-                 "# Column  5: [kg/m^3]  density\n",
-                 "# Column  6: [kg/kmol] mixture molecular weight\n",
-                 "# Column  7: [J/kg/K]  mixture specific heat (cosnt vol)\n",
-                 "# Column  8: [J/kg]    energy released\n");
-  strPos+=strLen;
+  ss << "# Column  1: [#]       run id\n"
+     << "# Column  2: [s]       simulated ODE time\n"
+     << "# Column  3: [K]       temperature\n"
+     << "# Column  4: [Pa]      pressure\n"
+     << "# Column  5: [kg/m^3]  density\n"
+     << "# Column  6: [kg/kmol] mixture molecular weight\n"
+     << "# Column  7: [J/kg/K]  mixture specific heat (cosnt vol)\n"
+     << "# Column  8: [J/kg]    energy released\n";
+
   colNum=9;
+  ss << std::setw(2);
   for(j=0; j<nTrack; j++) {
-    strLen=sprintf(&thistHead[strPos],
-                   "# Column %2d: [-]      mole fraction of %s\n",
-                   colNum++, // increment after printf
-                   cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j)));
-    strPos+=strLen;
+    ss <<"# Column " << colNum++ << ": [-]      mole fraction of "
+       << cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j))
+       << std::endl;
   }
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      CVodeGetNumSteps(...)\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      CVodeGetNumErrTestFails(...)\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      CVodeGetNumNonlinSolvIters(...)\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      CVodeGetNumNonlinSolvConvFails(...)\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      calls to the precond. setup\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      calls to the column permutation\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      calls to the precond. factorization\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      calls to the precond. back solve\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      calls to the RHS function\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      max non-zero terms in precond.\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      current non-zero terms in precond.\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [#]      current non-zero terms in LU factors\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [s]      wall clock time - precond. setup\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [s]      wall clock time - column permut.\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [s]      wall clock time - precond. factor.\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [s]      wall clock time - precond. back solve\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [s]      wall clock time - RHS evaluation\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# Column %2d: [s]      wall clock time - total simulation\n",
-                 colNum++);
-  strPos+=strLen;
-  strLen=sprintf(&thistHead[strPos],
-                 "# -----------------------------------------------------------------------------\n");
-  strPos+=strLen;
+  if(idt_ctrl->printNetProductionRates()) {
+    for(j=0; j<nTrack; j++) {
+      ss <<"# Column " << colNum++ << ": [kmol/m^3/s]      net production rate of "
+         << cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j))
+         << std::endl;
+    }
+  }
+  if(idt_ctrl->printNetRatesOfProgress()) {
+    int nRxn = cvp->mech->getNumReactions();
+    for(j=0; j<nRxn; j++) {
+      ss <<"# Column " << colNum++ << ": [kmol/m^3/s]      net rate of progress for reaction "
+         << j << std::endl;
+    }
+  }
+  ss << "# Column " << colNum++ << ": [#]      CVodeGetNumSteps(...)\n"
+     << "# Column " << colNum++ << ": [#]      CVodeGetNumErrTestFails(...)\n"
+     << "# Column " << colNum++ << ": [#]      CVodeGetNumNonlinSolvIters(...)\n"
+     << "# Column " << colNum++ << ": [#]      CVodeGetNumNonlinSolvConvFails(...)\n"
+     << "# Column " << colNum++ << ": [#]      calls to the precond. setup\n"
+     << "# Column " << colNum++ << ": [#]      calls to the column permutation\n"
+     << "# Column " << colNum++ << ": [#]      calls to the precond. factorization\n"
+     << "# Column " << colNum++ << ": [#]      calls to the precond. back solve\n"
+     << "# Column " << colNum++ << ": [#]      calls to the RHS function\n"
+     << "# Column " << colNum++ << ": [#]      max non-zero terms in precond.\n"
+     << "# Column " << colNum++ << ": [#]      current non-zero terms in precond.\n"
+     << "# Column " << colNum++ << ": [#]      current non-zero terms in LU factors\n"
+     << "# Column " << colNum++ << ": [s]      wall clock time - precond. setup\n"
+     << "# Column " << colNum++ << ": [s]      wall clock time - column permut.\n"
+     << "# Column " << colNum++ << ": [s]      wall clock time - precond. factor.\n"
+     << "# Column " << colNum++ << ": [s]      wall clock time - precond. back solve\n"
+     << "# Column " << colNum++ << ": [s]      wall clock time - RHS evaluation\n"
+     << "# Column " << colNum++ << ": [s]      wall clock time - total simulation\n"
+     << "# -----------------------------------------------------------------------------\n"
+     << "# run id";
+
+  int width = 16;
   if(idt_ctrl->longOutput()) {
-    strLen=sprintf(&thistHead[strPos], "# run id  %24s  %24s  %24s  %24s  %24s  %24s  %24s",
-                            "sim time","temp", "press", "dens","mol wt", "cv", "E release");
-    strPos+=strLen;
+    width = 26;
+  }
+  ss << std::setw(width) << "sim time"
+     << std::setw(width) << "temp"
+     << std::setw(width) << "press"
+     << std::setw(width) << "dens"
+     << std::setw(width) << "mol wt"
+     << std::setw(width) << "cv"
+     << std::setw(width) << "E release";
+  for(j=0; j<nTrack; j++) {
+    ss << " mlfrc" << std::setw(width-6) << cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j));
+  }
+  if(idt_ctrl->printNetProductionRates()) {
     for(j=0; j<nTrack; j++) {
-      strLen=sprintf(&thistHead[strPos],
-                     " mlfrc%20s",
-                     cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j)));
-      strPos+=strLen;
-    }
-  } else {
-    strLen=sprintf(&thistHead[strPos],
-                   "# run id        sim time            temp           press            dens          mol wt              cv       E release");
-    strPos+=strLen;
-    for(j=0; j<nTrack; j++) {
-      strLen=sprintf(&thistHead[strPos],
-                     " mlfrc%10s",
-                     cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j)));
-      strPos+=strLen;
+      ss << " npr  " << std::setw(width-6) << cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j));
     }
   }
-  strLen=sprintf(&thistHead[strPos],
-                 "   nstep   nertf  nnlsit  nnlcvf prsetup ncolprm nfactor backslv  intfcl     nnz    rnnz   lunnz    jac setup tm     col perm tm      jac fac tm    backsolve tm     rhs func tm   simulation tm\n");
-  strPos+=strLen;
+  if(idt_ctrl->printNetRatesOfProgress()) {
+    int nRxn = cvp->mech->getNumReactions();
+    for(j=0; j<nRxn; j++) {
+      ss << " rop  " << std::setw(width-6) << j;
+    }
+  }
+  ss << "   nstep   nertf  nnlsit  nnlcvf prsetup ncolprm nfactor backslv  intfcl     nnz    rnnz   lunnz    jac setup tm     col perm tm      jac fac tm    backsolve tm     rhs func tm   simulation tm\n";
+ *thistHead = ss.str();
 }
 
 // void getSimHeader_full(...)
 //
 //
-int getSimHeader_full(const int inp_argc,
-                      char **inp_argv,
-                      const idt_sweep_params *idt_ctrl,
-                      const cv_param *cvp,
-                      const int maxLen,
-                      char *simHead)
+void getSimHeader_full(const int inp_argc,
+                       char **inp_argv,
+                       const idt_sweep_params *idt_ctrl,
+                       const cv_param *cvp,
+                       std::string *simHead)
 {
   int j,spcId;
   int nSpc   = cvp->mech->getNumSpecies();
   int nSpcTermsJac = cvp->sparseMtx->nNonZero-2*nSpc+1;
   int nTrack = idt_ctrl->getNumTrackSpecies();
-  int strPos,strLen;
+  std::stringstream ss;
 
   // 1. construct the command line
-  strPos=0;
-  strLen=sprintf(&simHead[strPos],
-                 "# Command line: %s",inp_argv[0]);
-  strPos+=strLen;
+  ss << std::string("# Command line: ") << inp_argv[0];
 
   for(j=1; j<inp_argc; j++) {
-    if(j < inp_argc-1) {
-      strLen=sprintf(&simHead[strPos],
-                     " %s",
-                     inp_argv[j]);
-    }
-    else {
-      strLen=sprintf(&simHead[strPos],
-                     " %s\n%s\n",
-                     inp_argv[j],
-                     "# ---------------------------------------------------------------------------");
-    }
-    strPos+=strLen;
+    ss << " " << inp_argv[j];
   }
+  ss << "\n# ---------------------------------------------------------------------------\n";
 
   {
     zerork::ZeroRKConstants zrk_constants;
     // 1.5 construct git commit information
-    strLen=sprintf(&simHead[strPos],
-                   "%s%s%s\n%s%s\n%s%s\n%s%s\n%s\n",
-                   "# Zero-RK git commit information:\n",
-                   "#   commit id                 [hash] : ",
-                   zrk_constants.GetCommitId(),
-                   "#   commit time-stamp         [date] : ",
-                   zrk_constants.GetCommitTimestamp(),
-                   "#   branch name               [word] : ",
-                   zrk_constants.GetBranchName(),
-                   "#   exponential type          [word] : ",
-                   zrk_constants.GetExpType(),
-                   "# ---------------------------------------------------------------------------");
-    strPos+=strLen;
+    ss << "# Zero-RK git commit information:" <<
+          "\n#   commit id                 [hash] : " <<
+          zrk_constants.GetCommitId() <<
+          "\n#   commit time-stamp         [date] : " <<
+          zrk_constants.GetCommitTimestamp() <<
+          "\n#   branch name               [word] : " <<
+          zrk_constants.GetBranchName() <<
+          "\n#   exponential type          [word] : " <<
+          zrk_constants.GetExpType() <<
+          "\n# ---------------------------------------------------------------------------\n";
   }
 
 
   // 2. construct the mechanism information
-  strLen=sprintf(&simHead[strPos],
-                 "%s%s%s\n%s%s\n%s%s\n%s%d\n%s%d\n%s%d\n%s%d\n%s%d\n%s\n",
-                 "# Mechanism constants:\n",
-                 "#   mechanism definition      [path] : ",
-                 idt_ctrl->getMechFileName(),
-                 "#   thermodynamics definition [path] : ",
-                 idt_ctrl->getThermFileName(),
-                 "#   parser log definition     [path] : ",
-                 idt_ctrl->getLogFileName(),
-                 "#   number of species            [#] : ",
-                 nSpc,
-                 "#   number of reactions          [#] : ",
-                 cvp->mech->getNumReactions(),
-                 "#   number of 1-way steps        [#] : ",
-                 cvp->mech->getNumSteps(),
-                 "#   max non-zeros in species J   [#] : ",
-                 nSpcTermsJac,
-                 "#   max non-zeros in const vol J [#] : ",
-                 cvp->sparseMtx->nNonZero,
-                 "# ---------------------------------------------------------------------------");
-  strPos+=strLen;
+  ss << "# Mechanism constants:" <<
+        "\n#   mechanism definition      [path] : " <<
+        idt_ctrl->getMechFileName() <<
+        "\n#   thermodynamics definition [path] : " <<
+        idt_ctrl->getThermFileName() <<
+        "\n#   parser log definition     [path] : " <<
+        idt_ctrl->getLogFileName() <<
+        "\n#   number of species            [#] : " <<
+        std::to_string(nSpc) <<
+        "\n#   number of reactions          [#] : " <<
+        std::to_string(cvp->mech->getNumReactions()) <<
+        "\n#   number of 1-way steps        [#] : " <<
+        std::to_string(cvp->mech->getNumSteps()) <<
+        "\n#   max non-zeros in species J   [#] : " <<
+        std::to_string(nSpcTermsJac) <<
+        "\n#   max non-zeros in const vol J [#] : " <<
+        std::to_string(cvp->sparseMtx->nNonZero) <<
+        "\n# ---------------------------------------------------------------------------\n";
+
   // 3. construct the composition information
-  strLen=sprintf(&simHead[strPos],
-                 "%s\n",
-                 "# Fuel composition (moles of species)/(moles of fuel):");
-  strPos+=strLen;
+  ss << std::setprecision(4) << std::fixed;
+  ss << "# Fuel composition (moles of species)/(moles of fuel):" << std::endl;
   for(j=0; j<idt_ctrl->getNumFuelSpecies(); j++) {
     spcId = idt_ctrl->getFuelSpeciesId(j);
-    strLen=sprintf(&simHead[strPos],
-                   "#   %16s: %.18g\n",
-                   cvp->mech->getSpeciesName(spcId),
-                   idt_ctrl->getFuelMoleFrac(spcId));
-    strPos+=strLen;
+    ss << "#  " << std::setw(16) << cvp->mech->getSpeciesName(spcId);
+    ss << ": " << idt_ctrl->getFuelMoleFrac(spcId) << std::endl;
   }
-  strLen=sprintf(&simHead[strPos],
-              "%s\n",
-              "# Oxid(izer) composition (moles of species)/(moles of oxid):");
-  strPos+=strLen;
+  ss << "# Oxid(izer) composition (moles of species)/(moles of oxid):" << std::endl;
   for(j=0; j<idt_ctrl->getNumOxidSpecies(); j++) {
     spcId = idt_ctrl->getOxidSpeciesId(j);
-    strLen=sprintf(&simHead[strPos],
-                   "#   %16s: %.18g\n",
-                   cvp->mech->getSpeciesName(spcId),
-                   idt_ctrl->getOxidMoleFrac(spcId));
-    strPos+=strLen;
+    ss << "#  " << std::setw(16) << cvp->mech->getSpeciesName(spcId)
+       << ": " << idt_ctrl->getOxidMoleFrac(spcId) << std::endl;
   }
+  ss << std::setw(0);
 
-  strLen=sprintf(&simHead[strPos],
-                 "%s\n%s%.18g\n%s%.18g\n%s%.18g\n%s\n",
-                 "# Global stoichiometry constants:",
-                 "#   fuel (excess mols of atomic-O)/(mols of fuel) : ",
-                 idt_ctrl->getFuelOxyBalance(),
-                 "#   oxid (excess mols of atomic-O)/(mols of oxid) : ",
-                 idt_ctrl->getOxidOxyBalance(),
-                 "#   (mols of oxid)/(mols of fuel) at phi=1        : ",
-                 idt_ctrl->getMoleOxidStoicPerFuel(),
-                 "# ---------------------------------------------------------------------------");
-  strPos+=strLen;
-
+  ss << "# Global stoichiometry constants:" << std::endl
+     << "#   fuel (excess mols of atomic-O)/(mols of fuel) : " 
+     << idt_ctrl->getFuelOxyBalance() << std::endl
+     << "#   oxid (excess mols of atomic-O)/(mols of oxid) : "
+     << idt_ctrl->getOxidOxyBalance() << std::endl
+     << "#   (mols of oxid)/(mols of fuel) at phi=1        : "
+     << idt_ctrl->getMoleOxidStoicPerFuel() << std::endl
+     << "# ---------------------------------------------------------------------------" << std::endl;
 
   // 4. construct the simulation information
-  strLen=sprintf(&simHead[strPos],
-                 "%s%s%.18g\n%s%.18g\n%s%s\n%s%.18g\n%s%.18g\n%s%d\n%s\n",
-                 "# Simulation constants:\n",
-                 "#   ode print time               [s] : ",
-                 idt_ctrl->getPrintTime(),
-                 "#   ode max time                 [s] : ",
-                 idt_ctrl->getStopTime(),
-                 "#   continue after IDT found   [y/n] : ",
-                 (idt_ctrl->continueAfterIDT() != 0) ? "yes" : "no",
-                 "#   reference temperature        [K] : ",
-                 idt_ctrl->getRefTemp(),
-                 "#   ignition delay delta Temp    [K] : ",
-                 idt_ctrl->getDeltaTign(),
-                 "#   total number of runs         [#] : ",
-                 idt_ctrl->getRunTotal(),
-                 "# ---------------------------------------------------------------------------");
-  strPos+=strLen;
+  ss << "# Simulation constants:" << std::endl
+     << std::setprecision(4) << std::scientific
+     << "#   ode print time               [s] : "
+     << idt_ctrl->getPrintTime() << std::endl
+     << "#   ode max time                 [s] : "
+     << idt_ctrl->getStopTime() << std::endl
+     << "#   continue after IDT found   [y/n] : "
+     << ((idt_ctrl->continueAfterIDT() != 0) ? "yes" : "no") << std::endl
+     << std::setprecision(2) << std::fixed
+     << "#   reference temperature        [K] : "
+     << idt_ctrl->getRefTemp() << std::endl;
+  for(j=0; j<idt_ctrl->getTemperatureDeltas().size(); j++) {
+      ss << "#   ignition delay delta Temp[" << j << "]    [K] : "
+         << idt_ctrl->getTemperatureDeltas()[j] << std::endl;
+  }
+  ss << "#   total number of runs         [#] : "
+     << idt_ctrl->getRunTotal() << std::endl
+     << "# ---------------------------------------------------------------------------" << std::endl;
 
   // 5. construct the solver information
-  strLen=sprintf(&simHead[strPos],
-                 "%s%s%.18g\n%s%.18g\n%s%.18g\n%s%d\n%s%.18g\n%s%.18g\n%s%d\n%s%d\n%s%.18g\n%s%d\n%s%s\n%s%s\n%s%.18g\n%s%s\n%s%s\n%s\n",
-                 "# Solver constants:\n",
-                 "#   ode relative tolerance            [-] : ",
-                 idt_ctrl->getRTol(),
-                 "#   ode absolute tolerance            [-] : ",
-                 idt_ctrl->getATol(),
-                 "#   ode max internal timestep         [s] : ",
-                 idt_ctrl->getMaxInternalDt(),
-                 "#   ode max internal steps            [#] : ",
-                 idt_ctrl->getMaxInternalSteps(),
-                 "#   linear solver rel error           [-] : ",
-                 idt_ctrl->getEpsLin(),
-                 "#   non-linear solver rel error       [-] : ",
-                 idt_ctrl->getNlConvCoeff(),
-                 "#   cvode primary failures allowed    [#] : ",
-                 idt_ctrl->getMaxPrimaryCvodeFails(),
-                 "#   cvode secondary failures allowed  [#] : ",
-                 idt_ctrl->getMaxSecondaryCvodeFails(),
-                 "#   secondary failure P threshold     [-] : ",
-                 idt_ctrl->getSafetyThreshold(),
-                 "#   max Krylov dimension              [#] : ",
-                 idt_ctrl->getKrylovDim(),
-                 "#   use fake P update               [y/n] : ",
-                 (idt_ctrl->getUpdate() ? "yes" : "no"),
-                 "#   use incomplete LU factorization [y/n] : ",
-                 (idt_ctrl->getILU() ? "yes" : "no"),
-                 "#   partial pivot threshold           [-] : ",
-                 idt_ctrl->getPartialPivotThresh(),
-                 "#   P threshold type code             [#] : ",
-                 precondThresholdName[idt_ctrl->getThreshType()-1],
-                 "#   permutation type code             [#] : ",
-                 permutationTypeName[idt_ctrl->getPermutationType()-1],
-                 "# ---------------------------------------------------------------------------");
-  if(strPos >= maxLen) {
-    printf("ERROR: the simulation header info (%d bytes)\n",strPos);
-    printf("       is larger than the buffer size (%d bytes).\n",maxLen);
-    printf("       Exiting Now!\n");
-    exit(-1);
-  }
+  ss << std::setprecision(4) << std::scientific;
+  ss << "# Solver constants:" << std::endl
+     << "#   ode relative tolerance            [-] : "
+     << idt_ctrl->getRTol() << std::endl
+     << "#   ode absolute tolerance            [-] : "
+     << idt_ctrl->getATol() << std::endl
+     << "#   ode max internal timestep         [s] : "
+     << idt_ctrl->getMaxInternalDt() << std::endl
+     << "#   ode max internal steps            [#] : "
+     << idt_ctrl->getMaxInternalSteps() << std::endl
+     << "#   linear solver rel error           [-] : "
+     << idt_ctrl->getEpsLin() << std::endl
+     << "#   non-linear solver rel error       [-] : "
+     << idt_ctrl->getNlConvCoeff() << std::endl
+     << "#   cvode primary failures allowed    [#] : "
+     << idt_ctrl->getMaxPrimaryCvodeFails() << std::endl
+     << "#   cvode secondary failures allowed  [#] : "
+     << idt_ctrl->getMaxSecondaryCvodeFails() << std::endl
+     << "#   secondary failure P threshold     [-] : "
+     << idt_ctrl->getSafetyThreshold() << std::endl
+     << "#   max Krylov dimension              [#] : "
+     << idt_ctrl->getKrylovDim() << std::endl
+     << "#   use fake P update               [y/n] : "
+     << (idt_ctrl->getUpdate() ? "yes" : "no") << std::endl
+     << "#   use incomplete LU factorization [y/n] : "
+     << (idt_ctrl->getILU() ? "yes" : "no") << std::endl
+     << "#   partial pivot threshold           [-] : "
+     << idt_ctrl->getPartialPivotThresh() << std::endl
+     << "#   P threshold type code             [#] : "
+     << precondThresholdName[idt_ctrl->getThreshType()-1] << std::endl
+     << "#   permutation type code             [#] : "
+     << permutationTypeName[idt_ctrl->getPermutationType()-1] << std::endl
+     << "# ---------------------------------------------------------------------------" << std::endl;
 
-  return strPos;
+  *simHead = ss.str();
 }
 
-int getIdtLine(const double initMoleFrac[],
+void getIdtLine(const double initMoleFrac[],
                const idt_sweep_params *idt_ctrl,
-               const double idt,
+               const std::vector<double> idts,
                const double runTime,
                const int nCvodeFails,
-               const int maxBuffer,
-               char *idtLine)
+               std::string *idtLine)
 {
   int j;
   int nTrack = idt_ctrl->getNumTrackSpecies();
-  int strPos,strLen;
+  std::stringstream ss;
+  ss << std::setprecision(16);
+  ss << std::scientific;
 
-  strPos=0;
-  strLen=sprintf(&idtLine[strPos],
-                 "%8d  %23.16e  %23.16e  %23.16e  %23.16e  %23.16e  %23.16e  %23.16e  %23.16e  %14d",
-                 idt_ctrl->getRunId(),
-		 idt_ctrl->getInitTemp(),
-                 idt_ctrl->getInitPres(),
-                 idt_ctrl->getPhi(),
-                 idt_ctrl->getEgr(),
-                 idt_ctrl->getThresh(),
-                 idt_ctrl->getDensity(),
-                 idt,
-                 runTime,
-                 nCvodeFails);
-  strPos+=strLen;
+  ss << std::setw(8) << idt_ctrl->getRunId()
+     << std::setw(25) << idt_ctrl->getInitTemp()
+     << std::setw(25) << idt_ctrl->getInitPres()
+     << std::setw(25) << idt_ctrl->getPhi()
+     << std::setw(25) << idt_ctrl->getEgr()
+     << std::setw(25) << idt_ctrl->getThresh()
+     << std::setw(25) << idt_ctrl->getDensity();
+  for(j=0; j<idts.size(); ++j) {
+      ss << std::setw(25) << idts[j];
+  }
+  ss << std::setw(25) << runTime
+     << std::setw(16) << nCvodeFails;
 
   for(j=0; j<nTrack; j++) {
-    strLen=sprintf(&idtLine[strPos],
-                   "   %23.16e",
-                   initMoleFrac[idt_ctrl->getTrackSpeciesId(j)]);
-    strPos+=strLen;
+    ss << std::setw(25) << initMoleFrac[idt_ctrl->getTrackSpeciesId(j)];
   }
-  strLen=sprintf(&idtLine[strPos],"\n");
-  strPos+=strLen;
-
-  if(strPos >= maxBuffer) {
-    printf("ERROR: the IDT file data line (%d bytes)\n",strPos);
-    printf("       is larger than the buffer size (%d bytes).\n",maxBuffer);
-    printf("       Exiting Now!\n");
-    exit(-1);
-  }
-
-  return strPos;
+  ss << std::endl;
+  *idtLine = ss.str();
 }
-int getIdtHeader(const idt_sweep_params *idt_ctrl,
+
+void getIdtHeader(const idt_sweep_params *idt_ctrl,
                  const cv_param *cvp,
-                 const int maxBuffer,
-                 char *idtHeader)
+                 std::string *idtHeader)
 {
   int j;
   int nTrack = idt_ctrl->getNumTrackSpecies();
-  int strPos,strLen;
+  int numTempDeltas = idt_ctrl->getTemperatureDeltas().size();
+  std::stringstream ss;
 
-  strPos=0;
-  strLen=sprintf(&idtHeader[strPos],
-                 "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
-                 "# Column  1: [#]      run id",
-                 "# Column  2: [K]      initial temperature",
-                 "# Column  3: [Pa]     initial pressure",
-                 "# Column  4: [-]      equivalence ratio",
-                 "# Column  5: [-]      EGR fraction",
-                 "# Column  6: [-]      preconditioner threshold",
-                 "# Column  7: [kg/m^3] initial density",
-                 "# Column  8: [s]      ignition delay time (defined delta T)",
-                 "# Column  9: [s]      execution wall clock time",
-                 "# Column 10: [#]      number of cvode errors");
-  strPos+=strLen;
+  ss << "# Column  1: [#]      run id" << std::endl
+     << "# Column  2: [K]      initial temperature" << std::endl
+     << "# Column  3: [Pa]     initial pressure" << std::endl
+     << "# Column  4: [-]      equivalence ratio" << std::endl
+     << "# Column  5: [-]      EGR fraction" << std::endl
+     << "# Column  6: [-]      preconditioner threshold" << std::endl
+     << "# Column  7: [kg/m^3] initial density" << std::endl;
+  for(j=0; j<numTempDeltas; ++j) {
+     ss << "# Column " << std::setw(2) << j+8
+        <<": [s]      ignition delay time (delta T = " 
+        << idt_ctrl->getTemperatureDeltas()[j]
+        <<" K)" << std::endl;
+  }
+  ss << "# Column " << std::setw(2) << 8+numTempDeltas
+     << ": [s]      execution wall clock time" << std::endl;
+  ss << "# Column " << std::setw(2) << 9+numTempDeltas
+     << ": [#]      number of cvode errors" << std::endl;
 
   for(j=0; j<nTrack; j++) {
-    strLen=sprintf(&idtHeader[strPos],
-                   "# Column %2d: [-]      initial mole frac of %s\n",
-                   j+11,
-                   cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j)));
-    strPos+=strLen;
+    ss << "# Column " << j+numTempDeltas+10 << ": [-]      initial mole frac of "
+       << cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j)) << std::endl;
   }
-  strLen=sprintf(&idtHeader[strPos],"# ----------------------------------------------------------------------------\n");
-  strPos+=strLen;
+  ss << "# ----------------------------------------------------------------------------\n";
 
-  strLen=sprintf(&idtHeader[strPos],
-                 "%7s |%23s |%23s |%23s |%23s |%23s |%23s |%23s |%23s |%14s |",
-                 "# run id",
-                 "Temp [K]",
-                 "Pres [Pa]",
-                 "phi [-]",
-                 "EGR frac [-]",
-                 "P thresh [-]",
-                 "dens [kg/m3]",
-                 "IDT [s]",
-                 "sim time [s]",
-                 "cvode err [#]");
-  strPos+=strLen;
+  ss << std::setw(7) << "# run id |"
+     << std::setw(25) << "Temp [K] |"
+     << std::setw(25) << "Pres [Pa] |"
+     << std::setw(25) << "phi [-] |"
+     << std::setw(25) << "EGR frac [-] |"
+     << std::setw(25) << "P thresh [-] |"
+     << std::setw(25) << "dens [kg/m3] |";
+  for(j=0; j<numTempDeltas; ++j) {
+      ss << std::setw(13) << idt_ctrl->getTemperatureDeltas()[j]
+         << " K IDT [s] |";
+  }
+  ss << std::setw(25) << "sim time [s] |"
+     << std::setw(16) << "cvode err [#] |";
 
   for(j=0; j<nTrack; j++) {
-    strLen=sprintf(&idtHeader[strPos],
-                   " mlfrc %17s |",
-                   cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j)));
-    strPos+=strLen;
+    ss << " mlfrc " << std::setw(16)
+       << cvp->mech->getSpeciesName(idt_ctrl->getTrackSpeciesId(j))
+       << " |";
   }
-  strLen=sprintf(&idtHeader[strPos],"\n");
-  strPos+=strLen;
-
-  if(strPos >= maxBuffer) {
-    printf("ERROR: the IDT file header info (%d bytes)\n",strPos);
-    printf("       is larger than the buffer size (%d bytes).\n",maxBuffer);
-    printf("       Exiting Now!\n");
-    exit(-1);
-  }
-
-  return strPos;
+  ss << std::endl;
+  *idtHeader = ss.str();
 }
-
 
 
 /*
@@ -1121,3 +1164,32 @@ static int check_flag(void *flagvalue, const char *funcname, int opt)
 
   return(0);
 }
+
+
+#ifdef ZERORK_MPI
+static void mpi_sendrecv_string(int from, int to, std::string& in, std::string* out, MPI_Comm comm)
+{
+  int mpi_rank = 0;
+  int mpi_size = 1;
+  MPI_Comm_rank(comm,&mpi_rank);
+  MPI_Comm_size(comm,&mpi_size);
+  assert(mpi_size > 1);
+  assert(to < mpi_size);
+  assert(from < mpi_size);
+
+  if(mpi_rank == from) {
+    MPI_Send(const_cast<void*>((void*)in.c_str()), in.size()+1, MPI_CHAR, to, 0, comm);
+  }
+  if(mpi_rank == to) {
+    MPI_Status status;
+    MPI_Probe(from, 0, comm, &status);
+    int len = 0;
+    MPI_Get_count(&status, MPI_CHAR, &len);
+    char *buf = new char[len];
+    MPI_Recv(buf, len, MPI_CHAR, from, 0, comm, &status);
+    *out = buf;
+    delete [] buf;
+  }
+  MPI_Barrier(comm);
+}
+#endif

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 
 #include "sweep_util_yml.h"
 
@@ -41,12 +42,20 @@ idt_sweep_params::idt_sweep_params(char *inputFileName)
   getFracsFromCompMap(this->trace_mole_fracs(),traceMoleFrac,&nTraceSpc,traceSpcIdx);
 
   trackSpcIdx = std::vector<int>();
+  if(this->tracked_species_names().size() > 0) {
+      for(j = 0; j < this->tracked_species_names().size(); ++j) {
+          std::string spcName = this->tracked_species_names()[j];
+          int spcIdx = gasMech->getIdxFromName(spcName.c_str());
+          trackSpcIdx.push_back(spcIdx);
+      }
+  }
   for(j=0; j<nSpc; j++)
   {
-      //if(fuelMoleFrac[j] >= 0.0 || oxidMoleFrac[j] >= 0.0)
-      if(fuelMoleFrac[j] != UNMARKED || oxidMoleFrac[j] != UNMARKED || traceMoleFrac[j] != UNMARKED)
-      {
-        trackSpcIdx.push_back(j);
+      if(this->tracked_species_names().size() == 0) {
+          if(fuelMoleFrac[j] != UNMARKED || oxidMoleFrac[j] != UNMARKED || traceMoleFrac[j] != UNMARKED)
+          {
+              trackSpcIdx.push_back(j);
+          }
       }
       if(fuelMoleFrac[j] == UNMARKED) fuelMoleFrac[j] = 0.0;
       if(oxidMoleFrac[j] == UNMARKED) oxidMoleFrac[j] = 0.0;
@@ -95,9 +104,10 @@ idt_sweep_params::idt_sweep_params(char *inputFileName)
   maxCvodeFails1     = this->max_cvode_fails1();
   maxCvodeFails2     = this->max_cvode_fails2();
   safetyThresh       = this->safety_threshold();
-  deltaTign          = this->delta_T_ignition();
   isContinueAfterIDT = this->continue_after_ignition();
   Tref               = this->reference_temperature();
+  sorted_temperature_deltas = this->temperature_deltas();
+  std::sort(sorted_temperature_deltas.begin(), sorted_temperature_deltas.end());
 
   // read sweep parameters
   initTemp = this->initial_temperatures();  
@@ -129,6 +139,8 @@ idt_sweep_params::idt_sweep_params(char *inputFileName)
   oneStepMode = this->one_step_mode();
   permutationType = this->permutation_type();
   doDumpJacobian = this->dump_jacobian();
+  printNetProdRates = this->print_net_production_rates();
+  printNetROP = this->print_net_rates_of_progress();
 
   // set the sweep counters and the initial composition of the first run
   runTotal = nTempRuns*nPresRuns*nPhiRuns*nEgrRuns*nThreshRuns*nKrylovRuns;

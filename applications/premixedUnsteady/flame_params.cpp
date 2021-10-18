@@ -324,14 +324,45 @@ void FlameParams::SetInlet()
   // Add EGR to inlet composition
   double egr = parser_->egr();
   if(egr > 0.0) {
-    mechanism_->getMolarIdealExhaust(&inlet_mole_fractions[0],&exhaust_mole_fractions[0]);
+    if(parser_->egr_comp().size() == 0) {
+      //use ideal EGR formulation if egr_comp is not provided
+      mechanism_->getMolarIdealExhaust(&inlet_mole_fractions[0],&exhaust_mole_fractions[0]);
+    } else { //
+      // Get EGR composition from egr_comp field if provided
+      for(int j=0; j<num_species; ++j){exhaust_mole_fractions[j] = 0.0;}
+
+      mole_fraction_sum = 0.0;
+      for(iter=parser_->egr_comp().begin();
+          iter != parser_->egr_comp().end();
+          ++iter) {
+
+        std::string species_name=iter->first;
+        std::string state_name = std::string("MassFraction_")+species_name;
+        double mole_fraction = iter->second;
+        int species_id = reactor_->GetIdOfState(state_name.c_str());
+
+        if(0 <= species_id  && species_id < num_species) {
+          egr_species_id_.push_back(species_id);
+          exhaust_mole_fractions[species_id] = mole_fraction;
+          mole_fraction_sum += mole_fraction;
+        } else {
+          printf("# ERROR: did not find species %s in the mechanism\n",
+                 species_name.c_str());
+          exit(-1);
+        }
+      }
+
+      // renormalize inlet mole fractions
+      NormalizeComposition(num_species,&exhaust_mole_fractions[0]);
+    }
     mechanism_->getYfromX(&exhaust_mole_fractions[0],&exhaust_mass_fractions[0]);
+
     for(int j=0; j<num_species; j++) {
       inlet_mass_fractions_[j] = (1.0-egr)*inlet_mass_fractions_[j]+egr*exhaust_mass_fractions[j];
     }
     mechanism_->getXfromY(&inlet_mass_fractions_[0],&inlet_mole_fractions[0]);
 
-    // Recompute inlet molecular mass
+    // Recompute
     inlet_molecular_mass_ = 0.0;
     for(int j=0; j<num_species; ++j) {
       inlet_molecular_mass_ += molecular_mass[j]*inlet_mole_fractions[j];
@@ -801,7 +832,7 @@ void FlameParams::SetMemory()
   mass_flux_ext_.assign( num_local_points_+(2*nover), 0.0);
 
   // create the workspace for the species specific heats
-  species_specific_heats_.assign(num_species*(num_local_points), 0.0);
+  species_specific_heats_.assign(num_species*(num_local_points+1), 0.0);
 
   // create the workspace for the species mass fluxes and Lewis numbers
   species_mass_flux_.assign(num_species*(num_local_points+1), 0.0); //larger size for derivatives
@@ -811,7 +842,7 @@ void FlameParams::SetMemory()
   thermal_conductivity_.assign(num_local_points+1, 0.0);//larger size for derivatives
 
   // create the workspace for the mixture specific heat at each grid point
-  mixture_specific_heat_.assign(num_local_points, 0.0);
+  mixture_specific_heat_.assign(num_local_points+1, 0.0);
 
   // create the workspace for the mixture specific heat at each interface
   mixture_specific_heat_mid_.assign(num_local_points+1, 0.0);

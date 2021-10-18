@@ -37,7 +37,7 @@ static void UnsupportedFeature(const char filename[], const int line_num)
               // or -DNDEBUG for the compiler
 }
 
-rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj, 
+rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
 			       nasa_poly_group *tobj)
 {
   if(ckrobj == NULL)
@@ -51,12 +51,18 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
       exit(-1);
     }
 
-  // determine the multiplier to convert the activation energy units in the 
+  // determine the multiplier to convert the activation energy units in the
   // prescribed mech into kelvin
   if(ckrobj->units.ActEnergy == ckr::Cal_per_Mole)
     {convertE = CAL_PER_MOL_TACT;}
+  else if(ckrobj->units.ActEnergy == ckr::Kcal_per_Mole)
+    {convertE = KCAL_PER_MOL_TACT;}
   else if(ckrobj->units.ActEnergy == ckr::Kelvin)
     {convertE = 1.0;}
+  else if(ckrobj->units.ActEnergy == ckr::Kjoules_per_Mole)
+    {convertE = KJOULES_PER_MOL_TACT;}
+  else if(ckrobj->units.ActEnergy == ckr::Joules_per_Mole)
+    {convertE = JOULES_PER_MOL_TACT;}
   else
     {
       printf("ERROR: mechanism Activation Energy units type %d not recognized\n",
@@ -69,7 +75,7 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   if(ckrobj->units.Quantity == ckr::Moles)
     {
       // note that the length scale in the CKReader object is [cm]
-      // [mol/cm^3] * convertC = [kmol/m^3] 
+      // [mol/cm^3] * convertC = [kmol/m^3]
       convertC=1000.0;
     }
    else
@@ -95,7 +101,7 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   use_non_integer_network_ = true;
   if(non_integer_network_.GetNumNonIntegerSteps() == 0) {
     use_non_integer_network_ = false;
-  } 
+  }
   setFromKeqStepList(*ckrobj,*netobj);
   setThirdBodyRxnList(*ckrobj,*netobj);
   setFalloffRxnList(*ckrobj,*netobj);
@@ -151,7 +157,7 @@ void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)
 		 ckrobj->reactions[j].kf.type);
 	  exit(-1);
 	}
-      
+
       if(ckrobj->reactions[j].isReversible && ckrobj->reactions[j].krev.A != 0.0)
 	{
           // krev.type =ckr::Arrhenius for REV keyword and for reversible
@@ -203,14 +209,14 @@ void rate_const::setArrheniusStepList(ckr::CKReader *ckrobj,
   arrheniusSortElem lastDistinct;
 
   if(nArrheniusStep > 0) {
-  
+
     paramListTmp = new arrheniusSortElem[nArrheniusStep];
     k=0; // Arrhenius step counter
 
     for(j=0; j<nStep; j++) {
       rxnIdx=netobj->getRxnIdxOfStep(j);
       rxnDir=netobj->getRxnDirOfStep(j);
-       
+
       if(rxnDir == 1) { // forward
         if(ckrobj->reactions[rxnIdx].kf.type == ckr::Arrhenius) {
 	  paramListTmp[k].stepIdx=j;
@@ -223,7 +229,7 @@ void rate_const::setArrheniusStepList(ckr::CKReader *ckrobj,
 	  paramListTmp[k].Tact = ckrobj->reactions[rxnIdx].kf.E*convertE;
 
 	  // if the reaction is a third body/non-falloff type reaction
-	  // an additional concentration factor is needed for the 
+	  // an additional concentration factor is needed for the
 	  // thirdbody term
 	  if(ckrobj->reactions[rxnIdx].isThreeBodyRxn)
 	    {paramListTmp[k].A/=convertC;}
@@ -270,7 +276,7 @@ void rate_const::setArrheniusStepList(ckr::CKReader *ckrobj,
     //	     j,paramListTmp[j].stepIdx,paramListTmp[j].A,paramListTmp[j].Tpow,
     //	     paramListTmp[j].Tact);
     //}
-  
+
     nDistinctArrhenius=1;
     lastDistinct=paramListTmp[0];
     for(j=1; j<nArrheniusStep; j++) {
@@ -289,21 +295,21 @@ void rate_const::setArrheniusStepList(ckr::CKReader *ckrobj,
     distinctArrheniusLogAfact[0]=log(paramListTmp[0].A);
     distinctArrheniusTpow[0]=paramListTmp[0].Tpow;
     distinctArrheniusTact[0]=paramListTmp[0].Tact;
-  
+
     arrheniusStepList[0].arrheniusIdx=0;
     arrheniusStepList[0].stepIdx=paramListTmp[0].stepIdx;
-  
+
     k=1; // distinct arrhenius counter
     lastDistinct=paramListTmp[0];
     for(j=1; j<nArrheniusStep; j++)
     {
       // new arrhenius expression found
-      if(isSameArrheniusTol(lastDistinct,paramListTmp[j])==0) 
+      if(isSameArrheniusTol(lastDistinct,paramListTmp[j])==0)
 	{
 	  distinctArrheniusLogAfact[k]=log(paramListTmp[j].A);
 	  distinctArrheniusTpow[k]=paramListTmp[j].Tpow;
 	  distinctArrheniusTact[k]=paramListTmp[j].Tact;
-	  
+
 	  lastDistinct=paramListTmp[j]; ++k;
 	}
 
@@ -315,7 +321,7 @@ void rate_const::setArrheniusStepList(ckr::CKReader *ckrobj,
   else {
     nDistinctArrhenius=0;
     distinctArrheniusLogAfact = NULL;
-    distinctArrheniusTpow     = NULL; 
+    distinctArrheniusTpow     = NULL;
     distinctArrheniusTact     = NULL;
     arrheniusStepList         = NULL;
   }
@@ -348,7 +354,7 @@ void rate_const::setFromKeqStepList(ckr::CKReader &ckrobj,
           if(use_non_integer_network_) {
             if(non_integer_network_.HasReaction(j)) {
               // number of products as defined by the reverse rate-of-progress
-              // concentration powers minus the number of reactants as 
+              // concentration powers minus the number of reactants as
               // defined by the forward rate-of-progress concentration powers
               fromKeqStepList[k].nDelta = // nProd - nReac
                 non_integer_network_.GetOrderOfStep(revIdx) -
@@ -359,7 +365,7 @@ void rate_const::setFromKeqStepList(ckr::CKReader &ckrobj,
           // are zero and the following assignments are skipped
 	  fromKeqStepList[k].reacSpcIdx.resize(fromKeqStepList[k].nReac);
 	  fromKeqStepList[k].prodSpcIdx.resize(fromKeqStepList[k].nProd);
-	  
+
 	  for(m=0; m<fromKeqStepList[k].nReac; m++)
 	    {
 	      fromKeqStepList[k].reacSpcIdx[m]=
@@ -381,12 +387,12 @@ void rate_const::setThirdBodyRxnList(ckr::CKReader &ckrobj,
   int j,k,nEnh;
   int nRxn=netobj.getNumRxn();
   string spcName;
-  
+
   thirdBodyRxnList=new thirdBodyRxn[nThirdBodyRxn];
-  
+
   k=0; // thirdBodyRxn counter
   for(j=0; j<nRxn; j++) {
-    
+
     if(ckrobj.reactions[j].isThreeBodyRxn) {
 
       thirdBodyRxnList[k].fwdStepIdx=netobj.getStepIdxOfRxn(j,1);
@@ -397,7 +403,7 @@ void rate_const::setThirdBodyRxnList(ckr::CKReader &ckrobj,
 	printf("ERROR: reaction %d has a third body %s != M\n",
 	       j,ckrobj.reactions[j].thirdBody.c_str());
 	exit(-1);
-      }          
+      }
       if(nEnh > 0) {
 
         thirdBodyRxnList[k].etbSpcIdx.resize(nEnh);
@@ -407,7 +413,7 @@ void rate_const::setThirdBodyRxnList(ckr::CKReader &ckrobj,
 	thirdBodyRxnList[k].etbSpcIdx.resize(nEnh);
 	thirdBodyRxnList[k].etbSpcEff.resize(nEnh);
       }
-	  
+
       thirdBodyRxnList[k].nEnhanced=nEnh;
       ++k;
     }
@@ -421,9 +427,9 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
   int nRxn=netobj.getNumRxn();
   double log_e_Alow;
   string spcName;
-  
+
   falloffRxnList=new falloffRxn[nFalloffRxn];
-  
+
   k=0; // falloffRxn counter
   for(j=0; j<nRxn; j++) {
 
@@ -439,7 +445,7 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
         falloffRxnList[k].falloffSpcIdx=
           spcIdxOfString(ckrobj,ckrobj.reactions[j].thirdBody);
       }
-      
+
       if(nEnh > 0) {
 
         falloffRxnList[k].etbSpcIdx.resize(nEnh);
@@ -498,13 +504,13 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
           falloffRxnList[k].param[6]=ckrobj.reactions[j].falloffParameters[3];
         }
         else {
-		  
+
           printf("ERROR: rxn %d TROE falloff with %d parameters\n",j+1,
                  (int)ckrobj.reactions[j].falloffParameters.size());
           exit(-1);
         }
       } // end of if reaction j is a 3 or 4 parameter Troe reaction
-      else if(ckrobj.reactions[j].falloffType == ckr::SRI) { 
+      else if(ckrobj.reactions[j].falloffType == ckr::SRI) {
         //printf("# DEBUG: reaction %d identified as SRI falloff\n",
         //       j);
 	//printf("#        with %d parameters\n",
@@ -514,12 +520,12 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
         falloffRxnList[k].param.resize(3+ckrobj.reactions[j].falloffParameters.size());
         falloffRxnList[k].param[3] = ckrobj.reactions[j].falloffParameters[0];
         falloffRxnList[k].param[4] = ckrobj.reactions[j].falloffParameters[1];
-        falloffRxnList[k].param[5] = 
+        falloffRxnList[k].param[5] =
           1.0/ckrobj.reactions[j].falloffParameters[2];
 
         // copy the additional parameters if present
         for(size_t m=3; m<ckrobj.reactions[j].falloffParameters.size(); ++m) {
-          falloffRxnList[k].param[3+m] = 
+          falloffRxnList[k].param[3+m] =
             ckrobj.reactions[j].falloffParameters[m];
         }
       }
@@ -541,7 +547,7 @@ void rate_const::updateK(const double T, const double C[])
   // initialize to aid in debugging
   for(j=0; j<nStep; j++)
     {Kwork[j]=0.0;}
-  
+
   updateTcurrent(T);
   Csum=0.0;
   for(j=0; j<nSpc;)
@@ -594,14 +600,14 @@ void rate_const::updateK_TCM(const double T,
   // initialize to aid in debugging
   for(j=0; j<nStep; j++)
     {Kwork[j]=0.0;}
-  
+
   updateTcurrent(T);
   // Original from updateK takes the concetration sum from all the species
   //Csum=0.0;
   //for(j=0; j<nSpc;)
   //  {Csum+=C[j]; ++j;}
   //
-  // In updateK_CMT, the C_mix argument is used instead. 
+  // In updateK_CMT, the C_mix argument is used instead.
   Csum = C_mix;
   pressure = Csum*NIST_RU*T;
 
@@ -640,7 +646,7 @@ void rate_const::updateK_TCM(const double T,
 
 void rate_const::updateK(const double T, const double C[], double Kcopy[])
 {
-  updateK(T,C); 
+  updateK(T,C);
   memcpy(Kcopy,Kwork,cpySize);
 }
 void rate_const::updateK_TCM(const double T,
@@ -694,8 +700,8 @@ void rate_const::updateFromKeqStep()
 
     if(non_integer_network_.HasStep(forward_step_id)) {
       // products - reactants (defined relative to the forward direction)
-      thermo_sum = 
-        non_integer_network_.GetThermoChangeOfStep(forward_step_id, 
+      thermo_sum =
+        non_integer_network_.GetThermoChangeOfStep(forward_step_id,
                                                    Gibbs_RT);
 
     } else {
@@ -710,7 +716,7 @@ void rate_const::updateFromKeqStep()
       for(k=0; k<num_reactants; ++k) {
         thermo_sum -= Gibbs_RT[fromKeqStepList[j].reacSpcIdx[k]];
       }
-      
+
     }
     expWorkArray[j] = thermo_sum-fromKeqStepList[j].nDelta*log_e_PatmInvRuT;
   }
@@ -936,10 +942,10 @@ void rate_const::updateFalloffRxn(const double C[])
       //	Fcenter = fabs(falloffRxnList[j].param[3])
       //            +falloffRxnList[j].param[4]*Tcurrent;
       //}
-      
+
       if(falloffRxnList[j].falloffType ==  TROE_FOUR_PARAMS) {
         // 4-parameter Troe
-        Fcenter += exp(-falloffRxnList[j].param[6]*invTcurrent);  
+        Fcenter += exp(-falloffRxnList[j].param[6]*invTcurrent);
       }
 
       // use original formulation
@@ -964,7 +970,7 @@ void rate_const::updateFalloffRxn(const double C[])
       const double inv_c = falloffRxnList[j].param[5];
       const double x_power = 1.0/(1.0+log_10_Pr*log_10_Pr);
 
-      // Standard 3-term SRI definition 
+      // Standard 3-term SRI definition
       //   F = (a*exp(-b/T) + exp(-T/c))**X
       fTerm = pow(a*exp(-b*invTcurrent) + exp(-Tcurrent*inv_c),
                   x_power);
@@ -981,9 +987,9 @@ void rate_const::updateFalloffRxn(const double C[])
         fTerm *= pow(Tcurrent, falloffRxnList[j].param[7]); // multiplier T**e
       }
     }
-    
+
     Pcorr = fTerm*Pr/(1.0+Pr);
-    
+
     Kwork[falloffRxnList[j].fwdStepIdx]*=Pcorr;
     if(likely(falloffRxnList[j].revStepIdx >= 0))
       {Kwork[falloffRxnList[j].revStepIdx]*=Pcorr;}
@@ -1006,7 +1012,7 @@ void rate_const::getKrxn(info_net &netobj, double Kfwd[],
     }
 }
 
-int rate_const::getThirdBodyEff(ckr::CKReader &ckrobj, int rxnId, 
+int rate_const::getThirdBodyEff(ckr::CKReader &ckrobj, int rxnId,
 				    vector <int> &spcId,
 				    vector <double> &spcEff)
 {
@@ -1040,11 +1046,11 @@ int rate_const::getThirdBodyEff(ckr::CKReader &ckrobj, int rxnId,
   return k;
 }
 
- 
+
 int rate_const::spcIdxOfString(ckr::CKReader &ckrobj, string spcName)
 {
   int j;
-    
+
   for(j=0; j<nSpc; j++)
     {
       if(ckrobj.species[j].name == spcName)
@@ -1071,16 +1077,16 @@ void rate_const::print()
 }
 int isSameArrheniusTol(arrheniusSortElem x, arrheniusSortElem y)
 {
-  if(fabs(x.A - y.A) > ARRHENIUS_RTOL*fabs(0.5*(x.A+y.A)) && 
+  if(fabs(x.A - y.A) > ARRHENIUS_RTOL*fabs(0.5*(x.A+y.A)) &&
      fabs(x.A - y.A) > ARRHENIUS_ATOL)
     {return 0;}
-  if(fabs(x.Tpow - y.Tpow) > ARRHENIUS_RTOL*fabs(0.5*(x.Tpow+y.Tpow)) && 
+  if(fabs(x.Tpow - y.Tpow) > ARRHENIUS_RTOL*fabs(0.5*(x.Tpow+y.Tpow)) &&
      fabs(x.Tpow - y.Tpow) > ARRHENIUS_ATOL)
     {return 0;}
-  if(fabs(x.Tact - y.Tact) > ARRHENIUS_RTOL*fabs(0.5*(x.Tact+y.Tact)) && 
+  if(fabs(x.Tact - y.Tact) > ARRHENIUS_RTOL*fabs(0.5*(x.Tact+y.Tact)) &&
       fabs(x.Tact - y.Tact) > ARRHENIUS_ATOL)
     {return 0;}
- 
+
   return 1;
 }
 int compareArrhenius(const void *x, const void *y)
@@ -1092,13 +1098,13 @@ int compareArrhenius(const void *x, const void *y)
     {return -1;}
   else if(xptr->A > yptr->A)
     {return 1;}
-  
+
   // note a larger activation temperature yields a smaller rate constant
   if(xptr->Tact > yptr->Tact)
     {return -1;}
   else if(xptr->Tact < yptr->Tact)
     {return 1;}
- 
+
   if(xptr->Tpow < yptr->Tpow)
     {return -1;}
   else if(xptr->Tpow > yptr->Tpow)
@@ -1143,7 +1149,7 @@ void rate_const::setPLogInterpolationStepList(ckr::CKReader &ckrobj,
       Tact    = ckrobj.reactions[j].kf.E_plog;
 
       for(int k=0; k<num_pts; ++k) {
-        pres[k]*=P_ATM;    // convert mech file PLOG pressure [atm] -> [Pa] 
+        pres[k]*=P_ATM;    // convert mech file PLOG pressure [atm] -> [Pa]
         Tact[k]*=convertE; // convert mech file activation energy to [K]
         Afactor[k]*=pow(convertC,
                         (1.0-netobj.getRealOrderOfStep(step_id)));
@@ -1164,7 +1170,7 @@ void rate_const::setPLogInterpolationStepList(ckr::CKReader &ckrobj,
   }
 }
 
-void rate_const::updatePLogInterpolationStep(const double pressure, 
+void rate_const::updatePLogInterpolationStep(const double pressure,
                                              const double log_e_pressure)
 {
   for(int j=0; j<nPLogInterpolationStep; ++j) {
@@ -1179,4 +1185,3 @@ void rate_const::updatePLogInterpolationStep(const double pressure,
   }
 }
 } // namespace zerork
-

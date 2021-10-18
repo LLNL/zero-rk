@@ -1,0 +1,13 @@
+
+app=counterflow_unsteady_flame_solver.x
+inp=input.yml
+
+if [ ! -f @CMAKE_INSTALL_PREFIX@/bin/$app ]
+then
+  echo "No counterflow_unsteady app. Try rebuildiing with SUNDIALS_VERSION=5."
+  exit 0
+fi
+
+@MPIEXEC_EXECUTABLE@ @MPIEXEC_NUMPROC_FLAG@ \
+  @MPIEXEC_EXAMPLE_NUMPROCS_SMALL@ @MPIEXEC_PREFLAGS@ \
+  @CMAKE_INSTALL_PREFIX@/bin/$app @MPIEXEC_POSTFLAGS@ $inp

@@ -9,6 +9,10 @@
 #include <cvode/cvode_spgmr.h>      // prototypes & constants for CVSPGMR
 #elif SUNDIALS3
 #include <cvode/cvode_spils.h>
+//#include <sunlinsol/sunlinsol_spgmr.h>
+#elif SUNDIALS4
+//#include <sunlinsol/sunlinsol_spgmr.h>
+//#include <sunnonlinsol/sunnonlinsol_newton.h>
 #endif
 
 
@@ -191,6 +195,10 @@ int main(int argc, char *argv[])
       writeROPDerivativeReport(&idtCtrl,
                                t_current,
                                parser.min_jacobian_raw(),
+                               jacRawFile);
+      writeROPTempDerivativeReport(&idtCtrl,
+                               t_current,
+                               parser.min_df_dtemp_raw(),
                                jacRawFile);
     }
 

@@ -408,10 +408,20 @@ spify_parser_params.append(
 {
     'name':"min_jacobian_raw",
     'type':'double',
-    'longDesc' : "Minimum Jacobian term [Hz] to report in jacobianRawFile",
+    'longDesc' : "Minimum species Jacobian term [Hz] to report in jacobianRawFile",
     'defaultValue' : 1.0e15
 }
 )
+
+spify_parser_params.append(
+{
+    'name':"min_df_dtemp_raw",
+    'type':'double',
+    'longDesc' : "Minimum d*/dTemp Jacobian term [Hz] to report in jacobianRawFile",
+    'defaultValue' : 1.0e15
+}
+)
+
 
 spify_parser_params.append(
 {
@@ -443,8 +453,10 @@ spify_parser_params.append(
 
 
 
-#Generate parser code
+#Generate parser code (will be created in build directory)
 spg().generate(spify_parser_name,spify_parser_params)
 
+# Make master file (will be created in build directory)
+spg().make_master_file(spify_parser_name,spify_parser_params)
 
 #Done.

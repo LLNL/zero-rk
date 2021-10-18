@@ -246,6 +246,9 @@ int main(int argc, char *argv[])
   flag = CVodeSetLinearSolver(cvode_ptr, LS, NULL);
   if(check_flag(&flag, "CVodeSetLinearSolver", 1)) exit(-1);
 
+  flag = SUNSPGMRSetGSType(LS, MODIFIED_GS);
+  if(check_flag(&flag, "SUNSPGMRSetGSType", 1)) exit(-1);
+
   /* Set the preconditioner setup and solve functions */
   flag = CVodeSetPreconditioner(cvode_ptr,
                                 ReactorPreconditionerChemistrySetup,
@@ -303,8 +306,8 @@ int main(int argc, char *argv[])
     printf("# Column  3: [m/s] Flame speed\n");
     printf("# Column  4: [m] Flame thickness defined as T_burnt-T_unburnt\n"
 	   "#            divided by maximum temperature gradient\n");
-    printf("# Column  5: [K] maximum jump (T-T_wall) in the domain\n");
-    printf("# Column  6: [m] location of the maximum temperature jump\n");
+    printf("# Column  5: [m] Flame thickness defined as (K/rhoCp)/SL\n");
+    printf("# Column  6: [m] location of the maximum temperature \n");
     printf("# Column  7: [#] number of steps taken by CVode\n");
     printf("# Column  8: [#] number of calls to the user's time derivative (RHS) function\n");
     printf("# Column  9: [#] number of calls to the linear solver setup function\n");
@@ -389,7 +392,7 @@ int main(int argc, char *argv[])
 	       current_time+time_offset,
 	       flame_params.flame_speed_,
 	       flame_params.flame_thickness_,
-	       max_temperature_jump,
+	       flame_params.flame_thickness_alpha_,
 	       z_max_temperature_jump,
 	       (int)nsteps,
 	       (int)nfevals,

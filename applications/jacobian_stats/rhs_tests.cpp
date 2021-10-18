@@ -13,6 +13,7 @@ int TestRateOfProgress(zerork::mechanism *mech,
 {
   std::string step_name;
   const int num_species   = mech->getNumSpecies();
+  //const int num_reactions = mech->getNumReactions();
   const int num_steps     = mech->getNumSteps();
   int num_bad_steps=0;
   double total_concentration = pressure/(mech->getGasConstant()*temperature);
@@ -33,7 +34,7 @@ int TestRateOfProgress(zerork::mechanism *mech,
                          net_reaction_rate,
                          creation_rate,
                          destruction_rate,
-                         step_rate);
+                         step_rate);   
 
   for(int j=0; j<num_steps; ++j) {
 
@@ -53,8 +54,17 @@ int TestRateOfProgress(zerork::mechanism *mech,
       fflush(stdout);
       ++num_bad_steps;
     }
-  }
+    // else if(isnormal(step_rate[j]) == 0) {
+    //   step_name.clear();
+    //   mech->getReactionNameDirOfStep(j,&step_name);
+    //   printf("# Rate of progress fails isnormal(%g) for step %d: %s\n",
+    //          step_rate[j],j,step_name.c_str());
+    //   fflush(stdout);
+    //   ++num_bad_steps;
+    // }
 
+  }  
+ 
   delete [] concentration;
   delete [] net_reaction_rate;
   delete [] creation_rate;

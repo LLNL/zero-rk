@@ -1,0 +1,11 @@
+Zero-RK Rate Optimization
+
+This examples is intended to confirm that the rate optimization
+code is working and to show the basic features.  The example 
+creates an artificially modified hydrogen reaction model and
+uses evolutionary search methods to try to match the original
+model.  In practice, this code is intended to be used to  modify
+a reduced mechanism to match ignition delay or perfectly stirred
+reactor predictions from a detailed model.  See the comments in
+optimize_rate_h2_simple.py for details on some of the settings.
+

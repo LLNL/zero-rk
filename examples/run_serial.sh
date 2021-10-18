@@ -2,16 +2,17 @@
 examples_dir=$PWD
 
 for d in \
-  constVolumeWSR/hydrogen \
-  constVolumeWSR/hydrogen_yml \
-  constVolumeWSR/iso_octane \
+  constVolumeWSR \
+  constVolumeWSR_TLA \
+  constVolumePSR \
   idt_diagnostic \
   perturbAFactor \
   thermo_check \
   variable_volume/cv \
   variable_volume/rcm \
   variable_volume_batch \
-  cfd_plugin_tester
+  cfd_plugin_tester \
+  rate_optimization
 do
   cd $d
   echo "Running test $d ..."

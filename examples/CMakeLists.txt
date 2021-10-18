@@ -1,10 +1,10 @@
 
-set(INPUT_FILES constVolumeWSR/hydrogen/hydrogen_TSweep.inp.in
-  constVolumeWSR/hydrogen/run.sh.in
-  constVolumeWSR/hydrogen_yml/hydrogen_TSweep.yml.in
-  constVolumeWSR/hydrogen_yml/run.sh.in
-  constVolumeWSR/iso_octane/iso-octane_TSweep.inp.in
-  constVolumeWSR/iso_octane/run.sh.in
+set(INPUT_FILES constVolumeWSR/hydrogen_TSweep.yml.in
+  constVolumeWSR/run.sh.in
+  constVolumeWSR_TLA/run.sh.in
+  constVolumeWSR_TLA/hydrogen_TSweep.yml.in
+  constVolumePSR/input.yml.in
+  constVolumePSR/run.sh.in
   idt_diagnostic/hydrogen_stats.yml.in
   idt_diagnostic/run.sh.in
   thermo_check/thermo_check.yml.in
@@ -17,7 +17,10 @@ set(INPUT_FILES constVolumeWSR/hydrogen/hydrogen_TSweep.inp.in
   variable_volume_batch/run.sh.in
   perturbAFactor/perturbAFactor_example.yml.in
   perturbAFactor/run.sh.in
-  cfd_plugin_tester/run.sh.in)
+  cfd_plugin_tester/run.sh.in
+  rate_optimization/make_env.sh.in
+  rate_optimization/run.sh.in
+  rate_optimization/optimize_rate_h2_simple.py.in)
 
 if(ENABLE_MPI)
 get_filename_component(MPIEXEC_NAME ${MPIEXEC_EXECUTABLE} NAME)
@@ -36,6 +39,10 @@ set(INPUT_FILES ${INPUT_FILES}
   premixed_unsteady_flame_solver/run.sh.in
   premixed_steady_flame_solver/input.yml.in
   premixed_steady_flame_solver/run.sh.in
+  counterflow_unsteady_flame_solver/input.yml.in
+  counterflow_unsteady_flame_solver/run.sh.in
+  counterflow_steady_flame_solver/input.yml.in
+  counterflow_steady_flame_solver/run.sh.in
   lewisGenerator/lewis_generator.yml.in
   lewisGenerator/run.sh.in
   variable_volume_gsa/h2_rcm_bruteforce.yml.in
@@ -47,6 +54,18 @@ set(INPUT_FILES ${INPUT_FILES}
   flame_speed/unsteady/input.yml.in
   flame_speed/unsteady/sweep_unsteady.py.in
   flame_speed/unsteady/run.sh.in
+  counterflow_flame_sweeps/premixed_unsteady/input.yml.in
+  counterflow_flame_sweeps/premixed_unsteady/sweep_unsteady.py.in
+  counterflow_flame_sweeps/premixed_unsteady/run.sh.in
+  counterflow_flame_sweeps/premixed_steady/input.yml.in
+  counterflow_flame_sweeps/premixed_steady/sweep_steady.py.in
+  counterflow_flame_sweeps/premixed_steady/run.sh.in
+  counterflow_flame_sweeps/diffusion_unsteady/input.yml.in
+  counterflow_flame_sweeps/diffusion_unsteady/sweep_unsteady.py.in
+  counterflow_flame_sweeps/diffusion_unsteady/run.sh.in
+  counterflow_flame_sweeps/diffusion_steady/input.yml.in
+  counterflow_flame_sweeps/diffusion_steady/sweep_steady.py.in
+  counterflow_flame_sweeps/diffusion_steady/run.sh.in
   perturbAFactorGSA/perturbAFactorGSA_example.yml.in
   perturbAFactorGSA/run.sh.in
   variable_volume_gsa/run.sh.in)
@@ -66,4 +85,3 @@ install(DIRECTORY ${OUT_DIR} DESTINATION share/zerork/examples/${OUT_DIR_PARENT}
 endforeach()
 
 install(FILES run_serial.sh DESTINATION share/zerork/examples)
-

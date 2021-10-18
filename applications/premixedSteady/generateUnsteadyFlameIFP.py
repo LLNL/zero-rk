@@ -183,6 +183,16 @@ spify_parser_params.append(
 
 
 spify_parser_params.append(
+    {
+        'name':'egr_comp',
+        'type':'m_string_double',
+        'shortDesc' : "EGR composition mole fraction map for the inlet",
+        'defaultValue': {}
+    }
+)
+
+
+spify_parser_params.append(
 {
     'name':'initial_inlet_extent',
     'type':'double',
@@ -290,6 +300,16 @@ spify_parser_params.append(
     'defaultValue' : 0
 }
 )
+
+spify_parser_params.append(
+{
+    'name':'pseudo_unsteady',
+    'type':'bool',
+    'longDesc' : "Flag that when set to true [y] adds a pseudo unsteady term",
+    'defaultValue' : 0
+}
+)
+
 
 spify_parser_params.append(
 {

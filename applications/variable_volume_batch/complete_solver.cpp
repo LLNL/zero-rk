@@ -390,7 +390,8 @@ int SolveVariableVolume(void *cvode_memory,
       }
     }
 
-    if(CheckFlag(&error_flag, "CVODE ERROR", 1)) {
+    if(CheckFlag(&error_flag, "CVODE ERROR", 1) ||
+       num_steps > user_data->GetParser()->maxSteps()) {
       // TO DO: add logic to restart the integrator a user-specified number
       //        of times
 
@@ -424,6 +425,9 @@ int SolveVariableVolume(void *cvode_memory,
                             user_data);
       fclose(prob_fptr);
 
+      if(error_flag == 0) { //num_steps>maxSteps but not a CVode error
+        error_flag = 1;
+      }
       return error_flag;
     }
 

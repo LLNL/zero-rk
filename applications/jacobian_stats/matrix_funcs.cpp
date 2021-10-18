@@ -528,6 +528,21 @@ void setupJacobianSparse_perturb(realtype t,
     // SPARSE:
     // the entire sparse matrix array will be set to zero upon entry
     calcReaction_Jsparse(cvp->sparseMtx,NV_DATA_S(tmp2),cvp->fwdROP);
+
+    // process the non-integer Jacobian information
+    for(int j=0; j<cvp->sparseMtx->num_noninteger_jacobian_nonzeros; ++j) {
+      cvp->sparseMtx->noninteger_jacobian[j] = 0.0;
+    }
+
+    cvp->mechPtr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      NV_DATA_S(tmp2),
+      cvp->fwdROP,
+      cvp->sparseMtx->noninteger_jacobian);
+
+    for(int j=0; j<cvp->sparseMtx->num_noninteger_jacobian_nonzeros; ++j) {
+      cvp->sparseMtx->mtxData[cvp->sparseMtx->noninteger_sparse_id[j]] += cvp->sparseMtx->noninteger_jacobian[j];
+    }
+
     // At this point sMptr stores d(wdot[k])/dC[j] ignoring the contribution
     // of perturbations in the third body species
 
@@ -1209,7 +1224,7 @@ int calcMismatch(const double tol, const int nsize, const int nnzA,
   int AsparseId=0;
   int BsparseId=0;
 //  int newB[nnzA];
-  int newBcolSum[nsize];
+  int newBcolSum[nsize+1];
 //  int newBrowId[nnzA];
 
   AsparseId=BsparseId=0;
@@ -1241,7 +1256,7 @@ int calcMismatch(const double tol, const int nsize, const int nnzA,
   {
      nelemOld = BcolSum[j+1] - BcolSum[j];
      nelem = newBcolSum[j+1] - newBcolSum[j];
-     mismatch += abs(nelem-nelemOld);
+     mismatch+= abs(nelem-nelemOld);
   }
   return mismatch;
 }

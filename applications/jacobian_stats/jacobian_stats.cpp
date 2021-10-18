@@ -5,6 +5,10 @@
 #include <cvode/cvode_spgmr.h>      // prototypes & constants for CVSPGMR
 #elif SUNDIALS3
 #include <cvode/cvode_spils.h>
+//#include <sunlinsol/sunlinsol_spgmr.h>
+#elif SUNDIALS4
+//#include <sunlinsol/sunlinsol_spgmr.h>
+//#include <sunnonlinsol/sunnonlinsol_newton.h>
 #endif
 
 
@@ -233,7 +237,7 @@ void writeROPDerivativeReport(idtControlParams *idtCtrl,
   fprintf(fptr,
           "#    d(ROP)/dC, index, index, description\n");
   for(unsigned int j=0; j<vec.size(); ++j) {
-    if(vec[j].value > min_value) {
+    if(fabs(vec[j].value) > min_value) {
       int reaction_id = idtCtrl->mech->getRxnIdxOfStep(vec[j].step_id);
       char reaction_dir[]="(fwd)";
       if(idtCtrl->mech->getStepIdxOfRxn(reaction_id,-1) == vec[j].step_id) {
@@ -341,8 +345,10 @@ void getROPTempDerivativeVector(idtControlParams *idtCtrl,
                                   step_rate_of_progress1[j]);
   }
 }
+
 void writeROPTempDerivativeReport(idtControlParams *idtCtrl,
                                   const double t_current,
+                                  const double min_value,
                                   FILE *fptr)
 {
   double min_concentration=-1.0e300;
@@ -377,26 +383,36 @@ void writeROPTempDerivativeReport(idtControlParams *idtCtrl,
   fprintf(fptr,"#     with T_ref = %.18g [K]\n",idtCtrl->refTemp);
   fprintf(fptr,"#     and  C_tot = %.18g [kmol/m^3]\n",total_concentration);
   fprintf(fptr,
+          "#\n# Note that ONLY rate of progress derivatives with a magnitude\n");
+  fprintf(fptr,"# greater than %12.3e [Hz] are reported.\n",min_value);
+
+  fprintf(fptr,
           "#\n#       [Hz]             [Hz]\n");
   fprintf(fptr,
           "#     uncorrected      C[i]>=C_min    step\n");
   fprintf(fptr,
           "#   A_ref*d(ROP)/dT, A_ref*d(ROP)/dT, index, description\n");
+
   for(unsigned int j=0; j<vec_nocorrection.size(); ++j) {
-    char reaction_dir[]="(fwd)";
-    int reaction_id =
-      idtCtrl->mech->getRxnIdxOfStep(vec_nocorrection[j].step_id);
-    if(idtCtrl->mech->getStepIdxOfRxn(reaction_id,-1) ==
-       vec_nocorrection[j].step_id) {
-      strcpy(reaction_dir,"(rev)");
+
+    if(fabs(vec_nocorrection[j].value) > min_value) {
+      char reaction_dir[]="(fwd)";
+      int reaction_id =
+        idtCtrl->mech->getRxnIdxOfStep(vec_nocorrection[j].step_id);
+
+      if(idtCtrl->mech->getStepIdxOfRxn(reaction_id,-1) ==
+        vec_nocorrection[j].step_id) {
+          strcpy(reaction_dir,"(rev)");
+      }
+
+      fprintf(fptr,
+              "     %14.7e   %14.7e %6d  A_ref*d/dT { %s %s }\n",
+              vec_nocorrection[j].value,
+              vec[vec_nocorrection[j].step_id].value,
+              vec_nocorrection[j].step_id,
+              idtCtrl->mech->getReactionName(reaction_id),
+              reaction_dir);
     }
-    fprintf(fptr,
-            "     %14.7e   %14.7e %6d  A_ref*d/dT { %s %s }\n",
-            vec_nocorrection[j].value,
-            vec[vec_nocorrection[j].step_id].value,
-            vec_nocorrection[j].step_id,
-            idtCtrl->mech->getReactionName(reaction_id),
-            reaction_dir);
   }
 }
 void updateROPDerivativeDistribution(idtControlParams *idtCtrl,

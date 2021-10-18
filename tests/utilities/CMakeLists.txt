@@ -9,12 +9,9 @@ zerork_add_gtests(${TEST} SOURCES ${TEST_SRC} LINK_LIBRARIES zerorkutilities)
 endforeach()
 
 #TODO: ZERORK_DATA_DIR (?)
-add_custom_command(TARGET file_utilities_gtest.x PRE_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                   ${CMAKE_CURRENT_SOURCE_DIR}/data
-                   $<TARGET_FILE_DIR:file_utilities_gtest.x>/data)
-
-add_custom_command(TARGET math_utilities_gtest.x PRE_BUILD
+#Only copy data once
+add_dependencies(file_utilities_gtest.x math_utilities_gtest.x)
+add_custom_command(TARGET math_utilities_gtest.x  PRE_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                    ${CMAKE_CURRENT_SOURCE_DIR}/data
                    $<TARGET_FILE_DIR:math_utilities_gtest.x>/data)

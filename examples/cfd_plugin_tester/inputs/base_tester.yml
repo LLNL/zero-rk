@@ -1,0 +1,26 @@
+
+mechanism_file:  h2_v1b_mech.txt
+thermo_file: h2_v1a_therm.txt
+zerork_cfd_plugin_input: zerork.yml
+
+n_steps: 10
+n_reactors: 1
+fuel_composition: { H2: 1.0 }
+oxidizer_composition: {}
+
+solution_time: 1.0
+print_dt: 1.0
+delta_temperature_ignition: 400.0
+
+temperature_min: 1450.0
+temperature_max: 1450.0
+pressure_min: 2.02650e6
+pressure_max: 2.02650e6
+phi_min: 1.00
+phi_max: 1.00
+egr_min: 0.0
+egr_max: 0.0
+
+n_print_reactors: 1
+reactor_history_file_prefix: outputs/reactor_history
+

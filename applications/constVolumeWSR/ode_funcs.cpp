@@ -47,8 +47,10 @@ int tempRootFunc(realtype t, N_Vector y, realtype *rootFunc,
 		 void *user_data)
 {
   cv_param *cvp=(cv_param *)user_data;
-  
-  rootFunc[0]=(cvp->tempRoot)-(NV_Ith_S(y,cvp->nSpc)*cvp->Tref);
+ 
+  for(int i = 0; i < cvp->numTempRoots; ++i) { 
+      rootFunc[i]=(cvp->tempRoots[i])-(NV_Ith_S(y,cvp->nSpc)*cvp->Tref);
+  }
   return 0;
 }
 

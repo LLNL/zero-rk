@@ -27,6 +27,10 @@
 #include <sunlinsol/sunlinsol_spgmr.h>
 #include <sunnonlinsol/sunnonlinsol_newton.h>
 #endif
+//#include <kinsol/kinsol_bbdpre.h>
+//#include <sundials/sundials_dense.h>
+//#include <sundials/sundials_types.h>
+//#include <sundials/sundials_math.h>
 
 const bool RUN_DEBUG=false;
 const int NUM_STDOUT_PARAMS = 19; // number of non species parameters to write
@@ -310,7 +314,7 @@ int main(int argc, char *argv[])
     printf("# Column  3: [m/s] Flame speed\n");
     printf("# Column  4: [m] Flame thickness defined as T_burnt-T_unburnt\n"
 	   "#            divided by maximum temperature gradient\n");
-    printf("# Column  5: [K] maximum jump (T-T_wall) in the domain\n");
+    printf("# Column  5: [m] Flame thickness defined as (K/rhoCp)/SL\n");
     printf("# Column  6: [m] location of the maximum temperature jump\n");
     printf("# Column  7: [#] number of steps taken by KINSOL\n");
     printf("# Column  8: [#] number of calls to the user's (RHS) function\n");
@@ -339,16 +343,80 @@ int main(int argc, char *argv[])
   setup_time = GetHighResolutionTime() - clock_time;
   clock_time = GetHighResolutionTime();
 
+  double fnorm, stepnorm;
+
+    // Pseudo-unsteady
+  if(flame_params.pseudo_unsteady_) {
+    flag = KINSetPrintLevel(kinsol_ptr, 0);
+    flag = KINSetNumMaxIters(kinsol_ptr, 50);
+    if(my_pe==0) {
+      printf("# begin pseudo time-stepping\n");
+      printf("# time      timestep     SL     nfevals  cputime\n");
+    }
+    double pseudo_time = 0.0;
+    double kinstart_time, kinend_time;
+    flame_params.dt_ = 1.0e-3; //seems to be a good starting guess
+
+    while(pseudo_time < 0.05) {
+      for(int j=0; j<num_local_states; j++) {
+        flame_params.y_old_[j] = flame_state_ptr[j];
+      }
+
+      // Solve system
+      kinstart_time = GetHighResolutionTime();
+      flag = KINSol(kinsol_ptr,
+                    flame_state,
+                    KIN_NONE,
+                    scaler,
+                    scaler);
+      kinend_time = GetHighResolutionTime();
+
+      KINGetNumFuncEvals(kinsol_ptr,&nfevals);
+      KINGetFuncNorm(kinsol_ptr, &fnorm);
+
+      if((flag==0 or flag==1) and fnorm != 0.0){
+        // Success
+        pseudo_time += flame_params.dt_;
+        if(my_pe==0) {printf("%5.3e   %5.3e   %5.3e  %d   %5.3e\n",
+                             pseudo_time,
+                             flame_params.dt_,
+                             flame_params.flame_speed_,
+                             nfevals,
+                             kinend_time-kinstart_time);}
+
+        // Increase time step if it's converging quickly
+        if(nfevals < 6)
+          flame_params.dt_ *= 2.0;
+
+      } else {
+        // Failure, reset state and decrease timestep
+        for(int j=0; j<num_local_states; j++) {
+          flame_state_ptr[j] = flame_params.y_old_[j];
+        }
+        flame_params.dt_ *= 0.5;
+        if(flame_params.dt_ < 1.0e-5){
+          if(my_pe==0) {printf("# Error, pseudo-unsteady solver is not converging\n");}
+          exit(-1);
+        }
+        if(my_pe==0){printf("# time step failed, decreasing time step to: %5.3e\n", flame_params.dt_);}
+      }
+    }
+    if(my_pe==0){printf("# end pseudo time-stepping\n");}
+  }
+
   // Solve system
+  flame_params.pseudo_unsteady_ = false;
+  flag = KINSetPrintLevel(kinsol_ptr, 1);
   flag = KINSol(kinsol_ptr,
 		flame_state,
 		KIN_NONE,
 		scaler,
 		scaler);
 
-  if(flag==0){
+  KINGetFuncNorm(kinsol_ptr, &fnorm);
+
+  if((flag==0 or flag==1) and fnorm != 0.0){
     // Get KINSOL stats
-    double fnorm, stepnorm;
     flag = KINGetNumFuncEvals(kinsol_ptr,&nfevals);
     flag = KINGetNumNonlinSolvIters(kinsol_ptr, &nsteps);
 #if defined SUNDIALS2 || defined SUNDIALS3
@@ -409,7 +477,7 @@ int main(int argc, char *argv[])
              current_time,
              flame_params.flame_speed_,
              flame_params.flame_thickness_,
-             max_temperature_jump,
+             flame_params.flame_thickness_alpha_,
              z_max_temperature_jump,
              (int)nsteps,
              (int)nfevals,
@@ -463,7 +531,7 @@ int main(int argc, char *argv[])
 
     // 1) Save current/original flame state
     std::vector<double> flame_state_orig;
-    flame_state_orig.assign(num_local_states, 0.0);
+    flame_state_orig.assign(num_local_states, 0.0); // DUMB
     for(int j=0; j<num_local_states; j++)
       flame_state_orig[j] = flame_state_ptr[j];
 

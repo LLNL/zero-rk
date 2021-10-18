@@ -51,6 +51,7 @@ class FlameParams
   std::vector<int> fuel_species_id_;
   std::vector<int> oxidizer_species_id_;
   std::vector<int> full_species_id_;
+  std::vector<int> egr_species_id_;
 
   std::vector<double> inlet_mass_fractions_;
   std::vector<double> initial_mass_fractions_;
@@ -67,6 +68,9 @@ class FlameParams
   std::vector<double> rhsConv_;
   std::vector<double> rel_vol_ext_;
 
+  std::vector<double> y_old_;
+  double dt_;
+
   double mass_flux_inlet_;
 
   double diameter_;         // [m]
@@ -77,6 +81,7 @@ class FlameParams
   double ref_temperature_;
   double flame_speed_;
   double flame_thickness_;
+  double flame_thickness_alpha_;
   double max_temperature_;
   double mass_change_;
   double continuity_error_;
@@ -120,6 +125,8 @@ class FlameParams
                         // 4 SuperLU sparse (local) + LAPACK tridiagonal
   bool store_jacobian_;
   bool valid_jacobian_structure_;
+
+  bool pseudo_unsteady_;
 
   bool flame_speed_sensitivity_;
   bool sensitivity_;

@@ -202,6 +202,15 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':'pseudo_unsteady',
+    'type':'bool',
+    'longDesc' : "Flag that when set to true [y] adds a pseudo unsteady term",
+    'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
     'name':'max_subiter',
     'type':'int',
     'shortDesc' : "Maximum Number of linear iterations between jacobian updates",

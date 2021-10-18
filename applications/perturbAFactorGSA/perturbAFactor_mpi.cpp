@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+//#include <mpi/mpi.h> // ubuntu 12.0.4 mpich2 install location
 #include <mpi.h>
 
 #include "GSA_AFactorIFP.h"
@@ -29,14 +30,14 @@ int main(int argc, char *argv[])
   int myRank;
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-
+  
   if(myRank == MASTER_RANK) {
     masterTasks(argc, argv);
   }
   else {
     workerTasks(argc, argv);
   }
-  MPI_Finalize();
+  MPI_Finalize(); 
   return 0;
 }
 
@@ -55,7 +56,7 @@ void masterTasks(int inpArgc, char *inpArgv[])
   double startTime, elapsedTime,sumIdtTime;
 
   string headerInfo, idtTaskInfo;
-
+  
   FILE *outFilePtr, *checkFilePtr;
 
   double *idtOrig;
@@ -70,7 +71,7 @@ void masterTasks(int inpArgc, char *inpArgv[])
   double *relSens;
 
   double *afactor_mult;
-
+  
   startTime = getHighResolutionTime();
   idtControlParams idtCtrl(inpArgv[1],1); // 1 = print mech parser file
   zerork::utilities::SequentialFileMatrixRead gsa_matrix(idtCtrl.gsaMatrixFile.c_str());
@@ -89,6 +90,22 @@ void masterTasks(int inpArgc, char *inpArgv[])
   // allocate array for the afactor_multiplier
   afactor_mult = new double[gsa_matrix.num_columns()];
 
+  //// echo matrix as a check
+  //printf("%5d %5d\n",gsa_matrix.num_rows(),gsa_matrix.num_columns());
+  //for(int j=0; j<gsa_matrix.num_rows(); ++j) {
+  //  gsa_matrix.GetNextRow(&afactor_mult[0]);
+  //  for(int k=0; k<gsa_matrix.num_columns(); ++k) {
+  //    printf("%5d %5d  %24.16e\n",j,k,afactor_mult[k]);
+  //  } 
+  //}
+  
+  // printf("#   Number of buffer rows = %d\n", gsa_matrix.max_buffer_rows());
+  // printf("# GSA Matrix File Read = %s\n",gsa_matrix.filename());
+  // printf("#   Matrix size (%d, %d)\n",
+  //        gsa_matrix.num_rows(),
+  //        gsa_matrix.num_columns());
+
+
   // get worker pool
   MPI_Comm_size(MPI_COMM_WORLD,&nThread);
   nWorker=nThread-1;
@@ -105,6 +122,9 @@ void masterTasks(int inpArgc, char *inpArgv[])
   nSoln = nIdtTemp = idtCtrl.cvodeCtrl.nRoots;
   msgRecvSize = nSoln+1; // add an extra datum for the cpuTime
 
+  //printf("nIdtTemp = %d\n", nIdtTemp);
+  //printf("nTask    = %d\n", nTask);
+  //printf("nSoln    = %d\n", nSoln);
   // allocate data arrays
   idtOrig       = new double[nIdtTemp];
   nthLargestId  = new int[nTask];
@@ -136,7 +156,7 @@ void masterTasks(int inpArgc, char *inpArgv[])
              WORK_TAG,         // user-specified message tag
              MPI_COMM_WORLD);  // default communicator for all threads
 
-    MPI_Send(&afactor_mult[0], // message buffer
+    MPI_Send(&afactor_mult[0], // message buffer 
              idtCtrl.nRxn,     // message buffer count
              MPI_DOUBLE,       // message buffer type
              j,                // process rank
@@ -146,7 +166,7 @@ void masterTasks(int inpArgc, char *inpArgv[])
 
     taskId++;
   }
-
+  
   // -------------------------------------------------------------------------
   // solve unperturbed mechanism
   solveIdtOriginal(&idtCtrl,
@@ -189,7 +209,7 @@ void masterTasks(int inpArgc, char *inpArgv[])
     // get the next set of A-Factor pertubation multipliers
     gsa_matrix.GetNextRow(&afactor_mult[0]);
     stats.AddNextSample(&afactor_mult[0]);
-
+     
     // assign the worker a new problem
     MPI_Send(&taskId,           // message buffer (rxn idx to perturb)
              1,                 // message buffer count
@@ -197,9 +217,9 @@ void masterTasks(int inpArgc, char *inpArgv[])
              status.MPI_SOURCE, // process rank that just finished
              WORK_TAG,          // user-specified message tag
              MPI_COMM_WORLD);   // default communicator for all threads
+ 
 
-
-    MPI_Send(&afactor_mult[0],  // message buffer
+    MPI_Send(&afactor_mult[0],  // message buffer 
              idtCtrl.nRxn,      // message buffer count
              MPI_DOUBLE,        // message buffer type
              status.MPI_SOURCE, // process rank that just finished
@@ -210,9 +230,9 @@ void masterTasks(int inpArgc, char *inpArgv[])
     if(taskId%PRINT_FREQ == 0) {
       estimateEndTime(taskId,nTask,startTime);
     }
-  }
+  }      
   // -------------------------------------------------------------------------
-  // All tasks have been assigned, and all workers (rank 1,...,nWorker)
+  // All tasks have been assigned, and all workers (rank 1,...,nWorker) 
   // received at least one task.  Now collect the last results from each
   // worker.
   for(int j=1; j<=nWorker; j++) {
@@ -232,7 +252,7 @@ void masterTasks(int inpArgc, char *inpArgv[])
     }
     cpuTimeWorker[taskIdTag]=msgResult[msgRecvSize-1];
     sumIdtTime+=cpuTimeWorker[taskIdTag];
-  }
+  }    
 
   // -------------------------------------------------------------------------
   // no more work - send out the worker KILL_TAG with an empty message
@@ -310,13 +330,13 @@ void masterTasks(int inpArgc, char *inpArgv[])
   fclose(outFilePtr);
   fclose(checkFilePtr);
 
-  delete [] afactor_mult;
+  delete [] afactor_mult;  
   delete [] msgResult;
   delete [] relSens;
   delete [] cpuTimeWorker;
   delete [] idtWorker;
   delete [] nthLargestId;
-  delete [] idtOrig;
+  delete [] idtOrig;  
 
 }
 void workerTasks(int inpArgc, char *inpArgv[])
@@ -328,13 +348,15 @@ void workerTasks(int inpArgc, char *inpArgv[])
   double *workerSoln;
 
   double *afactor_mult;
-
+  
   MPI_Status status;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
   checkCommandLine(inpArgc, inpArgv);
-
+  //printf("Initialize idtControlParams on worker rank = %d\n",myRank);
+  //fflush(stdout);
   idtControlParams idtCtrl(inpArgv[1],0); // 0 = don't print parser file
+  //printf("Finished idtControlParams on worker rank = %d\n",myRank);  
 
   msgSendSize = idtCtrl.cvodeCtrl.nRoots;
   msgSendSize++; // add an extra datum for the cpuTime
@@ -354,7 +376,7 @@ void workerTasks(int inpArgc, char *inpArgv[])
     if(status.MPI_TAG == KILL_TAG) {
       break; // leave the loop when the master thread send the KILL_TAG
     }
-    MPI_Recv(&afactor_mult[0], // message buffer
+    MPI_Recv(&afactor_mult[0], // message buffer 
              idtCtrl.nRxn,     // message buffer count
              MPI_DOUBLE,       // message buffer type
              MASTER_RANK,      // only receive messages from the MASTER
@@ -377,7 +399,7 @@ void workerTasks(int inpArgc, char *inpArgv[])
              MPI_COMM_WORLD);
 
 
-  } // end recv/send while loop
+  } // end recv/send while loop 
 
   if(idtRuns == 0) {
     // call the IDT solver at least once to avoid the segfault in the
@@ -404,7 +426,7 @@ void estimateEndTime(const int ndone,
 {
   double frac = (double)ndone/(double)ntotal;
   double elapse = getHighResolutionTime()-startTime;
-
+  
   printf("[%4.1f%% complete] estimated remaining time is %10.2e seconds ...\n",
          frac*100.,elapse*(1.0-frac)/frac);
   fflush(stdout);

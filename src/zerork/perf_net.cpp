@@ -448,7 +448,7 @@ void perf_net::calcRatesFromExplicit(const double T, const double C[],
 
 void perf_net::calcRatesFromTC_perturbROP(const double T, const double C[],
            const double perturbMult[], double netOut[], double createOut[],
-                                       double destroyOut[], double stepOut[])
+           double destroyOut[], double stepOut[])
 {
   int j; //,reacId,stepId;
   rateConstPtr->updateK(T,&C[0],&stepOut[0]); // store K(T,p,C) in stepOut[]

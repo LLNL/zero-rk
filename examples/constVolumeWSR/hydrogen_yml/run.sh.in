@@ -1,6 +1,0 @@
-
-app=constVolumeWSR_yml.x
-inp=hydrogen_TSweep.yml
-
-@CMAKE_INSTALL_PREFIX@/bin/$app $inp
-

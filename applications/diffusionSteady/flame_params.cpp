@@ -875,8 +875,13 @@ void FlameParams::SetMemory()
     inv_molecular_mass_[j] = 1.0/inv_molecular_mass_[j];
   }
 
+  // create extended (with ghost cells) state variable array
+  // for parallel simulations. nover=2 for second order operators
   y_ext_.assign( (num_local_points_+(2*nover_))*num_states, 0.0);
   rhs_ext_.assign( (num_local_points_+(2*nover_))*num_states, 0.0);
+
+  // "old" state vector for pseudo unsteady
+  y_old_.assign(num_local_points_*num_states, 0.0);
 
   // create the workspace for the species specific heats
   species_specific_heats_.assign(num_species*(num_local_points+(2*nover_)), 0.0);
@@ -913,8 +918,13 @@ void FlameParams::SetMemory()
   integrator_type_ = parser_->integrator_type();
   store_jacobian_  = parser_->store_jacobian();
 
+  // Reaction rate limiter
   step_limiter_.assign( reactor_->GetNumSteps(), parser_->step_limiter() );
 
+  // Pseudo-unsteady solver
+  pseudo_unsteady_ = parser_->pseudo_unsteady();
+
+  // Flags for different equations
   unity_Lewis_ = parser_->unity_Lewis();
   if(unity_Lewis_)
     printf("# WARNING: Solving unity Lewis number equations.\n");
@@ -974,7 +984,6 @@ void FlameParams::SetMemory()
     dense_to_sparse_offdiag_.assign(num_states*num_states, 1); // 1 to force dense!!
     printf("# WARNING: USING DENSE BLOCK TRIDIAGONAL JACOBIAN\n");
 
-    // Begin: set sparse terms if not using dense block tridiagonal J
     // Chemical jacobian pattern -- only for diagonal block
     for (int j=0; j<num_nonzeros; j++) {
       dense_id = num_states*col_id_zerod[j] + row_id_zerod[j];
@@ -1005,7 +1014,6 @@ void FlameParams::SetMemory()
         }
       }
     }
-    // End: set sparse terms
 
     // Count non-zeros
     num_off_diagonals_ = nover_*num_states;

@@ -43,7 +43,7 @@ namespace ckr {
  *  @return true if no errors were encountered, false otherwise
  */
 
-bool CKReader::read(const string& inputFile, const string& thermoDatabase, 
+bool CKReader::read(const string& inputFile, const string& thermoDatabase,
     const string& logfile) {
 
     clock_t t0, t1;
@@ -64,19 +64,19 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
     time( &aclock );                  /* Get time in seconds */
     newtime = localtime( &aclock );   /* Convert time to struct tm form */
 
-    
+
     log << "Zero-RK Chemkin Format Mechanism Parser" << endl
         << "     derived from Cantera CKreader 1.0"  << endl
         << "     see README for license information" << endl << endl
         << asctime(newtime) << endl
-        << setw(20) << "input file: " 
+        << setw(20) << "input file: "
         << setw(30) << inputFile << endl;
-    
-    if (thermoDatabase != "") 
-        log << setw(20) << "species database: " 
+
+    if (thermoDatabase != "")
+        log << setw(20) << "species database: "
             << setw(30) << thermoDatabase << endl;
-    
-    if (!validate) 
+
+    if (!validate)
         log << endl << "***************  Warning  ***************" << endl
             <<         "     mechanism validation disabled"        << endl
             <<         "*****************************************" << endl;
@@ -101,7 +101,7 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
         log.width(0);
 
         log << endl << newTask("reading elements") << endl;
-    
+
         // write summary to log file
         for (int i = 0; i < nel; i++) {
             log << i+1 << ".  " << pad(elements[i].name,2) << "  ";
@@ -109,13 +109,13 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
             if (wt == 0.0) log << "<error>";
             else log << wt;
             if (!elements[i].weightFromDB) log << " (specified)";
-            if (elements[i].comment != "") 
+            if (elements[i].comment != "")
                 log << "      ! " << elements[i].comment;
             log << endl;
         }
     }
     log << "\nread " << nel << " elements." << endl;
-    
+
     if (!elok) {
         log << "\nerrors were encountered." << endl;
         return false;
@@ -156,7 +156,7 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
 
     if (thermoDatabase != "") {
 
-        if (verbose) log << "reading default temperature ranges from " 
+        if (verbose) log << "reading default temperature ranges from "
                          << thermoDatabase  << endl;
 
         ifstream thermofile(thermoDatabase.c_str());
@@ -168,7 +168,7 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
         thermReader.readThermoSection(dummy, speciesData, temp, dbflag, log);
     }
 
-    
+
     bool hasthermo = parser.advanceToKeyword("THERM","REAC");
 
     int k, optionFlag = 0;
@@ -179,7 +179,7 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
     if (hasthermo && parser.readThermoSection(speciesSymbols,
         speciesData, temp, optionFlag, log)) {
         if (allsp) {
-            nsp = static_cast<int>(speciesData.size()); 
+            nsp = static_cast<int>(speciesData.size());
             for (k = 0; k < nsp; k++) {
                 Species s;
                 s.name = speciesSymbols[k];
@@ -197,11 +197,11 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
             }
         }
         int localdefs = nsp - undefined;
-        if (localdefs > 0 && verbose) log << "found definitions for " 
-                                          << localdefs 
-                                          << " of " 
-                                          << nsp 
-                                          << " species in the input file. " 
+        if (localdefs > 0 && verbose) log << "found definitions for "
+                                          << localdefs
+                                          << " of "
+                                          << nsp
+                                          << " species in the input file. "
                                           << endl;
     }
     else {
@@ -209,10 +209,10 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
         if (verbose) log << "no THERMO section in input file." << endl;
     }
 
-    if (undefined > 0 && thermoDatabase != "" 
+    if (undefined > 0 && thermoDatabase != ""
         && optionFlag != NoThermoDatabase) {
 
-        if (verbose) log << "searching external database " 
+        if (verbose) log << "searching external database "
                          << thermoDatabase << " for species definitions..."
                          << endl;
 
@@ -225,7 +225,7 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
         undefined = 0;
         if (allsp) {
             species.clear();
-            nsp = static_cast<int>(speciesData.size()); 
+            nsp = static_cast<int>(speciesData.size());
             for (k = 0; k < nsp; k++) {
                 Species s;
                 s.name = undef[k];
@@ -263,7 +263,7 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
     parser2.debug = debug;
 
     parser2.readReactionSection(speciesSymbols, elementSymbols, reactions, units);
-    log << "\nread " << static_cast<int>(reactions.size()) 
+    log << "\nread " << static_cast<int>(reactions.size())
 		<< " reactions." << endl;
 
     bool rxnok = true;
@@ -275,8 +275,8 @@ bool CKReader::read(const string& inputFile, const string& thermoDatabase,
 
     log << "\nSuccess... ";
     t1 = clock();
-    log << "elapsed CPU time = " 
-        << double(t1 - t0)/CLOCKS_PER_SEC 
+    log << "elapsed CPU time = "
+        << double(t1 - t0)/CLOCKS_PER_SEC
         << " s" << endl;
     if (!validate) log << "*** no validation performed ***" << endl;
     }
@@ -335,7 +335,7 @@ bool CKReader::writeReactions(ostream& log) {
         if (r.isReversible && r.krev.A >= 0) { // MJM modification
             log << "   reverse rate coeff: ";
             ok = ok && writeRateCoeff(r.krev, log);
-        }            
+        }
         int ne = static_cast<int>(r.e3b.size());
 
         if (ne > 0) {
@@ -344,14 +344,14 @@ bool CKReader::writeReactions(ostream& log) {
             log << "   enhanced collision efficiencies:" << endl;
             log << "       ";
             for (int nn = 0; nn < ne; nn++) {
-                log << enhSpecies[nn] << " " 
+                log << enhSpecies[nn] << " "
                     << r.e3b[enhSpecies[nn]];
                 if (nn < ne-1) log << ",  ";
             }
             log << endl;
         }
-        if (r.isDuplicate) log 
-            << "   declared duplicate reaction. See reaction " 
+        if (r.isDuplicate) log
+            << "   declared duplicate reaction. See reaction "
             << r.duplicate << "." << endl;
         log << endl;
     }
@@ -399,8 +399,8 @@ bool CKReader::validateSpecies(ostream& log) {
 		if (esyms[m] == elements[j].name) break;
 	  }
 	    if (j == nel) {
-		log << endl << "   species " 
-                    << s.name << ": undeclared element " 
+		log << endl << "   species "
+                    << s.name << ": undeclared element "
                     << esyms[m];
 		s.valid = -1;
 	    }
@@ -439,7 +439,7 @@ bool CKReader::validateReactions(ostream& log) {
     else {
         int nu = static_cast<int>(unbal.size());
         for (int iu = 0; iu < nu; iu++) {
-            log << "   error... reaction " << unbal[iu] 
+            log << "   error... reaction " << unbal[iu]
                 << " does not balance" << endl;
         }
         ok = false;
@@ -469,7 +469,7 @@ bool CKReader::validateReactions(ostream& log) {
                       }
                   }
                   else {
-                      log << endl << "   declared duplicate reactions: " 
+                      log << endl << "   declared duplicate reactions: "
                           << nn + 1
                           << " and " << mm + 1;
                   }
@@ -495,7 +495,7 @@ bool CKReader::validateReactions(ostream& log) {
  *    relative error tol
  *  - The heat capacity at Tmax is not greater than the equipartition limit
  *    for the number of atoms in the molecule
- */ 
+ */
 bool checkThermo(ostream& log, speciesList& sp, double tol) {
     const double dt = 0.0001;
     double t, cp0, h0, s0, cp1, h1, s1;
@@ -509,7 +509,7 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
 
         if (s.valid <= 0) {
             ok = false;
-            log << endl << "species " << s.name 
+            log << endl << "species " << s.name
                 << " contains an error." << endl;
         }
         if (!ok) return false;
@@ -525,10 +525,10 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
         cp0 = 0.0;
         for (int j = 0; j < n_points; j++) {
             t = j*(s.thigh - s.tlow)/(n_points - 1) + s.tlow;
-            
+
             cp0 = cp(t, s);
             if (cp0 < 0.0) {
-                log << endl << "   error... Cp/R < 0 at T = " << t 
+                log << endl << "   error... Cp/R < 0 at T = " << t
                     << " for species " << s.name << endl;
                 s.valid = -1;
                 ok = false;
@@ -540,12 +540,12 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
 
 
     // check that S(tlow) > 0
-    
+
     log << "   Checking that the species entropies are positive... ";
     for (k = 0; k < nsp; k++) {
         Species& s = sp[k];
         if (entropy(s.tlow, s) <= 0.0) {
-            log << endl << "   error... negative entropy for species " 
+            log << endl << "   error... negative entropy for species "
                 << s.name << endl;
             s.valid = -1;
             ok = false;
@@ -563,35 +563,35 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
         cp0 = cp(t, s);
         h0 = enthalpy(t, s) + cp0*dt;
         s0 = entropy(t, s) + dt*cp0/t;
-        
-        t = s.tmid + dt; 
+
+        t = s.tmid + dt;
         cp1 = cp(t, s);
         h1 = enthalpy(t, s) - cp1*dt;
         s1 = entropy(t, s) - cp1*dt/t;
-        
+
         if (absval((cp0 - cp1)/cp0) > tol) {
-            log << endl << "Warning... species " << s.name 
-                << ": discontinuity in Cp at Tmid = " 
+            log << endl << "Warning... species " << s.name
+                << ": discontinuity in Cp at Tmid = "
                 << s.tmid << endl;
-            log << "Cp/R (low, high) = " << cp0 
+            log << "Cp/R (low, high) = " << cp0
                 << ", " << cp1 << endl;
             ok = false;
         }
 
         if (absval((h0 - h1)/h0) > tol) {
-            log << endl << "Warning... species " << s.name 
-                << ": discontinuity in enthalpy at Tmid = " 
+            log << endl << "Warning... species " << s.name
+                << ": discontinuity in enthalpy at Tmid = "
                 << s.tmid << endl;
-            log << "h/R (low, high) = " 
+            log << "h/R (low, high) = "
                 << h0 << ", " << h1 << endl;
             ok = false;
         }
-        
+
         if (absval((s0 - s1)/s0) > tol) {
-            log << endl << "Warning... species " << s.name 
-                << ": discontinuity in entropy at Tmid = " 
+            log << endl << "Warning... species " << s.name
+                << ": discontinuity in entropy at Tmid = "
                 << s.tmid << endl;
-            log << "s/R (low, high) = " 
+            log << "s/R (low, high) = "
                 << s0 << ", " << s1 << endl;
             ok = false;
         }
@@ -604,19 +604,19 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
     log << "   Note that this limit does not account for the electronic\n"
         << "   contribution to cp, and so may be violated in some cases."
         << endl << endl;
-    
+
 
     for (k = 0; k < nsp; k++) {
         Species& s = sp[k];
-        
+
         // check that cp at Tmax is less than the equipartion value
         // This does not include any possible electronic contribution
-        
+
         cp0 = cp(s.thigh, s);
         int nel = static_cast<int>(s.elements.size());
         int i;
         double na = 0.0;
-        for (i = 0; i < nel; i++) 
+        for (i = 0; i < nel; i++)
             if (s.elements[i].name != "E") na += s.elements[i].number;
         int natoms = int(floor(na));
         double cpmax;
@@ -625,18 +625,18 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
         case 2: cpmax = 4.5; break;
         default: cpmax = 3.0*natoms - 3.0;
         }
-        
+
         if (cp0 > cpmax) {
             double over = 100.0*(cp0 - cpmax)/cpmax;
-            log << endl << "Warning... species " << s.name 
+            log << endl << "Warning... species " << s.name
                 << ": cp(Tmax) greater than equipartition value \nby "
                 <<  over << " percent.";
-            if ((natoms > 2) && (cp0 - cpmax < 0.5)) 
-                log << endl << "      (if molecule is linear, cp is ok)" 
+            if ((natoms > 2) && (cp0 - cpmax < 0.5))
+                log << endl << "      (if molecule is linear, cp is ok)"
                     << endl;
         }
     }
-    
+
     return valid(sp);
 }
 
@@ -652,8 +652,8 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
      * @return true if all reactions balance
      * @todo use reaction number stored in reaction object
      */
-    bool checkBalance(ostream& f, speciesTable& speciesData, 
-        reactionList& r, vector<int>& unbalanced, double tolerance) 
+    bool checkBalance(ostream& f, speciesTable& speciesData,
+        reactionList& r, vector<int>& unbalanced, double tolerance)
     {
         int nrxn = static_cast<int>(r.size());
         string rname, pname;
@@ -663,29 +663,29 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
         unbalanced.clear();
         map<string, double> atoms;
 
-        for (int i = 0; i < nrxn; i++) 
+        for (int i = 0; i < nrxn; i++)
         {
             atoms.clear();
             int nr = static_cast<int>(r[i].reactants.size());
             int np = static_cast<int>(r[i].products.size());
             int j;
             double stoichCoeff;
-            for (j = 0; j < nr; j++) 
+            for (j = 0; j < nr; j++)
             {
                 rname = r[i].reactants[j].name;
                 stoichCoeff = r[i].reactants[j].number;
                 vector<Constituent>& elements = speciesData[rname].elements;
-                for (m = 0; m < elements.size(); m++) 
+                for (m = 0; m < elements.size(); m++)
                 {
-                    atoms[elements[m].name] -= stoichCoeff * elements[m].number; 
+                    atoms[elements[m].name] -= stoichCoeff * elements[m].number;
                 }
             }
-            for (j = 0; j < np; j++) 
+            for (j = 0; j < np; j++)
             {
                 pname = r[i].products[j].name;
                 stoichCoeff = r[i].products[j].number;
                 vector<Constituent>& elements = speciesData[pname].elements;
-                for (m = 0; m < elements.size(); m++) 
+                for (m = 0; m < elements.size(); m++)
                 {
                     atoms[elements[m].name] += stoichCoeff * elements[m].number;
                 }
@@ -696,8 +696,8 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
                 atms = atoms[elementSyms[m]];
                 if (fabs(atms) > tolerance) {
                     //if (atoms[elementSyms[m]] != 0.0) {
-                    //                    cout << "Reaction " << i+1 << " has an unbalanced element: " 
-                    //   << elementSyms[m] << "  " 
+                    //                    cout << "Reaction " << i+1 << " has an unbalanced element: "
+                    //   << elementSyms[m] << "  "
                     //   << atoms[elementSyms[m]] << endl;
                     unbalanced.push_back(i+1); break;
                 }
@@ -707,5 +707,3 @@ bool checkThermo(ostream& log, speciesList& sp, double tol) {
     }
 
 }
-
-

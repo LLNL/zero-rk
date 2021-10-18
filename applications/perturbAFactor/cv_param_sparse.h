@@ -35,6 +35,10 @@ typedef struct
   int *mtxRowIdx;   // row address [length nNonZero]
   int *mtxColSum;   // running tally of elements in each column [length nSize+1]
 
+  int num_noninteger_jacobian_nonzeros;
+  int *noninteger_sparse_id;
+  double *noninteger_jacobian;
+
   // special data access
   int *diagIdx;     // diagonal elements [length nsize]
   int *lastRowIdx;  // last row [length nsize]

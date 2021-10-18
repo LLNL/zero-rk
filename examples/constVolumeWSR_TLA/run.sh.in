@@ -1,0 +1,13 @@
+
+
+app=constVolumeWSR_TLA.x
+inp=hydrogen_TSweep.yml
+
+if [ ! -f @CMAKE_INSTALL_PREFIX@/bin/$app ]
+then
+  echo "No constVolumeWSR_TLA app. Try rebuildiing with SUNDIALS_VERSION=5."
+  exit 0
+fi
+
+@CMAKE_INSTALL_PREFIX@/bin/$app $inp
+

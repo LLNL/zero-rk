@@ -1,0 +1,173 @@
+#Chemkin Format Mechansim File [input]
+#Type: string
+mech_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_mech.txt
+
+#Chemkin Format Thermodynamics File [input]
+#Type: string
+therm_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_therm.txt
+
+#Transport File [input]
+#Type: string
+trans_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_transport.txt
+
+
+#Transport model. If using ConstantLewis the Lewis numbers
+#need to be provided as an additional column of the trans_file
+#or in a file called "Lewis_file" in the same order as the
+#species in the mechanism.
+
+transport_model: 'ConstantLewis'
+#transport_model: 'MixAvg'
+#transport_model: 'MixAvgSoret'
+
+inlet_fuel_comp: {
+NC12H26: 0.643,
+N2: 0.357
+}
+
+inlet_oxidizer_comp: {
+O2: 0.21,
+N2: 0.79
+}
+
+# Fuel BC density [kg/m^3]: 2.55519705086039
+# Oxidizer BC density [kg/m^3]: 1.1341532093630
+
+mass_flux_fuel: 0.204416
+mass_flux_oxidizer: 0.136439
+
+fuel_temperature: 398.0
+oxidizer_temperature: 310.0
+
+finite_separation: y
+
+diffusion_correction: y
+
+pseudo_unsteady: y
+
+##:::::##
+
+step_limiter : 1e+16
+
+#Grid file containing list of grid points positions
+#Optional with default value of /dev/null
+#If not provided, a uniform grid is used based
+#on num_points and length inputs below
+grid_file: grid_file
+
+#Restart file
+restart_file: data_new
+
+#Convective transport scheme used (0 = First order upwind,
+#1 = Second order upwind, 2 = Second order centered)
+convective_scheme_type: 2
+
+#Maximum temperature for initialization
+#Only used if no initial_profile/restart file
+ignition_temperature : 2200 #??
+
+thickness : 0.001
+
+#Mechanism Parser Log File [output]
+#Type: string
+#Optional with default value of /dev/null
+#log_file: 'mech.log'
+
+#Pressure of the flame system [Pa]
+#Type: floating-point
+#Optional with default value of 101325
+pressure: 101325.0
+
+inlet_full_comp: {}
+
+#Maximum integration time [s]
+#Type: floating-point
+max_time: 0.07848205465817551
+
+#Vector of species names (case sensitive) to track the
+#position of their maximum value in the domain. In the case
+#of multiple maxima at the same value, only the most
+#upstream position is reported. Note that temperature is
+#tracked automatically.
+#Type: string vector
+#Optional with default value of [not_a_species]
+track_max: [OH, CH, H2O2]
+
+#Print the basic stats every interval equal to stats_dt: 0.0001
+#Type: floating-point
+#Optional with default value of 0.001
+stats_dt: 0.0001
+
+#Print all the field variables at an interval equal to this
+#multiplier times stats_dt: 0.0001
+#Type: integer
+#Optional with default value of 1
+field_dt_multiplier: 35
+
+#Integrator type: (0 = CVode direct dense solve using J from
+#divided differences, 1 = CVode direct banded solve using J
+#from divided differences, 2 = CVode direct banded solve
+#using user supplied J, 3 = CVode preconditioner)
+#Type: integer
+#Optional with default value of 0
+integrator_type: 3
+
+#Flag that when set to true [y] stores the jacobian data for
+#each grid point when computed by user (integrator_type: 3
+#3)
+#Type: boolean
+#Optional with default value of 0
+store_jacobian: y
+
+#Number of of off-diagonals to retain in the banded jacobian
+#(integrator_type: 3
+#Type: integer
+#Optional with default value of 0
+num_off_diagonals: 0
+
+#Maximum Internal Integrator Step Size [s]
+#Type: floating-point
+#Optional with default value of 1e-06
+max_internal_dt: 6e-06
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+max_num_steps: 1000000
+
+#Maximum Number of sub-iteration between jacobian updates
+#Type: integer
+#Optional with default value of 10
+max_subiter: 10
+
+#Number of grid points
+#Type: integer
+#Optional with default value of 100
+#Only used if no grid file is provided
+#Needs to be divisible by number of cores
+num_points: 32
+
+#Length of grid
+#Type: double
+#Optional with default value of 0.1
+length : 0.01375
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+rel_tol: 1e-08
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+abs_tol: 1.0e-20
+
+#Reference temperature to normalize the ODE dT/dt equation
+#Type: floating-point
+#Optional with default value of 1000
+ref_temperature: 1000.0
+
+ref_momentum: 1000.0
+
+inlet_phi: 1.0
+inlet_temperature: 1500

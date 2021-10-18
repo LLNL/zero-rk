@@ -2,10 +2,10 @@ Zero-RK Chemkin Format Mechanism Parser
      derived from Cantera CKreader 1.0
      see README for license information
 
-Thu Jul 30 15:57:15 2020
+Mon Oct  4 12:29:41 2021
 
-        input file: /share/zerork/mechanisms/dme/dme_24_mech.txt
-  species database: /share/zerork/mechanisms/dme/dme_24_therm.txt
+        input file: /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_mech.txt
+  species database: /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
 debugging disabled.
 
 
@@ -104,15 +104,15 @@ read 79 species.
 
 looking up species definitions...
 
-reading default temperature ranges from /share/zerork/mechanisms/dme/dme_24_therm.txt
+reading default temperature ranges from /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
 
  default Tlow, Tmid, Thigh: 300.00  1000.00  5000.00
 no THERMO section in input file.
-searching external database /share/zerork/mechanisms/dme/dme_24_therm.txt for species definitions...
+searching external database /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt for species definitions...
 
  default Tlow, Tmid, Thigh: 300.00  1000.00  5000.00
 
-found species h at line 16 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species h at line 16 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   120186h   1           
    phase: g
    composition: (1 h)
@@ -128,7 +128,7 @@ found species h at line 16 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	-4.60117600E-01  	-4.60117600E-01
 
 
-found species h2 at line 20 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species h2 at line 20 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286h   2           
    phase: g
    composition: (2 h)
@@ -144,7 +144,7 @@ found species h2 at line 20 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	-3.29409400E+00  	-1.35511000E+00
 
 
-found species o at line 24 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species o at line 24 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   120186o   1           
    phase: g
    composition: (1 o)
@@ -160,7 +160,7 @@ found species o at line 24 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+2.96399500E+00  	+4.92030800E+00
 
 
-found species o2 at line 28 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species o2 at line 28 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121386o   2           
    phase: g
    composition: (2 o)
@@ -176,7 +176,7 @@ found species o2 at line 28 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+6.03473800E+00  	+3.18916600E+00
 
 
-found species oh at line 32 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species oh at line 32 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermh   1o   1    0 
    phase: g
    composition: (1 h, 1 o)
@@ -192,7 +192,7 @@ found species oh at line 32 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+2.45014127E+00  	+7.10667307E+00
 
 
-found species h2o at line 36 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species h2o at line 36 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:    20387h   2o   1      
    phase: g
    composition: (2 h, 1 o)
@@ -208,7 +208,7 @@ found species h2o at line 36 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+2.59023300E+00  	+6.86281700E+00
 
 
-found species n2 at line 40 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species n2 at line 40 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286n   2           
    phase: g
    composition: (2 n)
@@ -224,7 +224,7 @@ found species n2 at line 40 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+3.95037200E+00  	+5.98052800E+00
 
 
-found species co at line 44 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species co at line 44 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286c   1o   1      
    phase: g
    composition: (1 c, 1 o)
@@ -240,7 +240,7 @@ found species co at line 44 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+4.84889700E+00  	+6.10821800E+00
 
 
-found species hco at line 48 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hco at line 48 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286h   1c   1o   1 
    phase: g
    composition: (1 h, 1 c, 1 o)
@@ -256,7 +256,7 @@ found species hco at line 48 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+8.98361400E+00  	+5.55229900E+00
 
 
-found species co2 at line 52 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species co2 at line 52 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286c   1o   2      
    phase: g
    composition: (1 c, 2 o)
@@ -272,7 +272,7 @@ found species co2 at line 52 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.01884900E+01  	-9.55395900E-01
 
 
-found species ch3 at line 56 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3 at line 56 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286c   1h   3      
    phase: g
    composition: (1 c, 3 h)
@@ -288,7 +288,7 @@ found species ch3 at line 56 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+6.78979400E+00  	+5.45269700E+00
 
 
-found species ch4 at line 60 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch4 at line 60 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286c   1h   4      
    phase: g
    composition: (1 c, 4 h)
@@ -304,7 +304,7 @@ found species ch4 at line 60 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.37221900E+01  	+9.62339500E+00
 
 
-found species ho2 at line 64 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ho2 at line 64 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermh   1o   2    0 
    phase: g
    composition: (1 h, 2 o)
@@ -320,7 +320,7 @@ found species ho2 at line 64 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+8.39371099E+00  	+3.12515836E+00
 
 
-found species h2o2 at line 68 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species h2o2 at line 68 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   120186h   2o   2      
    phase: g
    composition: (2 h, 2 o)
@@ -336,7 +336,7 @@ found species h2o2 at line 68 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+6.78536300E+00  	+5.01137000E-01
 
 
-found species ch2o at line 72 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2o at line 72 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286c   1h   2o   1 
    phase: g
    composition: (1 c, 2 h, 1 o)
@@ -352,7 +352,7 @@ found species ch2o at line 72 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.37848200E+01  	+6.91257200E+00
 
 
-found species ch3o at line 76 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3o at line 76 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121686c   1h   3o   1 
    phase: g
    composition: (1 c, 3 h, 1 o)
@@ -368,7 +368,7 @@ found species ch3o at line 76 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.31521800E+01  	+2.92957500E+00
 
 
-found species c2h6 at line 80 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h6 at line 80 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121686c   2h   6      
    phase: g
    composition: (2 c, 6 h)
@@ -384,7 +384,7 @@ found species c2h6 at line 80 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.44322900E+01  	-5.23950700E+00
 
 
-found species c2h4 at line 84 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h4 at line 84 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286c   2h   4      
    phase: g
    composition: (2 c, 4 h)
@@ -400,7 +400,7 @@ found species c2h4 at line 84 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+2.42114900E+01  	+2.23038900E+00
 
 
-found species c2h5 at line 88 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h5 at line 88 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:    12387c   2h   5      
    phase: g
    composition: (2 c, 5 h)
@@ -416,7 +416,7 @@ found species c2h5 at line 88 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.21382000E+01  	-1.47808900E+01
 
 
-found species ch2 at line 92 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2 at line 92 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   120186c   1h   2      
    phase: g
    composition: (1 c, 2 h)
@@ -432,7 +432,7 @@ found species ch2 at line 92 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.71257800E+00  	+2.15656100E+00
 
 
-found species ch at line 96 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch at line 96 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121286c   1h   1      
    phase: g
    composition: (1 c, 1 h)
@@ -448,7 +448,7 @@ found species ch at line 96 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+3.33158800E+00  	+9.17837300E+00
 
 
-found species c2h at line 100 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h at line 100 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:    81193c   2h   1      
    phase: g
    composition: (2 c, 1 h)
@@ -464,7 +464,7 @@ found species c2h at line 100 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+7.30022000E+00  	+1.19106300E+00
 
 
-found species c2h2 at line 104 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h2 at line 104 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121386c   2h   2      
    phase: g
    composition: (2 c, 2 h)
@@ -480,7 +480,7 @@ found species c2h2 at line 104 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+8.80537800E+00  	-2.80033800E+00
 
 
-found species c2h3 at line 108 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h3 at line 108 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:    12787c   2h   3      
    phase: g
    composition: (2 c, 3 h)
@@ -496,7 +496,7 @@ found species c2h3 at line 108 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.15562000E+01  	-8.53031300E+00
 
 
-found species ch3oh at line 112 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3oh at line 112 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121686c   1h   4o   1 
    phase: g
    composition: (1 c, 4 h, 1 o)
@@ -512,7 +512,7 @@ found species ch3oh at line 112 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.12326300E+01  	+2.37819600E+00
 
 
-found species ch2oh at line 116 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2oh at line 116 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   120186h   3c   1o   1 
    phase: g
    composition: (3 h, 1 c, 1 o)
@@ -528,7 +528,7 @@ found species ch2oh at line 116 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.03979400E+01  	-8.32936600E+00
 
 
-found species ch2co at line 120 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2co at line 120 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   121686c   2h   2o   1 
    phase: g
    composition: (2 c, 2 h, 1 o)
@@ -544,7 +544,7 @@ found species ch2co at line 120 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+8.67355300E+00  	-7.65758100E+00
 
 
-found species hcco at line 124 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hcco at line 124 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:    32387h   1c   2o   1 
    phase: g
    composition: (1 h, 2 c, 1 o)
@@ -560,7 +560,7 @@ found species hcco at line 124 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+4.81843900E-01  	-9.07126200E+00
 
 
-found species c2h5oh at line 128 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h5oh at line 128 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   6o   1 
    phase: g
    composition: (2 c, 6 h, 1 o)
@@ -576,7 +576,7 @@ found species c2h5oh at line 128 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+2.33538763E+01  	-1.76537972E+01
 
 
-found species pc2h4oh at line 132 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species pc2h4oh at line 132 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   5o   1 
    phase: g
    composition: (2 c, 5 h, 1 o)
@@ -592,7 +592,7 @@ found species pc2h4oh at line 132 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+2.20081586E+01  	-1.24958732E+01
 
 
-found species sc2h4oh at line 136 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species sc2h4oh at line 136 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   5o   1 
    phase: g
    composition: (2 c, 5 h, 1 o)
@@ -608,7 +608,7 @@ found species sc2h4oh at line 136 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+2.01446141E+01  	-1.06794104E+01
 
 
-found species ch3co at line 140 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3co at line 140 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   120186c   2h   3o   1 
    phase: g
    composition: (2 c, 3 h, 1 o)
@@ -624,7 +624,7 @@ found species ch3co at line 140 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.12288500E+01  	-3.27494900E+00
 
 
-found species ch2cho at line 144 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2cho at line 144 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   110393o   1h   3c   2 
    phase: g
    composition: (1 o, 3 h, 2 c)
@@ -640,7 +640,7 @@ found species ch2cho at line 144 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+9.55829000E+00  	-5.04525100E+00
 
 
-found species ch3cho at line 148 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3cho at line 148 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:   120186c   2o   1h   4 
    phase: g
    composition: (2 c, 1 o, 4 h)
@@ -656,7 +656,7 @@ found species ch3cho at line 148 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+1.33508900E+01  	-6.01294600E+00
 
 
-found species ch3coch3 at line 152 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3coch3 at line 152 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 92 thermc   3h   6o   1 
    phase: g
    composition: (3 c, 6 h, 1 o)
@@ -672,7 +672,7 @@ found species ch3coch3 at line 152 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+1.96395025E+01  	-2.86113215E+01
 
 
-found species ch3coch2 at line 156 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3coch2 at line 156 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 92 thermc   3h   5o   1 
    phase: g
    composition: (3 c, 5 h, 1 o)
@@ -688,7 +688,7 @@ found species ch3coch2 at line 156 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+1.78046408E+01  	-2.79197220E+01
 
 
-found species c2h5cho at line 160 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h5cho at line 160 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   3h   6o   1 
    phase: g
    composition: (3 c, 6 h, 1 o)
@@ -704,7 +704,7 @@ found species c2h5cho at line 160 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.61153348E+01  	-2.85346843E+01
 
 
-found species c2h5co at line 164 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h5co at line 164 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   3h   5o   1 
    phase: g
    composition: (3 c, 5 h, 1 o)
@@ -720,7 +720,7 @@ found species c2h5co at line 164 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+1.35958355E+01  	-2.49235196E+01
 
 
-found species c2h5o at line 168 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h5o at line 168 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   5o   1 
    phase: g
    composition: (2 c, 5 h, 1 o)
@@ -736,7 +736,7 @@ found species c2h5o at line 168 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+2.28079378E+01  	-1.73416790E+01
 
 
-found species ch3o2 at line 172 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3o2 at line 172 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   1h   3o   2 
    phase: g
    composition: (1 c, 3 h, 2 o)
@@ -752,7 +752,7 @@ found species ch3o2 at line 172 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+5.16330320E+00  	-4.71963886E+00
 
 
-found species c2h5o2 at line 176 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h5o2 at line 176 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   5o   2 
    phase: g
    composition: (2 c, 5 h, 2 o)
@@ -768,7 +768,7 @@ found species c2h5o2 at line 176 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+1.27953147E+01  	-1.99384891E+01
 
 
-found species ch3o2h at line 180 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3o2h at line 180 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   1h   4o   2 
    phase: g
    composition: (1 c, 4 h, 2 o)
@@ -784,7 +784,7 @@ found species ch3o2h at line 180 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+9.25623949E+00  	-1.91170629E+01
 
 
-found species c2h5o2h at line 184 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h5o2h at line 184 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   6o   2 
    phase: g
    composition: (2 c, 6 h, 2 o)
@@ -800,7 +800,7 @@ found species c2h5o2h at line 184 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.53197322E+01  	-3.37584606E+01
 
 
-found species c2h3o1-2 at line 188 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h3o1-2 at line 188 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   3o   1 
    phase: g
    composition: (2 c, 3 h, 1 o)
@@ -816,7 +816,7 @@ found species c2h3o1-2 at line 188 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+2.50825660E+01  	-3.40412712E+01
 
 
-found species ch3co2 at line 192 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3co2 at line 192 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermc   2h   3o   2 
    phase: g
    composition: (2 c, 3 h, 2 o)
@@ -832,7 +832,7 @@ found species ch3co2 at line 192 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+1.74510638E+01  	-2.10778361E+01
 
 
-found species c2h4o1-2 at line 196 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h4o1-2 at line 196 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   4o   1 
    phase: g
    composition: (2 c, 4 h, 1 o)
@@ -848,7 +848,7 @@ found species c2h4o1-2 at line 196 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+2.65139216E+01  	-3.82691119E+01
 
 
-found species c2h4o2h at line 200 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h4o2h at line 200 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   5o   2 
    phase: g
    composition: (2 c, 5 h, 2 o)
@@ -864,7 +864,7 @@ found species c2h4o2h at line 200 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.35264941E+01  	-2.87480538E+01
 
 
-found species o2c2h4oh at line 204 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species o2c2h4oh at line 204 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   5o   3 
    phase: g
    composition: (2 c, 5 h, 3 o)
@@ -880,7 +880,7 @@ found species o2c2h4oh at line 204 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+1.28482112E+01  	-2.33254953E+01
 
 
-found species ch3co3 at line 208 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3co3 at line 208 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   3o   3 
    phase: g
    composition: (2 c, 3 h, 3 o)
@@ -896,7 +896,7 @@ found species ch3co3 at line 208 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+1.64911398E+01  	-3.13182392E+01
 
 
-found species ch3co3h at line 212 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3co3h at line 212 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   4o   3 
    phase: g
    composition: (2 c, 4 h, 3 o)
@@ -912,7 +912,7 @@ found species ch3co3h at line 212 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.70668133E+01  	-3.79195947E+01
 
 
-found species c2h3co at line 216 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h3co at line 216 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   3h   3o   1 
    phase: g
    composition: (3 c, 3 h, 1 o)
@@ -928,7 +928,7 @@ found species c2h3co at line 216 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+2.04173489E+01  	-2.67674022E+01
 
 
-found species c2h3cho at line 220 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species c2h3cho at line 220 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   3h   4o   1 
    phase: g
    composition: (3 c, 4 h, 1 o)
@@ -944,7 +944,7 @@ found species c2h3cho at line 220 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+2.28878280E+01  	-3.07235061E+01
 
 
-found species ch3coch2o2 at line 224 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3coch2o2 at line 224 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: /95     c   3h   5o   3 
    phase: g
    composition: (3 c, 5 h, 3 o)
@@ -960,7 +960,7 @@ found species ch3coch2o2 at line 224 of /share/zerork/mechanisms/dme/dme_24_ther
    a7  	+5.21436049E+00  	-3.27155799E+01
 
 
-found species ch3coch2o2h at line 228 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3coch2o2h at line 228 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: /95     c   3h   6o   3 
    phase: g
    composition: (3 c, 6 h, 3 o)
@@ -976,7 +976,7 @@ found species ch3coch2o2h at line 228 of /share/zerork/mechanisms/dme/dme_24_the
    a7  	+8.49926130E+00  	-4.77383784E+01
 
 
-found species ch3coch2o at line 232 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3coch2o at line 232 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: /95     c   3h   5o   2 
    phase: g
    composition: (3 c, 5 h, 2 o)
@@ -992,7 +992,7 @@ found species ch3coch2o at line 232 of /share/zerork/mechanisms/dme/dme_24_therm
    a7  	+1.17972181E+01  	-6.45576662E+01
 
 
-found species hco3h at line 236 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hco3h at line 236 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   1h   2o   3 
    phase: g
    composition: (1 c, 2 h, 3 o)
@@ -1008,7 +1008,7 @@ found species hco3h at line 236 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.75027796E+01  	-2.24939155E+01
 
 
-found species hco3 at line 240 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hco3 at line 240 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   1h   1o   3 
    phase: g
    composition: (1 c, 1 h, 3 o)
@@ -1024,7 +1024,7 @@ found species hco3 at line 240 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.17807483E+01  	-6.49547212E+00
 
 
-found species hco2 at line 244 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hco2 at line 244 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   1h   1o   2 
    phase: g
    composition: (1 c, 1 h, 2 o)
@@ -1040,7 +1040,7 @@ found species hco2 at line 244 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.74373147E+01  	-8.01574694E+00
 
 
-found species o2c2h4o2h at line 248 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species o2c2h4o2h at line 248 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 95 thermc   2h   5o   4 
    phase: g
    composition: (2 c, 5 h, 4 o)
@@ -1056,7 +1056,7 @@ found species o2c2h4o2h at line 248 of /share/zerork/mechanisms/dme/dme_24_therm
    a7  	+6.33051038E+00  	-4.08784236E+01
 
 
-found species ch2(s) at line 252 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2(s) at line 252 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date:    31287c   1h   2      
    phase: g
    composition: (1 c, 2 h)
@@ -1072,7 +1072,7 @@ found species ch2(s) at line 252 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+5.75320700E-02  	+1.68657000E+00
 
 
-found species ch3och3 at line 256 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3och3 at line 256 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   6o   1 
    phase: g
    composition: (2 c, 6 h, 1 o)
@@ -1088,7 +1088,7 @@ found species ch3och3 at line 256 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.67317297E+01  	-2.15190894E+01
 
 
-found species ch3och2 at line 260 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3och2 at line 260 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   5o   1 
    phase: g
    composition: (2 c, 5 h, 1 o)
@@ -1104,7 +1104,7 @@ found species ch3och2 at line 260 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.16066817E+01  	-1.78650856E+01
 
 
-found species ch3och2o2 at line 264 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3och2o2 at line 264 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   5o   3 
    phase: g
    composition: (2 c, 5 h, 3 o)
@@ -1120,7 +1120,7 @@ found species ch3och2o2 at line 264 of /share/zerork/mechanisms/dme/dme_24_therm
    a7  	+1.91463601E+01  	-3.53740145E+01
 
 
-found species ch2och2o2h at line 268 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2och2o2h at line 268 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   5o   3 
    phase: g
    composition: (2 c, 5 h, 3 o)
@@ -1136,7 +1136,7 @@ found species ch2och2o2h at line 268 of /share/zerork/mechanisms/dme/dme_24_ther
    a7  	+1.76899251E+01  	-4.85706618E+01
 
 
-found species ch3och2o2h at line 272 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3och2o2h at line 272 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   6o   3 
    phase: g
    composition: (2 c, 6 h, 3 o)
@@ -1152,7 +1152,7 @@ found species ch3och2o2h at line 272 of /share/zerork/mechanisms/dme/dme_24_ther
    a7  	+2.31339904E+01  	-4.99552737E+01
 
 
-found species ch3och2o at line 276 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3och2o at line 276 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 96 thermc   2h   5o   2 
    phase: g
    composition: (2 c, 5 h, 2 o)
@@ -1168,7 +1168,7 @@ found species ch3och2o at line 276 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+1.23680069E+01  	-1.75775023E+01
 
 
-found species o2ch2och2o2h at line 280 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species o2ch2och2o2h at line 280 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 0/98 trmc   2h   5o   5 
    phase: g
    composition: (2 c, 5 h, 5 o)
@@ -1184,7 +1184,7 @@ found species o2ch2och2o2h at line 280 of /share/zerork/mechanisms/dme/dme_24_th
    a7  	+2.44215005E+01  	-6.51847273E+01
 
 
-found species ho2ch2ocho at line 284 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ho2ch2ocho at line 284 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermc   2h   4o   4 
    phase: g
    composition: (2 c, 4 h, 4 o)
@@ -1200,7 +1200,7 @@ found species ho2ch2ocho at line 284 of /share/zerork/mechanisms/dme/dme_24_ther
    a7  	+1.52521392E+01  	-5.38924139E+01
 
 
-found species och2ocho at line 288 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species och2ocho at line 288 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   3o   3 
    phase: g
    composition: (2 c, 3 h, 3 o)
@@ -1216,7 +1216,7 @@ found species och2ocho at line 288 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+6.11645828E+00  	-3.33691809E+01
 
 
-found species hoch2oco at line 292 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hoch2oco at line 292 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   2h   3o   3 
    phase: g
    composition: (2 c, 3 h, 3 o)
@@ -1232,7 +1232,7 @@ found species hoch2oco at line 292 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+1.18884577E+01  	-3.69483137E+01
 
 
-found species hoch2o at line 296 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hoch2o at line 296 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermc   1h   3o   2 
    phase: g
    composition: (1 c, 3 h, 2 o)
@@ -1248,7 +1248,7 @@ found species hoch2o at line 296 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+6.81381989E+00  	-7.29290847E+00
 
 
-found species hco2h at line 300 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hco2h at line 300 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermc   1h   2o   2 
    phase: g
    composition: (1 c, 2 h, 2 o)
@@ -1264,7 +1264,7 @@ found species hco2h at line 300 of /share/zerork/mechanisms/dme/dme_24_therm.txt
    a7  	+1.72885798E+01  	-1.13104798E+01
 
 
-found species ch3ocho at line 304 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3ocho at line 304 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermc   2h   4o   2 
    phase: g
    composition: (2 c, 4 h, 2 o)
@@ -1280,7 +1280,7 @@ found species ch3ocho at line 304 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.25364719E+01  	-1.89301478E+01
 
 
-found species ch3oco at line 308 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3oco at line 308 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermc   2h   3o   2 
    phase: g
    composition: (2 c, 3 h, 2 o)
@@ -1296,7 +1296,7 @@ found species ch3oco at line 308 of /share/zerork/mechanisms/dme/dme_24_therm.tx
    a7  	+1.66954362E+01  	-3.27914051E+01
 
 
-found species ch2ocho at line 312 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch2ocho at line 312 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 99 thermc   2h   3o   2 
    phase: g
    composition: (2 c, 3 h, 2 o)
@@ -1312,7 +1312,7 @@ found species ch2ocho at line 312 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.35344729E+01  	-1.50534594E+01
 
 
-found species ch3och2oh at line 316 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species ch3och2oh at line 316 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 96 thermc   2h   6o   2 
    phase: g
    composition: (2 c, 6 h, 2 o)
@@ -1328,7 +1328,7 @@ found species ch3och2oh at line 316 of /share/zerork/mechanisms/dme/dme_24_therm
    a7  	+1.30511235E+01  	-1.80226702E+01
 
 
-found species hoch2o2h at line 320 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hoch2o2h at line 320 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   1h   4o   3 
    phase: g
    composition: (1 c, 4 h, 3 o)
@@ -1344,7 +1344,7 @@ found species hoch2o2h at line 320 of /share/zerork/mechanisms/dme/dme_24_therm.
    a7  	+1.90917729E+01  	-3.24276725E+01
 
 
-found species och2o2h at line 324 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species och2o2h at line 324 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   1h   3o   3 
    phase: g
    composition: (1 c, 3 h, 3 o)
@@ -1360,7 +1360,7 @@ found species och2o2h at line 324 of /share/zerork/mechanisms/dme/dme_24_therm.t
    a7  	+1.85042002E+01  	-3.20700633E+01
 
 
-found species hoch2o2 at line 328 of /share/zerork/mechanisms/dme/dme_24_therm.txt
+found species hoch2o2 at line 328 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/dme/dme_24_therm.txt
    id/date: 98 thermc   1h   3o   3 
    phase: g
    composition: (1 c, 3 h, 3 o)

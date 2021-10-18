@@ -186,6 +186,11 @@ int ConstPressureFlameLocal(int nlocal,
 						  &params->transport_input_.mass_fraction_[0],
 						  &params->species_specific_heats_[0]);
 
+    // Reset species cp
+    for(int k=0; k<num_species; k++) {
+      params->species_specific_heats_[num_species*j+k] = 0.0;
+    }
+
     // specific heat at grid point j
     if (j != num_local_points) { //not used in derivatives
       params->mixture_specific_heat_[j] =
@@ -497,6 +502,15 @@ int ConstPressureFlameLocal(int nlocal,
   MPI_Allreduce(&local_max,&params->flame_thickness_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
   params->flame_thickness_ = (params->max_temperature_-params->inlet_temperature_)/
     params->flame_thickness_;
+
+  // Compute alternate flame thickness definition lF = K/rho/cp/SL (alpha = K/rho/cp)
+  // using inlet values
+  if(my_pe == 0) {
+    params->flame_thickness_alpha_ = params->thermal_conductivity_[0]/
+      params->inlet_relative_volume_/params->mixture_specific_heat_[0]/params->flame_speed_;
+  }
+  MPI_Bcast(&params->flame_thickness_alpha_, 1, MPI_DOUBLE, 0, comm);
+
 
   // compute the max thermal diffusivity using the average value of the
   // conductivity and the up and downstream interfaces

@@ -81,8 +81,10 @@ class mechanism
 
   double getMassEnthalpyFromTY(const double T, const double y[],
 			       double hSpc[]) const;
+  double getMassEnthalpyFromTY(const double T, const double y[]) const;
   double getMassIntEnergyFromTY(const double T, const double y[],
 				double uSpc[]) const;
+  double getMassIntEnergyFromTY(const double T, const double y[]) const;
   void getEnthalpy_RT(const double T, double h_RT[]) const;
   void getIntEnergy_RT(const double T, double u_RT[]) const;
   void getCp_R_Enthalpy_RT(const double T,
@@ -101,6 +103,8 @@ class mechanism
 			 double cvSpc[]) const;
   double getMolarCvFromTC(const double T, const double c[]) const;
   void getNonDimGibbsFromT(const double T, double G_RT[]) const;
+  double getTemperatureFromEY(const double E, const double y[], const double temp_guess) const;
+  double getTemperatureFromHY(const double H, const double y[], const double temp_guess) const;
 
   void getKrxnFromTC(const double T, const double C[], double Kfwd[],
 		     double Krev[]);

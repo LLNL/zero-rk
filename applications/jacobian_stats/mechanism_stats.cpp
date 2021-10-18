@@ -597,8 +597,13 @@ void getStepTypeCount(zerork::mechanism *mech,
                           mech->getMaxProductsInStep(),
 			  0);
   for(int j=0; j<mech->getNumSteps(); ++j) {
-    int bin_id = (mech->getOrderOfStep(j)-1)*mech->getMaxProductsInStep()+
-      (mech->getNumProductsOfStep(j)-1);
+    int order = mech->getOrderOfStep(j);
+    int prods = mech->getNumProductsOfStep(j);
+    if(order <= 0 || prods <= 0) {
+      //Non-integer step
+      continue;
+    }
+    int bin_id = (order-1)*mech->getMaxProductsInStep()+(prods-1);
     ++(*step_type_count)[bin_id];
   }
 }

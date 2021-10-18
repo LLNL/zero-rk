@@ -5,17 +5,16 @@ project(superlu_build)
 include(ExternalProject)
 ExternalProject_Add(
   superlu
-  GIT_REPOSITORY https://github.com/xiaoyeli/superlu
-  GIT_TAG        v5.2.1
-  GIT_SHALLOW    ON
+  URL https://github.com/xiaoyeli/superlu/archive/refs/tags/v5.2.1.tar.gz
   CMAKE_ARGS -Denable_blaslib=OFF
              -Denable_tests=OFF
-             -Denable_single=OFF
-             -Denable_complex=OFF
-             -Denable_complex16=OFF
+             -Denable_single=ON
+             -Denable_complex=ON
+             -Denable_complex16=ON
              -DCMAKE_INSTALL_PREFIX=${superlu_prefix}
              -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
              -DCMAKE_C_COMPILER=${MPI_C_COMPILER}
-             -DTPL_BLAS_LIBRARIES=${BLAS_LIBRARIES}
+             -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+             -DTPL_BLAS_LIBRARIES=dummy #not used for lib build
 )
 

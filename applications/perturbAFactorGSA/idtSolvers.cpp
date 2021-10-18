@@ -29,7 +29,7 @@ int solveIdtSimple(idtControlParams *idtCtrl,
   double startTime=getHighResolutionTime();
   double tcurr = 0.0;
   double tmax  = idtCtrl->cvodeCtrl.maxTime;
-
+   
   rootsFound = new int[idtCtrl->cvodeCtrl.nRoots];
   for(j=0; j<idtCtrl->cvodeCtrl.nRoots; j++) {
     idt[j]=INFINITY;
@@ -51,7 +51,7 @@ int solveIdtSimple(idtControlParams *idtCtrl,
         printf("WARNING: CVode() returned error flag=%d\n",flag);
         printf("         attempting CVodeReInit at t=%.18g [s]\n", tcurr);
         printf("         with preconditioner threshold reset to zero.\n");
-
+	
         change_JsparseThresh(idtCtrl->odeUserParams.sparseMtx,
                              0.0);
         flagr = CVodeReInit(idtCtrl->cvodeCtrl.cvodeMemPtr,
@@ -80,7 +80,7 @@ int solveIdtSimple(idtControlParams *idtCtrl,
       // Scan the roots found and overwrite idt with the current time.
       // This means that if the root is found repeatedly (i.e., the
       // temperature is oscillating) only the time of the last root is
-      // recorded.
+      // recorded. 
       flagr = CVodeGetRootInfo(idtCtrl->cvodeCtrl.cvodeMemPtr,
                                rootsFound);
       if(check_flag(&flagr, "CVodeGetRootInfo", 1)) {
@@ -138,3 +138,32 @@ int solveIdtGsaPerturbRxn(const double afactor_mult[],
   (*solveTime)=getHighResolutionTime()-startTime;
   return retFlag;
 }
+
+//int solveIdtPerturbRxn(const int rxnId,
+//                       idtControlParams *idtCtrl,
+//                       double idt[],
+//                       double *solveTime)
+//{
+//  double startTime = getHighResolutionTime();
+//  double innerTime;
+//  int retFlag;
+//  idtCtrl->clearAllROPMultiplier(); // set all ROP multipliers to one
+//
+//  idtCtrl->setROPMultiplierOfRxn(rxnId,false);
+//  retFlag=solveIdtSimple(idtCtrl,
+//                         &idt[0],
+//                         &innerTime);
+//  idtCtrl->unsetROPMultiplierOfRxn(rxnId);
+//
+//  if(idtCtrl->doBothDir) {
+//    // also calculate the idt by dividing the multiplier for the reaction
+//    idtCtrl->setROPMultiplierOfRxn(rxnId,true);
+//    retFlag=solveIdtSimple(idtCtrl,
+//                           &idt[idtCtrl->cvodeCtrl.nRoots],
+//                           &innerTime);
+//    idtCtrl->unsetROPMultiplierOfRxn(rxnId);
+//  } 
+//
+//  (*solveTime)=getHighResolutionTime()-startTime;
+//  return retFlag;
+//}

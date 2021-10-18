@@ -1,0 +1,94 @@
+#Chemkin Format Mechansim File
+#Type: string
+mechFile: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/iso-octane/species874/ic8_ver3_mech.txt
+
+#Chemkin Format Thermodynamics File
+#Type: string
+thermFile: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/iso-octane/species874/prf_v3_therm_dat.txt
+
+#Mechanism Parser Log File
+#Type: string
+#Optional with default value of: /dev/null
+logFile: mech_parsing.log
+
+#Ignition Delay Output File
+#Type: string
+idtFile: psr.dat
+
+#Temperature History Output File
+#Type: string
+thistFile: psr.thist
+
+#Fuel mole fractions
+#Type: string:floating-point map
+fuel_mole_fracs: {
+IC8H18: 1.0
+}
+
+#Oxidizer mole fractions
+#Type: string:floating-point map
+oxidizer_mole_fracs: {
+N2: 0.79,
+O2: 0.21
+}
+
+tracked_species_names: ['OH', 'CH2O']
+
+steplimiter: 1e16
+
+#Total integration time
+#Type: floating-point
+stop_time: 100.0
+
+#Enable energy equation. Set to 0 to fix temperature
+#Type: integer
+#Optional with default value of 1
+energy_enabled: 1
+
+#Residence time
+#Type: floating-point
+#Optional with default value of [1]
+residence_times: [1.0e-1, 1.0]
+
+#Print Interval
+#Type: floating-point
+print_time: 1.0
+
+#Maximum Internal Integrator Step Size
+#Type: floating-point
+#Optional with default value of 0.05
+max_internal_dt: 1.0
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of: 1e-08
+relative_tolerance: 1.0e-8
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of: 1e-20
+absolute_tolerance: 1.0e-20
+
+#Vector of initial temperatures to use in sweep.
+#Type: floating-point vector
+initial_temperatures: [ 800.0 ]
+
+#Vector of initial pressures to use in sweep.
+#Type: floating-point vector
+initial_pressures: [ 10.0e5 ]
+
+#Vector of initial equivalence ratios to use in sweep.
+#Type: floating-point vector
+initial_phis: [  0.4 ]
+
+#Vector of initial EGR ratios to use in sweep.
+#Type: floating-point vector
+initial_egrs: [ 0.0 ]
+
+#Vector of preconditioner thresholds to use in sweep.
+#Type: floating-point vector
+#Optional with default value of: [0.001]
+preconditioner_thresholds: [ 1.0e-6]
+
+eps_lin: 0.05
+nonlinear_convergence_coefficient: 0.05

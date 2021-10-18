@@ -1,0 +1,78 @@
+
+import os
+import sys
+import scipy.optimize as optimize
+from rate_opt import mech_optimizer, cv_opt
+
+if __name__ == '__main__':
+    #Instantiate the mechanism_optimizer object with the model to be optimized
+    #with a mechanism and thermodynamics file.
+    moh = mech_optimizer('h2_v1b_mech_mod.txt',
+                         '@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt')
+
+    #Instantiate "target" app(s) with either a pre-generated database or the
+    #target model files
+    if os.path.isfile('idt_full.dat'):
+        app = cv_opt(comparison_file='idt_full.dat',procs=1)
+    else:
+        app = cv_opt(full_mechanism='@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt',
+                     full_therm='@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt',
+                     save_full ='idt_full.dat',
+                     procs=1)
+
+    #Set conditions to be compared
+    app.set('fuel_mole_fracs', {"h2" : 1.0})
+    app.set('oxidizer_mole_fracs', {"o2" : 0.21, "n2": 0.79})
+    app.set('initial_temperatures',  [ 800, 900, 1000, 1100 ])
+    app.set('initial_pressures',  [ 10e5, 50e5 ])
+    app.set('initial_phis',  [ 0.5, 1.0, 2.0 ])
+    #Optionally, write out the input file for the IDT/PSR apps
+    app.write_yaml('sweep.yml')
+
+    #Connect the app to the optimizer.
+    #Multiple apps can be used (mixing IDT/PSR or multiple of same).
+    moh.add_opt_app(app)
+
+
+    #Set the reactions to be optimized.  Matches are based on reaction equation.
+    #Reaction strings should not include white-space
+    moh.set_rxn_opt("oh+h2=h+h2o", 2, 100) #Optional A multiplier and Ea delta
+                                           #Defaults are 2 and None
+                                           #Note: User is responsible
+                                           #      for consistent Ea units
+                                           #      if None, Ea is not optimized
+    moh.set_rxn_opt("h+o2=o+oh", 2, 1000)
+    moh.set_rxn_opt("h2o2+h=h2+ho2", 2, 1000)
+
+    #If verbose each evaluation will be printed out
+    moh.set_verbose(True)
+
+    #Mechanism optimizer provides the optimization bounds
+    opt_bounds = moh.get_opt_bounds()
+
+    #Using differential optimization for global optimization
+    #Other optimization methods can be used to optimize `moh.opt_fn`
+    opt_result = optimize.differential_evolution(moh.opt_fn,  opt_bounds,
+                                                 popsize=10,
+                                                 maxiter=2,
+                                                 seed=42,
+                                                 polish=False)
+
+    x_opt = opt_result.x
+    #Write out the resulting optimized mechanism.
+    moh.write_mech(x_opt, 'chem_opt.inp')
+
+    ##Trial mechanisms can also be generated from verbose logs
+    ##For example, create `moh` as above
+
+    #Set `log_file` to log from optimization
+    #data=np.genfromtxt(log_file, delimiter=",", invalid_raise=False)
+    #opt_vals = data[:,-1]
+    #idx = opt_vals.argsort()[0]
+    #Get parametemrs from lowest objective function
+    #x = data[idx,:-1]
+
+    #Write out the trial mechanism
+    #moh.write_mech(x, 'chem_trial.inp')
+
+
