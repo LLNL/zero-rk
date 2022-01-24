@@ -30,11 +30,6 @@ for j in range(num_vars):
 
 # Write to ascii file
 fh = open("ascii_data","w")
-# Write header
-fh.write('# x(m)\t')
-for j in range(num_vars):
-    fh.write("".join(name[j]).split('\x00',1)[0].strip('MassFraction_')+'\t')
-fh.write('\n')
 # Write data
 for i in range(num_points1):
     fh.write(str(grid1[i]) + '\t')
