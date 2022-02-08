@@ -219,6 +219,24 @@ spify_parser_params.append(
 }
 )
 
+spify_parser_params.append(
+{
+    'name':"stop_after_ignition",
+    'type':'int',
+    'shortDesc' : "Stop integration once ignition criteria is reached.",
+    'defaultValue' : 1
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"batched",
+    'type':'int',
+    'shortDesc' : "Solve multiple reactors in one call to plugin.",
+    'defaultValue' : 1
+}
+)
+
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
 spg().generate(spify_parser_name,spify_parser_params)

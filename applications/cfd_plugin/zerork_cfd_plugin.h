@@ -18,6 +18,10 @@ zerork_handle zerork_reactor_init(const char* input_filename,
                         const char* mech_file,
                         const char* therm_file);
 
+typedef int (*zerork_callback_fn)(int reactor_id, int steps, double time, double dt,
+                                  const double* y, const double* dy,
+                                  void* cb_fn_data);
+
 int zerork_reactor_solve(const int n_cycle, const double time,
                          const double dt, const int n_reactors,
                          double *T, double *P,
@@ -41,6 +45,12 @@ int zerork_reactor_get_int_option(const char* option_name_chr,
 int zerork_reactor_get_double_option(const char* option_name_chr,
                                      double* option_value,
                                      zerork_handle handle);
+
+int zerork_reactor_set_callback_fn(zerork_callback_fn fn,
+                                   void* cb_fn_data,
+                                   zerork_handle handle);
+
+int zerork_reactor_set_reactor_ids(int* reactor_ids, zerork_handle handle);
 
 int zerork_reactor_free(zerork_handle handle); 
 

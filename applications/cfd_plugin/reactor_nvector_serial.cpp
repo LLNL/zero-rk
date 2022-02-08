@@ -94,14 +94,6 @@ void ReactorNVectorSerial::SetupSparseJacobianArrays() {
   jacobian_diagonal_indexes_.assign(num_variables_,0);
   jacobian_last_row_indexes_.assign(num_variables_,0);
 
-  num_noninteger_jacobian_nonzeros_ =
-    mech_ptr_->getNonIntegerReactionNetwork()->GetNumJacobianNonzeros();
-
-  noninteger_jacobian_.assign(num_noninteger_jacobian_nonzeros_,0.0);
-  noninteger_sparse_id_.assign(num_noninteger_jacobian_nonzeros_,0);
-  std::vector<int> noninteger_row_id;
-  std::vector<int> noninteger_column_id;
-
   // initialize the dense nonzero flags
   for(int j=0; j<num_species_; ++j) {
       isNonZero[j*num_variables_+j]=1;    // mark the diagonal
@@ -145,8 +137,16 @@ void ReactorNVectorSerial::SetupSparseJacobianArrays() {
     }
   }
 
+  num_noninteger_jacobian_nonzeros_ =
+    mech_ptr_->getNonIntegerReactionNetwork()->GetNumJacobianNonzeros();
+
+  std::vector<int> noninteger_row_id;
+  std::vector<int> noninteger_column_id;
+
   // non-integer reaction network
   if(num_noninteger_jacobian_nonzeros_ > 0) {
+    noninteger_jacobian_.assign(num_noninteger_jacobian_nonzeros_,0.0);
+    noninteger_sparse_id_.assign(num_noninteger_jacobian_nonzeros_,0);
 
     noninteger_row_id.assign(num_noninteger_jacobian_nonzeros_, 0);
     noninteger_column_id.assign(num_noninteger_jacobian_nonzeros_, 0);
@@ -484,20 +484,22 @@ int ReactorNVectorSerial::SetupJacobianSparse(realtype t, N_Vector y,N_Vector fy
   }
 
   // process the non-integer Jacobian information
-  const int num_noninteger_jacobian_nonzeros =
-    num_noninteger_jacobian_nonzeros_;
+  if(num_noninteger_jacobian_nonzeros_ > 0) {
+    const int num_noninteger_jacobian_nonzeros =
+      num_noninteger_jacobian_nonzeros_;
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    noninteger_jacobian_[j] = 0.0;
-  }
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      noninteger_jacobian_[j] = 0.0;
+    }
 
-  mech_ptr_->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-    tmp2_ptr,
-    &forward_rates_of_production_[0],
-    &noninteger_jacobian_[0]);
+    mech_ptr_->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      tmp2_ptr,
+      &forward_rates_of_production_[0],
+      &noninteger_jacobian_[0]);
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    jacobian_data_[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      jacobian_data_[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    }
   }
 
   // At this point sMptr stores d(wdot[k])/dC[j] ignoring the contribution

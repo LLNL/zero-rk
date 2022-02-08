@@ -130,3 +130,11 @@ int ReactorRootFunction(double t, N_Vector y, double *root_function,
   return reactor->RootFunction(t, y, root_function);
 }
 
+int ReactorBase::GetID() {
+ return id_;
+}
+
+void ReactorBase::SetID(int id) {
+  id_ = id;
+}
+

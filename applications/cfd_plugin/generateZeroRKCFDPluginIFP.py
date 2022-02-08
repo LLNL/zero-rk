@@ -20,6 +20,7 @@ spify_parser_params.append(
     'name':'reactor_timing_log',
     'type':'string',
     'shortDesc' : "Log file for reactor solutions timing statistics",
+    'defaultValue' : '/dev/null'
 }
 )
 
@@ -95,7 +96,7 @@ spify_parser_params.append(
     'name':"reference_temperature",
     'type':'double',
     'shortDesc' : "Ignition Delat Metric: Maximum species concentration",
-    'defaultValue' : 1000.0
+    'defaultValue' : 1.0
 }
 )
 
@@ -182,6 +183,44 @@ spify_parser_params.append(
     'shortDesc' : "Sort reactors by cost",
     'defaultValue' : 1,
     'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"verbosity",
+    'type':'int',
+    'shortDesc' : "Output verbosity",
+    'defaultValue' : 4,
+    'discreteValues': [0,1,2,3,4]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"constant_volume",
+    'type':'int',
+    'shortDesc' : "Constant volume or constant pressure",
+    'defaultValue' : 1,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"delta_temperature_ignition",
+    'type':'double',
+    'shortDesc' : "",
+    'defaultValue' : 400.0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"min_mass_fraction",
+    'type':'double',
+    'shortDesc' : "",
+    'defaultValue' : 1.0e-30
 }
 )
 

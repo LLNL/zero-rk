@@ -30,7 +30,10 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
                          double* mass_fractions);
 
   void SetAuxFieldPointer(zerork_field_type ft, double* field_pointer);
+  void SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data);
+  void SetReactorIDs(int* reactor_ids);
 
+  void FinishInit();
   void LoadBalance();
   void SolveReactors();
   void RedistributeResults();
@@ -67,6 +70,7 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   double* y_src_self_;
   double* e_src_self_;
   int* nstep_self_;
+  int* reactor_ids_self_;
 
   std::vector<double> T_other_;
   std::vector<double> P_other_;
@@ -77,12 +81,14 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   std::vector<double> rc_other_;
   std::vector<double> rg_other_;
   std::vector<int> nstep_other_;
+  std::vector<int> reactor_ids_other_;
 
   bool dpdt_owned_;
   bool rc_owned_;
   bool rg_owned_;
   bool y_src_defined_;
   bool e_src_defined_;
+  bool reactor_ids_defined_;
   std::vector<double> dpdt_default_;
   std::vector<double> rc_default_;
   std::vector<double> rg_default_;
@@ -99,6 +105,8 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   std::vector<int> n_reactors_solved_ranks_;
   std::vector<double> all_time_ranks_;
   std::ofstream reactor_log_file_;
+  zerork_callback_fn cb_fn_;
+  void* cb_fn_data_;
 
   std::unique_ptr<ReactorBase> reactor_ptr_;
 

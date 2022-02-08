@@ -42,61 +42,69 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   int_options_["sort_reactors"]= 1;
 
   //Solver options
-  int_options_["abstol_dens"] = 0;
+  int_options_["max_steps"] = 1000000;
   int_options_["dense"] = 0;
   int_options_["analytic"] = 1;
   int_options_["iterative"] = 1;
   int_options_["integrator"] = 0;
-  int_options_["max_steps"] = 1000000;
+  int_options_["abstol_dens"] = 0;
   double_options_["rel_tol"] = 1.0e-8;
   double_options_["abs_tol"] = 1.0e-20;
   double_options_["eps_lin"] = 1.0e-3;
-  double_options_["max_dt"] = 0.05;
   double_options_["nonlinear_convergence_coeff"] = 0.05;
+  double_options_["preconditioner_threshold"] = 1.0e-3;
+  double_options_["max_dt"] = 0.05;
+
 
   //Reactor Options
   int_options_["constant_volume"] = 1;
-  int_options_["abstol_dens"] = 0;
   double_options_["reference_temperature"] = 1.0;
   double_options_["delta_temperature_ignition"] = 400.0;
-  double_options_["preconditioner_threshold"] = 1.0e-3;
   double_options_["min_mass_fraction"] = 1.0e-30;
+
+  //GPU Options
+  int_options_["gpu"] = 0;
+  n_reactors_min_ = 128;
+  n_reactors_max_ = 1024;
+
+  std::string reactor_timing_log_filename("/dev/null");
 
   //Overrides from input file
   ZeroRKCFDPluginIFP inputFileDB(input_filename);
-  int_options_["max_steps"] = inputFileDB.max_steps();
-  int_options_["analytic"] = inputFileDB.analytic();
-  int_options_["dense"] = inputFileDB.dense();
-  int_options_["integrator"] = inputFileDB.integrator();
-  int_options_["abstol_dens"] = inputFileDB.abstol_dens();
-  n_reactors_max_ = inputFileDB.n_reactors_max();
-  n_reactors_min_ = inputFileDB.n_reactors_min();
-  load_balance_ = inputFileDB.load_balance();
+  int_options_["verbosity"] = inputFileDB.verbosity();
   int_options_["sort_reactors"] = inputFileDB.sort_reactors();
 
+  int_options_["max_steps"] = inputFileDB.max_steps();
+  int_options_["dense"] = inputFileDB.dense();
+  int_options_["analytic"] = inputFileDB.analytic();
+  int_options_["integrator"] = inputFileDB.integrator();
+  int_options_["abstol_dens"] = inputFileDB.abstol_dens();
   double_options_["abs_tol"] = inputFileDB.absolute_tolerance();
   double_options_["rel_tol"] = inputFileDB.relative_tolerance();
-  double_options_["nonlinear_convergence_coeff"] = inputFileDB.nonlinear_convergence_coeff();
   double_options_["eps_lin"] = inputFileDB.eps_lin();
+  double_options_["nonlinear_convergence_coeff"] = inputFileDB.nonlinear_convergence_coeff();
   double_options_["preconditioner_threshold"] = inputFileDB.preconditioner_threshold();
   double_options_["max_dt"] = inputFileDB.max_dt();
 
+  int_options_["constant_volume"] = inputFileDB.constant_volume();
+  double_options_["reference_temperature"] = inputFileDB.reference_temperature();
+  double_options_["delta_temperature_ignition"] = inputFileDB.delta_temperature_ignition();
+  double_options_["min_mass_fraction"] = inputFileDB.min_mass_fraction();
 
-  const char* cklog_filename = inputFileDB.mechanism_parsing_log().c_str();
-  if(rank_ != root_rank_) {
-     cklog_filename = "/dev/null";
+  n_reactors_max_ = inputFileDB.n_reactors_max();
+  n_reactors_min_ = inputFileDB.n_reactors_min();
+#ifdef USE_MPI
+  load_balance_ = inputFileDB.load_balance();
+#endif
+  if(nranks_ == 1) {
+    load_balance_ = 0;
   }
- 
-  if(rank_ == 0) { 
-    reactor_log_file_.open(inputFileDB.reactor_timing_log());
-  }
+
+  reactor_timing_log_filename = inputFileDB.reactor_timing_log();
   
-
-  mech_ptr_ = std::make_shared<zerork::mechanism>(mech_filename, therm_filename, cklog_filename);
-  num_species_ = mech_ptr_->getNumSpecies();
-  num_species_stride_ = num_species_;
-
-  tx_count_per_reactor_ = 5 + num_species_;
+  if(rank_ == 0) { 
+    reactor_log_file_.open(reactor_timing_log_filename);
+  }
 
   T_other_.clear();
   P_other_.clear();
@@ -106,53 +114,35 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   mf_other_.clear();
   rc_other_.clear();
   rg_other_.clear();
+  reactor_ids_other_.clear();
 
   dpdt_owned_ = true;
   rc_owned_ = true;
   rg_owned_ = true;
   y_src_defined_ = false;
   e_src_defined_ = false;
-  dpdt_self_ = &dpdt_default_[0];
+  dpdt_self_ = nullptr;
   e_src_self_ = nullptr;
   y_src_self_ = nullptr;
-  rc_self_ = &rc_default_[0];
-  rg_self_ = &rg_default_[0];
+  rc_self_ = nullptr;
+  rg_self_ = nullptr;
+  reactor_ids_defined_ = false;
 
-#ifdef USE_MPI
-  rank_weights_.assign(nranks_,0.0);
-  double my_weight = 1.0;
-  MPI_Allgather(&my_weight,1,MPI_DOUBLE,&rank_weights_[0],1,MPI_DOUBLE,MPI_COMM_WORLD);
-  double sum_weights = 0;
-  for(int i = 0 ; i < nranks_; ++i) {
-    sum_weights += rank_weights_[i];
-  }
-  double weight_factor = nranks_/sum_weights;
-  for(int i = 0 ; i < nranks_; ++i) {
-    rank_weights_[i] *= weight_factor;
-  }
-#endif
-  if(rank_ == 0) {
-    printf("* %-25s%-31s *\n", "Zero-RK Lib Build Date: ",__DATE__);
+  cb_fn_ = nullptr;
+  cb_fn_data_ = nullptr;
 
-    // Timing log file
-    reactor_log_file_ << "#";
-    reactor_log_file_ << std::setw(11) << "solve_number";
-    reactor_log_file_ << std::setw(17) << "reactors_solved";
-    reactor_log_file_ << std::setw(17) << "n_steps_avg";
-    reactor_log_file_ << std::setw(17) << "max_time";
-    reactor_log_file_ << std::setw(17) << "step_time";
-    reactor_log_file_ << std::setw(17) << "max_time_total";
-    reactor_log_file_ << std::endl;
-    reactor_log_file_.flush();
+  const char* cklog_filename = inputFileDB.mechanism_parsing_log().c_str();
+  if(rank_ != root_rank_) {
+     cklog_filename = "/dev/null";
   }
 
-  all_time_ranks_.assign(nranks_,0);
-  n_reactors_solved_ranks_.assign(nranks_,0);
-  n_weight_updates_ = 0;
+  mech_ptr_ = std::make_shared<zerork::mechanism>(mech_filename, therm_filename, cklog_filename);
 }
 
 #ifndef USE_MPI
-int ZeroRKReactorManager::RecvReactors(size_t send_rank) {};
+int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
+  return 0;
+}
 #else
 int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
   MPI_Status status;
@@ -211,6 +201,12 @@ int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
      buf_idx += 1;
      memcpy(&rc_other_[recv_idx], &recv_buf[buf_idx], sizeof(double));
   }
+  if(reactor_ids_defined_) {
+     reactor_ids_other_.resize(n_reactors_other_);
+     MPI_Recv(&reactor_ids_other_[0],n_reactors_other_,
+              MPI_INT, send_rank, EXCHANGE_SEND_TAG_,
+              MPI_COMM_WORLD, &status);
+  }
   return n_recv_reactors;
 }
 #endif
@@ -259,6 +255,15 @@ void ZeroRKReactorManager::SendReactors(std::vector<size_t> send_reactor_idxs, s
     MPI_Send(&send_buf[0], tx_count_per_reactor_+extra_tx_count,
              MPI_DOUBLE, (int) recv_rank, EXCHANGE_SEND_TAG_, MPI_COMM_WORLD);
   }
+  if(reactor_ids_defined_) {
+     std::vector<int> send_ids(send_nreactors);
+     for(int i = 0; i < send_nreactors; ++i) {
+         int send_idx = send_reactor_idxs[i];
+         send_ids[i] = reactor_ids_self_[send_idx];
+     }
+     MPI_Send(&send_ids[0], send_nreactors, MPI_INT,
+              (int) recv_rank, EXCHANGE_SEND_TAG_, MPI_COMM_WORLD);
+  }
 }
 #endif
 
@@ -292,11 +297,6 @@ void ZeroRKReactorManager::SetInputVariables(int n_cycle,
     rc_self_ = &rc_default_[0];
   }
 
-  num_species_stride_ = num_species_;
-  if(int_options_.find("num_species_stride") != int_options_.end()) {
-      num_species_stride_ = int_options_["num_species_stride"];
-  }
-
   sorted_reactor_idxs_.assign(n_reactors_self_,0);
   std::iota(sorted_reactor_idxs_.begin(), sorted_reactor_idxs_.end(), 0);
   if(int_options_["sort_reactors"]) {
@@ -321,6 +321,74 @@ void ZeroRKReactorManager::SetAuxFieldPointer(zerork_field_type ft, double* fiel
       e_src_defined_ = true;
   } else {
       throw std::invalid_argument("Unknown zerork_field_type.");
+  }
+}
+
+void ZeroRKReactorManager::SetReactorIDs(int* reactor_ids) {
+  reactor_ids_self_ = reactor_ids;
+  reactor_ids_defined_ = true;
+}
+
+void ZeroRKReactorManager::SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data) {
+  cb_fn_ = fn;
+  cb_fn_data_ = cb_fn_data;
+}
+
+void ZeroRKReactorManager::FinishInit() {
+  if(n_calls_ == 0) {
+    num_species_ = mech_ptr_->getNumSpecies();
+    num_species_stride_ = num_species_;
+
+    gpu_multiplier_ = 6.0;
+    tx_count_per_reactor_ = 5 + num_species_;
+
+#ifdef USE_MPI
+    rank_weights_.assign(nranks_,0.0);
+    //double my_weight = gpu_id >= 0 ? gpu_multiplier_ : 1.0;
+    double my_weight = 1.0;
+    MPI_Allgather(&my_weight,1,MPI_DOUBLE,&rank_weights_[0],1,MPI_DOUBLE,MPI_COMM_WORLD);
+    double sum_weights = 0;
+    for(int i = 0 ; i < nranks_; ++i) {
+      sum_weights += rank_weights_[i];
+    }
+    double weight_factor = nranks_/sum_weights;
+    for(int i = 0 ; i < nranks_; ++i) {
+      rank_weights_[i] *= weight_factor;
+    }
+#endif
+
+    all_time_ranks_.assign(nranks_,0);
+    n_reactors_solved_ranks_.assign(nranks_,0);
+    n_weight_updates_ = 0;
+
+    if(rank_ == 0) {
+      if(int_options_["verbosity"] > 1) {
+        printf("* %-25s%-31s *\n", "Zero-RK Lib Build Date: ",__DATE__);
+      }
+
+      // Timing log file
+      reactor_log_file_ << "#";
+      reactor_log_file_ << std::setw(11) << "solve_number";
+      reactor_log_file_ << std::setw(17) << "reactors_solved";
+      reactor_log_file_ << std::setw(17) << "n_cpu";
+      reactor_log_file_ << std::setw(17) << "n_gpu";
+      reactor_log_file_ << std::setw(17) << "n_gpu_groups";
+      reactor_log_file_ << std::setw(17) << "n_steps_avg";
+      reactor_log_file_ << std::setw(17) << "n_steps_avg_cpu";
+      reactor_log_file_ << std::setw(17) << "n_steps_avg_gpu";
+      reactor_log_file_ << std::setw(17) << "max_time_cpu";
+      reactor_log_file_ << std::setw(17) << "max_time_gpu";
+      reactor_log_file_ << std::setw(17) << "step_time_cpu";
+      reactor_log_file_ << std::setw(17) << "step_time_gpu";
+      reactor_log_file_ << std::setw(17) << "max_time_total";
+      reactor_log_file_ << std::endl;
+      reactor_log_file_.flush();
+    }
+
+    num_species_stride_ = num_species_;
+    if(int_options_.find("num_species_stride") != int_options_.end()) {
+      num_species_stride_ = int_options_["num_species_stride"];
+    }
   }
 }
 
@@ -483,6 +551,8 @@ void ZeroRKReactorManager::LoadBalance()
 
 void ZeroRKReactorManager::SolveReactors()
 {
+
+
   n_calls_++;
   sum_reactor_time_ = 0.0;
   n_steps_ = 0;
@@ -506,6 +576,7 @@ void ZeroRKReactorManager::SolveReactors()
   std::vector<double *> rc_ptrs(n_reactors_self_calc);
   std::vector<double *> rg_ptrs(n_reactors_self_calc);
   std::vector<double *> mf_ptrs(n_reactors_self_calc);
+  std::vector<int *> reactor_id_ptrs(n_reactors_self_calc);
   for(int j = 0; j < n_reactors_self_calc; ++j) {
     int j_sort = sorted_reactor_idxs_[j];
     if(j_sort < n_reactors_self_) {
@@ -517,6 +588,9 @@ void ZeroRKReactorManager::SolveReactors()
       }
       if(y_src_defined_) {
         y_src_ptrs[j] = &y_src_self_[j_sort*num_species_stride_];
+      }
+      if(reactor_ids_defined_) {
+        reactor_id_ptrs[j] = &reactor_ids_self_[j_sort];
       }
       rc_ptrs[j] = &rc_self_[j_sort];
       rg_ptrs[j] = &rg_self_[j_sort];
@@ -531,6 +605,9 @@ void ZeroRKReactorManager::SolveReactors()
       }
       if(y_src_defined_) {
         y_src_ptrs[j] = &y_src_other_[j_sort*num_species_];
+      }
+      if(reactor_ids_defined_) {
+        reactor_id_ptrs[j] = &reactor_ids_other_[j_sort];
       }
       rc_ptrs[j] = &rc_other_[j_sort];
       rg_ptrs[j] = &rg_other_[j_sort];
@@ -558,6 +635,9 @@ void ZeroRKReactorManager::SolveReactors()
   }
   solver->SetIntOptions(int_options_);
   solver->SetDoubleOptions(double_options_);
+  if(cb_fn_ != nullptr && load_balance_ == 0 && n_reactors_self_calc == 1) {
+    solver->SetCallbackFunction(cb_fn_, cb_fn_data_);
+  }
 
   int_options_["iterative"] = solver->Iterative();
   reactor_ptr_->SetIntOption("iterative",int_options_["iterative"]);
@@ -574,6 +654,11 @@ void ZeroRKReactorManager::SolveReactors()
       if(y_src_defined_) {
         y_src_reactor = y_src_ptrs[k];
       }
+      int reactor_id = k;
+      if(reactor_ids_defined_) {
+        reactor_id = *reactor_id_ptrs[k];
+      }
+      reactor_ptr_->SetID(reactor_id);
       reactor_ptr_->InitializeState(0.0, 1, T_ptrs[k], P_ptrs[k],
                                     mf_ptrs[k], dpdt_ptrs[k],
                                     &e_src_reactor,

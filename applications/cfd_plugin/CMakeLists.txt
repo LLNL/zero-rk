@@ -25,6 +25,12 @@ target_link_libraries(zerork_cfd_plugin zerork superlu spify sundials_cvode sund
 target_link_options(zerork_cfd_plugin PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)
 target_link_libraries(zerork_cfd_plugin_tester.x zerork_cfd_plugin)
 
+if(ENABLE_OPENMP)
+find_package(OpenMP)
+target_compile_definitions(zerork_cfd_plugin_tester.x PRIVATE USE_OMP)
+target_link_libraries(zerork_cfd_plugin_tester.x OpenMP::OpenMP_CXX)
+endif()
+
 set(SPIFY_PLUGIN_TARGETS "zerork_cfd_plugin")
 set(SPIFY_TESTER_TARGETS "zerork_cfd_plugin_tester.x")
 

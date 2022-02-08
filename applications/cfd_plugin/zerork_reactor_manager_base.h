@@ -24,7 +24,10 @@ class ZeroRKReactorManagerBase : public Optionable
                                 double* mass_fractions) = 0;
 
   virtual void SetAuxFieldPointer(zerork_field_type ft, double* field_pointer) = 0;
+  virtual void SetCallbackFunction(zerork_callback_fn fn, void* user_data) = 0;
+  virtual void SetReactorIDs(int* field_pointer) = 0;
 
+  virtual void FinishInit() = 0;
   virtual void LoadBalance() = 0;
   virtual void SolveReactors() = 0;
   virtual void RedistributeResults() = 0;

@@ -53,6 +53,7 @@ seulex::seulex(int _n, N_Vector _y0)
       jac_decomp_fcn(NULL),
       jac_solve_fcn(NULL),
       output_fcn(NULL),
+      output_fcn_data(NULL),
       user_data(NULL)
 {
   //N.B. not storing _y0
@@ -67,6 +68,7 @@ seulex::~seulex()
   jac_decomp_fcn = NULL;
   jac_solve_fcn = NULL;
   output_fcn = NULL;
+  output_fcn_data = NULL;
   user_data = NULL;
   N_VDestroy(rtol);
   N_VDestroy(atol);
@@ -197,9 +199,10 @@ void seulex::set_jac_solve_fcn(seul_jac_solve_fcn _jac_solve_fcn)
   jac_solve_fcn = _jac_solve_fcn;
 }
 
-void seulex::set_output_fcn(seul_output_fcn _output_fcn)
+void seulex::set_output_fcn(seul_output_fcn _output_fcn, void* _output_fcn_data)
 {
   output_fcn = _output_fcn;
+  output_fcn_data = _output_fcn_data;
 }
 
 void seulex::set_user_data(void* _user_data)
@@ -263,10 +266,10 @@ int seulex::solve(double* x_in, double xend, N_Vector y)
   h = posneg*std::min(h,hmax);
   theta = 2*fabs(thet);
   deriv_fcn(x,y,dy,user_data);
-  if(output_fcn != NULL)
-  {
-    output_fcn(nstep,x,y,dy,user_data);
-  }
+  //if(output_fcn != NULL)
+  //{
+  //  output_fcn(nstep,x,h,y,dy,output_fcn_data);
+  //}
 
   w[0] = 1.0e30;
   N_VAbs(y,scal);
@@ -362,7 +365,10 @@ g60:
   //TODO: Interpolation functions for continous output
   if(output_fcn != NULL)
   {
-    output_fcn(naccept,x,y,dy,user_data);
+    int ofcn_flag = output_fcn(naccept,x,h,y,dy,output_fcn_data);
+    if(ofcn_flag != 0) {
+      goto g110;
+    }
   }
 //C --- COMPUTE OPTIMAL ORDER
   if(kc == 1)

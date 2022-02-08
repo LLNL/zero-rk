@@ -520,8 +520,11 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
         falloffRxnList[k].param.resize(3+ckrobj.reactions[j].falloffParameters.size());
         falloffRxnList[k].param[3] = ckrobj.reactions[j].falloffParameters[0];
         falloffRxnList[k].param[4] = ckrobj.reactions[j].falloffParameters[1];
-        falloffRxnList[k].param[5] =
-          1.0/ckrobj.reactions[j].falloffParameters[2];
+        if(ckrobj.reactions[j].falloffParameters[2] > 0) {
+            falloffRxnList[k].param[5] = 1.0/ckrobj.reactions[j].falloffParameters[2];
+        } else {
+            falloffRxnList[k].param[5] = -1.0;
+        }
 
         // copy the additional parameters if present
         for(size_t m=3; m<ckrobj.reactions[j].falloffParameters.size(); ++m) {
@@ -920,10 +923,15 @@ void rate_const::updateFalloffRxn(const double C[])
        falloffRxnList[j].falloffType == TROE_FOUR_PARAMS) {
 
       // Troe 3 and 4-parameter fits
-      Fcenter=(1.0-falloffRxnList[j].param[3])
-      	       *exp(-Tcurrent/falloffRxnList[j].param[4])
-              +falloffRxnList[j].param[3]
-	       *exp(-Tcurrent/falloffRxnList[j].param[5]);
+      Fcenter = 0.0;
+      if(falloffRxnList[j].param[4]>0) {
+        Fcenter += (1.0-falloffRxnList[j].param[3])
+                   *exp(-Tcurrent/falloffRxnList[j].param[4]);
+      }
+      if(falloffRxnList[j].param[5]>0) {
+        Fcenter+=falloffRxnList[j].param[3]
+                 *exp(-Tcurrent/falloffRxnList[j].param[5]);
+      }
 
       // Below are the special TROE alterations that were present
       // in JY Chen's version of chemkin II.  They are no longer used
@@ -972,8 +980,11 @@ void rate_const::updateFalloffRxn(const double C[])
 
       // Standard 3-term SRI definition
       //   F = (a*exp(-b/T) + exp(-T/c))**X
-      fTerm = pow(a*exp(-b*invTcurrent) + exp(-Tcurrent*inv_c),
-                  x_power);
+      fTerm = a*exp(-b*invTcurrent);
+      if(inv_c > 0) {
+        fTerm += exp(-Tcurrent*inv_c);
+      }
+      fTerm = pow(fTerm, x_power);
 
       // Auxillary 4 and 5-term SRI definitions
       //   F = d*(a*exp(-b/T) + exp(-T/c))**X         (4-term)

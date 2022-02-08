@@ -33,6 +33,24 @@ static void log_output(int step, double time, int n_print_reactors,
                        std::vector<int> log_species_indexes, std::vector<std::string> log_species_names,
                        int nsp, std::vector<std::shared_ptr<std::ofstream>> reactor_log_files);
 
+
+
+typedef struct UserData {
+  int nsteps;
+  double time;
+} user_data_t;
+
+static zerork_handle zrm_handle;
+static user_data_t ud;
+
+static int callback(int reactor_id, int nsteps, double time, double dt, const double* y, const double* ydot, void* user_data) {
+  user_data_t* ud = static_cast<user_data_t*>(user_data);
+  // printf("%d, %g: %g [%g, %g]\n",nsteps, time, y[0], ud->x, ud->y);
+  ud->nsteps += 1;
+  ud->time += dt;
+  return 0;
+}
+
 void zerork_reactor(int inp_argc, char **inp_argv)
 {
 
@@ -49,7 +67,18 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   const char* mechfilename = inputFileDB.mechanism_file().c_str();
   const char* thermfilename = inputFileDB.thermo_file().c_str();
   const char* zerorkfilename = inputFileDB.zerork_cfd_plugin_input().c_str();
-  zerork_handle zrm_handle = zerork_reactor_init(zerorkfilename, mechfilename, thermfilename);
+#ifdef USE_OMP
+  #pragma omp threadprivate(zrm_handle, ud)
+  #pragma omp parallel
+  {
+#endif
+  zrm_handle = zerork_reactor_init(zerorkfilename, mechfilename, thermfilename);
+  ud.nsteps = 0;
+  ud.time = 0.0;
+  zerork_reactor_set_callback_fn(callback, &ud, zrm_handle);
+#ifdef USE_OMP
+  }
+#endif
 
   const char* cklogfilename = "/dev/null"; //We already parsed in reactor manager no need to have another log
   // TODO: Avoid parsing twice/having two mechanisms
@@ -181,23 +210,52 @@ void zerork_reactor(int inp_argc, char **inp_argv)
     }
   }
 
-  int constant_volume = inputFileDB.constant_volume() ? 1 : 0;
-  zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
+  const int constant_volume = inputFileDB.constant_volume() ? 1 : 0;
+  const int stop_after_ignition = inputFileDB.stop_after_ignition();
+  const double delta_temperature_ignition = inputFileDB.delta_temperature_ignition();
   
   int flag = 0;
   double t = 0;
   double dt= tend/n_steps;
   for(int i = 0; i < n_steps; ++i) {
-      if(inputFileDB.app_owns_aux_fields()) {
-          //For AMR/moving mesh codes
-          zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[0], zrm_handle);
-          zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[0], zrm_handle);
+      if(!inputFileDB.batched()) {
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for(int k = 0; k < nReactors; ++k) {
+            ud.nsteps = 0;
+            ud.time = 0.0;
+            zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
+            zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
+            zerork_reactor_set_int_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+            if(inputFileDB.app_owns_aux_fields()) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[k], zrm_handle);
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[k], zrm_handle);
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_GPU, &reactorGpu[k], zrm_handle);
+            }
+            if(inputFileDB.e_src() != 0.0) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[k], zrm_handle);
+            }
+            flag = zerork_reactor_solve(i, t, dt, 1, &reactorT[k], &reactorP[k],
+                                        &reactorMassFrac[k*nSpc], zrm_handle);
+            printf("reactor[%04d]: %d, %g\n", k, ud.nsteps, ud.time);
+        }
+      } else {
+        zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
+        zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
+        zerork_reactor_set_int_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+        if(inputFileDB.app_owns_aux_fields()) {
+            //For AMR/moving mesh codes
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[0], zrm_handle);
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[0], zrm_handle);
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_GPU, &reactorGpu[0], zrm_handle);
+        }
+        if(inputFileDB.e_src() != 0.0) {
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[0], zrm_handle);
+        }
+        flag = zerork_reactor_solve(i, t, dt, nReactors, &reactorT[0], &reactorP[0],
+                                    &reactorMassFrac[0], zrm_handle);
       }
-      if(inputFileDB.e_src() != 0.0) {
-          zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[0], zrm_handle);
-      }
-      flag = zerork_reactor_solve(i, t, dt, nReactors, &reactorT[0], &reactorP[0],
-                                  &reactorMassFrac[0], zrm_handle);
       if(rank==0) {
           log_output(i, t+dt, n_print_reactors, reactorT, reactorP, reactorDPDT,
                      reactorMassFrac, reactorCost,
@@ -214,7 +272,14 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   stopTime=getHighResolutionTime();
   simTime=stopTime-startTime;
   printf("simTime : %g s\n",simTime);
+#ifdef USE_OMP
+#pragma omp parallel
+  {
+#endif
   zerork_reactor_free(zrm_handle);
+#ifdef USE_OMP
+  }
+#endif
 }
 
 int main(int argc, char **argv)

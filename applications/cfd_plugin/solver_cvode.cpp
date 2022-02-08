@@ -26,11 +26,15 @@
 CvodeSolver::CvodeSolver(ReactorBase& reactor)
   :
       SolverBase(reactor),
-      reactor_ref_(reactor)
+      reactor_ref_(reactor),
+      cb_fn_(nullptr),
+      cb_fn_data_(nullptr)
 {}
 
 int CvodeSolver::Integrate(const double end_time) {
   N_Vector& state = reactor_ref_.GetStateNVectorRef();
+  N_Vector derivative = N_VClone(state);
+  int reactor_id = reactor_ref_.GetID();
 
 #if defined SUNDIALS3 || defined SUNDIALS4
   SUNMatrix A;
@@ -67,7 +71,6 @@ int CvodeSolver::Integrate(const double end_time) {
 
   flag = CVodeSetNonlinConvCoef(cvode_mem, double_options_["nonlinear_convergence_coeff"]);
   if (check_cvode_flag(&flag, "CVodeSetNonlinConvCoef", 1)) exit(-1);
-
 
   if(reactor_ref_.GetNumRootFunctions() > 0) {
       flag = CVodeRootInit(cvode_mem, reactor_ref_.GetNumRootFunctions(), ReactorRootFunction);
@@ -173,6 +176,8 @@ int CvodeSolver::Integrate(const double end_time) {
   const int max_tries = 3;
   int num_tries = 0;
   double tcurr = 0.0;
+  double tprev = 0.0;
+  int cb_flag = 0;
   int cv_mode = CV_ONE_STEP;
   while(tcurr < end_time) {
       flag = CVode(cvode_mem, end_time, state, &tcurr, cv_mode);
@@ -180,6 +185,9 @@ int CvodeSolver::Integrate(const double end_time) {
         CVodeGetNumSteps(cvode_mem,&nsteps);
         //printf("Found root at time %g (%ld steps)\n", tcurr, nsteps);
         flag = CV_SUCCESS;
+        if(int_options_["stop_after_ignition"]) {
+          break;
+        }
       } else if(check_cvode_flag(&flag, "CVode", 1)) {
         num_tries += 1;
         if(num_tries == max_tries) {
@@ -190,6 +198,17 @@ int CvodeSolver::Integrate(const double end_time) {
       long int last_nlss = num_linear_solve_setups;
       CVodeGetNumLinSolvSetups(cvode_mem, &num_linear_solve_setups);
       CVodeGetNumSteps(cvode_mem,&nsteps);
+      if(cb_fn_ != nullptr) {
+        flag = CVodeGetDky(cvode_mem, tcurr, 1, derivative);
+        if(N_VGetVectorID(state) == SUNDIALS_NVEC_SERIAL) {
+          double dt = tcurr - tprev;
+          cb_flag = cb_fn_(reactor_id, nsteps, tcurr, dt, NV_DATA_S(state), NV_DATA_S(derivative), cb_fn_data_);
+          if(cb_flag != 0) {
+            break;
+          }
+        }
+      }
+      tprev = tcurr;
   }
   CVodeGetNumSteps(cvode_mem,&nsteps);
   if(cv_mode == CV_ONE_STEP && flag == CV_SUCCESS) {
@@ -217,6 +236,7 @@ int CvodeSolver::Integrate(const double end_time) {
     SUNNonlinSolFree(NLS);
   }
 #endif
+  N_VDestroy(derivative);
 
   CVodeFree(&cvode_mem);
 
@@ -282,5 +302,10 @@ void CvodeSolver::AdjustWeights(void* cvode_mem) {
   N_VDestroy(ele);
   N_VDestroy(error);
   N_VDestroy(error_batch);
+}
+
+void CvodeSolver::SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data) {
+  cb_fn_ = fn;
+  cb_fn_data_ = cb_fn_data;
 }
 

@@ -14,10 +14,6 @@ struct zerork_handle_impl {
   std::unique_ptr<ZeroRKReactorManagerBase> r;
 };
 
-namespace {
-  std::vector<std::unique_ptr<zerork_handle_impl> > reactor_manager_handles;
-}
-
 extern "C"
 zerork_handle zerork_reactor_init(const char* input_filename,
                         const char* mech_filename,
@@ -27,10 +23,8 @@ zerork_handle zerork_reactor_init(const char* input_filename,
   feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW );
 #endif
 
-  //TODO: Thread safety
-  reactor_manager_handles.emplace_back(std::make_unique<zerork_handle_impl>());
-  reactor_manager_handles.back()->r = std::make_unique<ZeroRKReactorManager>(input_filename, mech_filename, therm_filename);
-  zerork_handle handle = reactor_manager_handles.back().get();
+  zerork_handle handle = new zerork_handle_impl();
+  handle->r = std::make_unique<ZeroRKReactorManager>(input_filename, mech_filename, therm_filename);
   return handle;
 }
 
@@ -82,6 +76,7 @@ int zerork_reactor_solve(const int n_cycle, const double time,
                          zerork_handle handle)
 {
   ZeroRKReactorManagerBase* zrm = handle->r.get();
+  zrm->FinishInit();
   zrm->SetInputVariables(n_cycle, time, dt, n_reactors, T, P, mf);
   zrm->LoadBalance();
   zrm->SolveReactors();
@@ -90,6 +85,7 @@ int zerork_reactor_solve(const int n_cycle, const double time,
   return 0;
 }
 
+extern "C"
 int zerork_reactor_set_aux_field_pointer(zerork_field_type ft,
                                          double * field_pointer,
                                          zerork_handle handle) {
@@ -99,11 +95,29 @@ int zerork_reactor_set_aux_field_pointer(zerork_field_type ft,
 }
 
 extern "C"
+int zerork_reactor_set_callback_fn(zerork_callback_fn fn,
+                                   void* fn_data,
+                                   zerork_handle handle) {
+  ZeroRKReactorManagerBase* zrm = handle->r.get();
+  zrm->SetCallbackFunction(fn, fn_data);
+  return 0;
+}
+
+extern "C"
+int zerork_reactor_set_reactor_ids(int * reactor_ids,
+                                   zerork_handle handle) {
+  ZeroRKReactorManagerBase* zrm = handle->r.get();
+  zrm->SetReactorIDs(reactor_ids);
+  return 0;
+}
+
+extern "C"
 int zerork_reactor_free(zerork_handle handle) {
   if(handle == nullptr) {
       return 1;
   } else {
       handle->r.reset(nullptr);
+      delete handle;
       return 0;
   }
 }

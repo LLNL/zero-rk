@@ -41,6 +41,9 @@ class ReactorBase : public Optionable {
                                 N_Vector state,
                                 N_Vector derivative) = 0;
 
+  int GetID();
+  void SetID(int id);
+
 #ifdef SUNDIALS2
   virtual int GetJacobianDense(long int N, double t, N_Vector y, N_Vector fy,
                                DlsMat Jac, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3) = 0;
@@ -70,6 +73,8 @@ class ReactorBase : public Optionable {
   virtual int GetMaxBatchReactors() = 0;
 
  protected:
+  int id_;
+
   int num_variables_;
   int num_reactors_;
 

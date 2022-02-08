@@ -17,10 +17,15 @@ class SeulexSolver : public SolverBase
   int Integrate(const double end_time);
   int Iterative() { return 0; };
 
+  void SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data);
+  int MonitorFn(int nsteps, double x, double h, N_Vector y, N_Vector ydot);
+
  private:
   ReactorBase& reactor_ref_;
   void AdjustWeights();
-  static int RootMonitor(int nsteps, double x, N_Vector y, N_Vector ydot, void *user_data);
+
+  zerork_callback_fn cb_fn_;
+  void* cb_fn_data_;
 };
 
 #endif
