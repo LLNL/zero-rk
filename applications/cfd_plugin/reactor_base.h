@@ -72,6 +72,8 @@ class ReactorBase : public Optionable {
   virtual int GetMinBatchReactors() = 0;
   virtual int GetMaxBatchReactors() = 0;
 
+  virtual void Reset() {};
+
  protected:
   int id_;
 

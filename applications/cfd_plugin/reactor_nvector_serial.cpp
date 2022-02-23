@@ -24,21 +24,21 @@ ReactorNVectorSerial::ReactorNVectorSerial(std::shared_ptr<zerork::mechanism> me
     batch_mask_ptr[k] = 1.0;
   }
 
-  mol_wt_.resize(num_species_);
-  inv_mol_wt_.resize(num_species_);
-  net_production_rates_.resize(num_species_);
-  energy_.resize(num_species_);
-  cx_mass_.resize(num_species_);
-  forward_rates_of_production_.resize(num_steps_);
-  creation_rates_.resize(num_species_);
-  destruction_rates_.resize(num_species_);
-  concentrations_.resize(num_species_);
+  mol_wt_.assign(num_species_,0.0);
+  inv_mol_wt_.assign(num_species_,0.0);
+  net_production_rates_.assign(num_species_,0.0);
+  energy_.assign(num_species_,0.0);
+  cx_mass_.assign(num_species_,0.0);
+  forward_rates_of_production_.assign(num_steps_,0.0);
+  creation_rates_.assign(num_species_,0.0);
+  destruction_rates_.assign(num_species_,0.0);
+  concentrations_.assign(num_species_,0.0);
 
-  jacobian_column_sums_.resize(num_variables_+1);
+  jacobian_column_sums_.assign(num_variables_+1,0);
   jacobian_data_.clear();
   jacobian_row_indexes_.clear();
 
-  preconditioner_column_sums_.resize(num_variables_+1);
+  preconditioner_column_sums_.assign(num_variables_+1,0);
   preconditioner_data_.clear();
   preconditioner_row_indexes_.clear();
 
@@ -628,4 +628,7 @@ void ReactorNVectorSerial::DividedDifferenceJacobian(double t, N_Vector y, N_Vec
   }
 }
 
+void ReactorNVectorSerial::Reset() {
+  slum_.reset();
+}
 

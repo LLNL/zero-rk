@@ -29,6 +29,7 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   nranks_ = 1;
   root_rank_ = 0;
   load_balance_ = 1;
+  dump_reactors_ = false;
 
 #ifdef USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&(rank_));
@@ -99,6 +100,7 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   if(nranks_ == 1) {
     load_balance_ = 0;
   }
+  dump_reactors_ = (inputFileDB.dump_reactors() != 0);
 
   reactor_timing_log_filename = inputFileDB.reactor_timing_log();
   
@@ -558,11 +560,11 @@ void ZeroRKReactorManager::SolveReactors()
   n_steps_ = 0;
   n_solve_ = 0;
   for(int j = 0; j < n_reactors_self_; ++j) {
-     rc_self_[j] = 0.0;
+//     rc_self_[j] = 0.0;
      rg_self_[j] = 0.0;
   }
   if(n_reactors_other_ > 0) {
-     rc_other_.assign(n_reactors_other_, 0.0);
+//     rc_other_.assign(n_reactors_other_, 0.0);
      rg_other_.assign(n_reactors_other_, 0.0);
   }
 
@@ -613,6 +615,9 @@ void ZeroRKReactorManager::SolveReactors()
       rg_ptrs[j] = &rg_other_[j_sort];
       mf_ptrs[j] = &mf_other_[j_sort*num_species_];
     }
+    if(dump_reactors_) {
+      DumpReactor("pre", j, *T_ptrs[j], *P_ptrs[j], *rc_ptrs[j], mf_ptrs[j]);
+    }
   }
 
   //Instantiate reactors on first call, after options are set
@@ -639,8 +644,7 @@ void ZeroRKReactorManager::SolveReactors()
     solver->SetCallbackFunction(cb_fn_, cb_fn_data_);
   }
 
-  int_options_["iterative"] = solver->Iterative();
-  reactor_ptr_->SetIntOption("iterative",int_options_["iterative"]);
+  reactor_ptr_->SetIntOption("iterative",solver->Iterative());
 
   for(int k = 0; k < n_reactors_self_calc; ++k)
   {
@@ -670,6 +674,10 @@ void ZeroRKReactorManager::SolveReactors()
       n_steps_ += nsteps;
       sum_reactor_time_ += reactor_time;
       ++n_solve_;
+      if(dump_reactors_) {
+        DumpReactor("postc", k, *T_ptrs[k], *P_ptrs[k],
+                    *rc_ptrs[k], mf_ptrs[k]);
+      }
     }
   }
 }
@@ -867,3 +875,22 @@ void ZeroRKReactorManager::UpdateRankWeights() {
 }
 #endif
 
+void ZeroRKReactorManager::DumpReactor(std::string tag, int id, double T, double P,
+                                       double rc, double* mf) {
+      std::ofstream dump_file;
+      std::ostringstream dump_file_name;
+      dump_file_name << std::setfill('0') << "dumpfile_" << tag
+                     << "_" << std::setw(6)
+                     << n_calls_ << "_" << std::setw(6)
+                     << rank_;// << "_" << std::setw(6) << id;
+      dump_file.open(dump_file_name.str(), std::ofstream::out | std::ofstream::app);
+      dump_file << id << std::endl;
+      dump_file << std::setprecision(20);
+      for(int k = 0 ; k < num_species_; ++k) {
+        dump_file << mf[k] << std::endl;
+      }
+      dump_file << T << std::endl;
+      dump_file << P << std::endl;
+      dump_file << rc << std::endl;
+      dump_file.close();
+}

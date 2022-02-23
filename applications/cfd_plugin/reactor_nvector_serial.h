@@ -48,6 +48,8 @@ class ReactorNVectorSerial : public ReactorBase
   int GetMinBatchReactors() { return 1; };
   int GetMaxBatchReactors() { return 1; };
 
+  void Reset();
+
  protected:
   std::shared_ptr<zerork::mechanism> mech_ptr_;
   N_Vector state_;

@@ -22,6 +22,7 @@ void ReactorConstantPressure::InitializeState(
     const double *y_src)
 {
   assert(n_reactors == 1);
+  ReactorNVectorSerial::Reset(); //re-initialize to get deterministic behavior across solves
   pressure_ = *P;
   initial_temperature_ = *T;
   inverse_density_ = 1.0/mech_ptr_->getDensityFromTPY(*T,*P,mf);

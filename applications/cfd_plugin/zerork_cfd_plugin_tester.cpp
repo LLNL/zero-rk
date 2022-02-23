@@ -34,7 +34,6 @@ static void log_output(int step, double time, int n_print_reactors,
                        int nsp, std::vector<std::shared_ptr<std::ofstream>> reactor_log_files);
 
 
-
 typedef struct UserData {
   int nsteps;
   double time;
@@ -93,6 +92,7 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   int nReactors = inputFileDB.n_reactors();
 
   //Set up reactor initial states
+  int nReactorsAlloc = nReactors;
   std::vector<double> reactorT(nReactors);
   std::vector<double> reactorP(nReactors);
   std::vector<double> reactorMassFrac(nReactors*nSpc);
@@ -141,6 +141,61 @@ void zerork_reactor(int inp_argc, char **inp_argv)
       reactorP[k] = val;
       fclose(stateFile);
     }
+  } else if(inputFileDB.state_files_cfd().size() != 0) {
+    int kReactor = 0;
+    //Load initial state from files
+    for(int k=0; k<inputFileDB.state_files_cfd().size() ; ++k) {
+      FILE* stateFile = fopen(inputFileDB.state_files_cfd()[k].c_str(),"r");
+      if(stateFile == NULL) {
+        printf("Unable to read file: %s\n",inputFileDB.state_files_cfd()[k].c_str());
+        exit(-1);
+      }
+      while(true) {
+        if(kReactor >= nReactorsAlloc) {
+          nReactorsAlloc += 100;
+          reactorT.resize(nReactorsAlloc);
+          reactorP.resize(nReactorsAlloc);
+          reactorMassFrac.resize(nReactorsAlloc*nSpc);
+          reactorDPDT.resize(nReactorsAlloc,0.0); //TODO: Using ZERO for now.
+          reactorCost.resize(nReactorsAlloc,0);
+          reactorGpu.resize(nReactorsAlloc,0);
+          reactorESRC.resize(nReactorsAlloc, inputFileDB.e_src());
+        }
+        int ival;
+        double dval;
+        int matches = fscanf(stateFile,"%d",&ival);
+        if( matches != 1 ) {
+          break;
+        }
+        //N.B. index is ignored
+        for(int j=0;j<nSpc;++j) {
+          matches = fscanf(stateFile,"%lf",&dval);
+          if( matches != 1 ) {
+            printf("Failed to find value in file %s\n",
+                   inputFileDB.state_files()[k].c_str());
+            exit(-1);
+          }
+          reactorMassFrac[kReactor*nSpc+j] = dval;
+        }
+        fscanf(stateFile,"%lf",&dval);
+        reactorT[kReactor] = dval;
+        fscanf(stateFile,"%lf",&dval);
+        reactorP[kReactor] = dval;
+        fscanf(stateFile,"%d",&ival);
+        reactorCost[kReactor] = (double) ival;
+        kReactor += 1;
+      }
+      fclose(stateFile);
+    }
+    nReactors = kReactor;
+    reactorT.resize(nReactors);
+    reactorP.resize(nReactors);
+    reactorMassFrac.resize(nReactors*nSpc);
+    reactorDPDT.resize(nReactors);
+    reactorCost.resize(nReactors);
+    reactorGpu.resize(nReactors);
+    reactorESRC.resize(nReactors);
+    printf("Read %d reactors from %d files\n",nReactors, inputFileDB.state_files_cfd().size());
   } else {
     //Set initial states using linear ranges of T,P,phi, and egr
     double phiMin, phiMax, egrMin, egrMax, TMin, TMax, pMin, pMax;

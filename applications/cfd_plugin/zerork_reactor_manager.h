@@ -52,6 +52,7 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int nranks_;
   int root_rank_;
   int load_balance_;
+  bool dump_reactors_;
 
   int tx_count_per_reactor_;
   std::vector<int> comm_mtx_row_sum_;
@@ -118,6 +119,9 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
 
   void UpdateRankWeights();
   void ProcessPerformance();
+
+  void DumpReactor(std::string tag, int id, double T, double P,
+                   double rc, double* mf);
 };
 
 #endif

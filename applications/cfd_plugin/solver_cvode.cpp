@@ -198,7 +198,7 @@ int CvodeSolver::Integrate(const double end_time) {
       long int last_nlss = num_linear_solve_setups;
       CVodeGetNumLinSolvSetups(cvode_mem, &num_linear_solve_setups);
       CVodeGetNumSteps(cvode_mem,&nsteps);
-      if(cb_fn_ != nullptr) {
+      if(flag == CV_SUCCESS && cb_fn_ != nullptr) {
         flag = CVodeGetDky(cvode_mem, tcurr, 1, derivative);
         if(N_VGetVectorID(state) == SUNDIALS_NVEC_SERIAL) {
           double dt = tcurr - tprev;
@@ -207,12 +207,12 @@ int CvodeSolver::Integrate(const double end_time) {
             break;
           }
         }
-      }
       tprev = tcurr;
+  }
   }
   CVodeGetNumSteps(cvode_mem,&nsteps);
   if(cv_mode == CV_ONE_STEP && flag == CV_SUCCESS) {
-    flag = CVodeGetDky(cvode_mem, end_time, 0, state);
+    flag = CVodeGetDky(cvode_mem, std::min(tcurr,end_time), 0, state);
   }
 
   if(flag < 0) {
@@ -246,7 +246,7 @@ int CvodeSolver::Integrate(const double end_time) {
 int CvodeSolver::Iterative() {
   //TODO: Better handling of these options
   if(int_options_["dense"] == 1) {
-    return 0;
+    return int_options_["iterative"];
   } else {
     return 1;
   }

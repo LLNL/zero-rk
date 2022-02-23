@@ -377,3 +377,8 @@ void superlu_manager::SetTranspose(const bool transpose)
     m_options.Trans = NOTRANS;
   }
 }
+
+void superlu_manager::reset()
+{
+  m_last_factor_nnz = -1;
+}

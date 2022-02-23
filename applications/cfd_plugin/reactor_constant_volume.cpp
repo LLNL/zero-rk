@@ -22,15 +22,16 @@ void ReactorConstantVolume::InitializeState(
     const double *y_src)
 {
   assert(n_reactors == 1);
+  ReactorNVectorSerial::Reset(); //re-initialize to get deterministic behavior across solves
   pressure_ = *P;
   initial_temperature_ = *T;
-  inverse_density_ = 1.0/mech_ptr_->getDensityFromTPY(*T,*P,mf);
+  inverse_density_ = 1.0/mech_ptr_->getDensityFromTPY(initial_temperature_,*P,mf);
   initial_energy_ = mech_ptr_->getMassIntEnergyFromTY(initial_temperature_,mf);
   double *y_ptr = NV_DATA_S(state_);
   for(int k = 0; k < num_species_; ++k) {
     y_ptr[k] = mf[k];
   }
-  y_ptr[num_species_] = *T/double_options_["reference_temperature"];
+  y_ptr[num_species_] = initial_temperature_/double_options_["reference_temperature"];
   dpdt_ = *dpdt;
   e_src_ = *e_src;
   y_src_ = y_src;

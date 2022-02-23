@@ -176,6 +176,15 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"state_files_cfd",
+    'type':'v_string',
+    'shortDesc' : "CFD files to read initial states from.",
+    'defaultValue' : []   #empty
+}
+)
+
+spify_parser_params.append(
+{
     'name':"reactor_history_file_prefix",
     'type':'string',
     'shortDesc' : "Filename prefix for history files.",
@@ -224,7 +233,7 @@ spify_parser_params.append(
     'name':"stop_after_ignition",
     'type':'int',
     'shortDesc' : "Stop integration once ignition criteria is reached.",
-    'defaultValue' : 1
+    'defaultValue' : 0
 }
 )
 

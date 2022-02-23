@@ -224,6 +224,16 @@ spify_parser_params.append(
 }
 )
 
+spify_parser_params.append(
+{
+    'name':"dump_reactors",
+    'type':'int',
+    'shortDesc' : "Dump all reactors to files",
+    'defaultValue' : 0,
+    'discreteValues': [0,1]
+}
+)
+
 
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
