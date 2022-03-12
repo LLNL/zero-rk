@@ -10,7 +10,8 @@ typedef enum _zerork_field_type {
   ZERORK_FIELD_DPDT,
   ZERORK_FIELD_COST,
   ZERORK_FIELD_Y_SRC,
-  ZERORK_FIELD_E_SRC
+  ZERORK_FIELD_E_SRC,
+  ZERORK_FIELD_IGNITION_TIME
 } zerork_field_type;
 
 typedef struct zerork_handle_impl* zerork_handle;

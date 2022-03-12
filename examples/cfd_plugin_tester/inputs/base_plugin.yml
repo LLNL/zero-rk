@@ -6,7 +6,6 @@ absolute_tolerance: 1.0e-18
 dense: 1
 analytic: 0
 iterative: 0
-gpu: 0
 integrator: 0
 max_steps: 3000
 

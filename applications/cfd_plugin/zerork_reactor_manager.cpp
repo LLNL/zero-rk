@@ -60,13 +60,8 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   //Reactor Options
   int_options_["constant_volume"] = 1;
   double_options_["reference_temperature"] = 1.0;
-  double_options_["delta_temperature_ignition"] = 400.0;
+  double_options_["delta_temperature_ignition"] = 0.0;
   double_options_["min_mass_fraction"] = 1.0e-30;
-
-  //GPU Options
-  int_options_["gpu"] = 0;
-  n_reactors_min_ = 128;
-  n_reactors_max_ = 1024;
 
   std::string reactor_timing_log_filename("/dev/null");
 
@@ -78,6 +73,7 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   int_options_["max_steps"] = inputFileDB.max_steps();
   int_options_["dense"] = inputFileDB.dense();
   int_options_["analytic"] = inputFileDB.analytic();
+  int_options_["iterative"] = inputFileDB.iterative();
   int_options_["integrator"] = inputFileDB.integrator();
   int_options_["abstol_dens"] = inputFileDB.abstol_dens();
   double_options_["abs_tol"] = inputFileDB.absolute_tolerance();
@@ -96,6 +92,7 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   n_reactors_min_ = inputFileDB.n_reactors_min();
 #ifdef USE_MPI
   load_balance_ = inputFileDB.load_balance();
+  load_balance_noise_ = inputFileDB.load_balance_noise();
 #endif
   if(nranks_ == 1) {
     load_balance_ = 0;
@@ -117,10 +114,12 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   rc_other_.clear();
   rg_other_.clear();
   reactor_ids_other_.clear();
+  root_times_other_.clear();
 
   dpdt_owned_ = true;
   rc_owned_ = true;
   rg_owned_ = true;
+  root_times_owned_ = true;
   y_src_defined_ = false;
   e_src_defined_ = false;
   dpdt_self_ = nullptr;
@@ -129,6 +128,7 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   rc_self_ = nullptr;
   rg_self_ = nullptr;
   reactor_ids_defined_ = false;
+  root_times_self_ = nullptr;
 
   cb_fn_ = nullptr;
   cb_fn_data_ = nullptr;
@@ -168,9 +168,9 @@ int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
     y_src_other_.resize(n_reactors_other_*num_species_);
     extra_tx_count += num_species_;
   }
-  //nstep_other_.resize(n_reactors_other_);
   rg_other_.resize(n_reactors_other_);
   rc_other_.resize(n_reactors_other_);
+  root_times_other_.assign(n_reactors_other_, 0.0); //N.B. at start zero by definition so we don't communicate it
   mf_other_.resize(n_reactors_other_*num_species_);
 
   std::vector<double> recv_buf(tx_count_per_reactor_+extra_tx_count);
@@ -298,6 +298,10 @@ void ZeroRKReactorManager::SetInputVariables(int n_cycle,
     rc_default_.resize(n_reactors, 1.0);
     rc_self_ = &rc_default_[0];
   }
+  if(root_times_owned_) {
+    root_times_default_.resize(n_reactors, 0.0);
+    root_times_self_ = &root_times_default_[0];
+  }
 
   sorted_reactor_idxs_.assign(n_reactors_self_,0);
   std::iota(sorted_reactor_idxs_.begin(), sorted_reactor_idxs_.end(), 0);
@@ -321,6 +325,10 @@ void ZeroRKReactorManager::SetAuxFieldPointer(zerork_field_type ft, double* fiel
   } else if (ft == ZERORK_FIELD_E_SRC) {
       e_src_self_ = field_pointer;
       e_src_defined_ = true;
+  } else if (ft == ZERORK_FIELD_IGNITION_TIME) {
+      root_times_self_ = field_pointer;
+      root_times_default_.clear();
+      root_times_owned_ = false;
   } else {
       throw std::invalid_argument("Unknown zerork_field_type.");
   }
@@ -341,12 +349,10 @@ void ZeroRKReactorManager::FinishInit() {
     num_species_ = mech_ptr_->getNumSpecies();
     num_species_stride_ = num_species_;
 
-    gpu_multiplier_ = 6.0;
     tx_count_per_reactor_ = 5 + num_species_;
 
 #ifdef USE_MPI
     rank_weights_.assign(nranks_,0.0);
-    //double my_weight = gpu_id >= 0 ? gpu_multiplier_ : 1.0;
     double my_weight = 1.0;
     MPI_Allgather(&my_weight,1,MPI_DOUBLE,&rank_weights_[0],1,MPI_DOUBLE,MPI_COMM_WORLD);
     double sum_weights = 0;
@@ -372,17 +378,10 @@ void ZeroRKReactorManager::FinishInit() {
       reactor_log_file_ << "#";
       reactor_log_file_ << std::setw(11) << "solve_number";
       reactor_log_file_ << std::setw(17) << "reactors_solved";
-      reactor_log_file_ << std::setw(17) << "n_cpu";
-      reactor_log_file_ << std::setw(17) << "n_gpu";
-      reactor_log_file_ << std::setw(17) << "n_gpu_groups";
       reactor_log_file_ << std::setw(17) << "n_steps_avg";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg_cpu";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg_gpu";
-      reactor_log_file_ << std::setw(17) << "max_time_cpu";
-      reactor_log_file_ << std::setw(17) << "max_time_gpu";
-      reactor_log_file_ << std::setw(17) << "step_time_cpu";
-      reactor_log_file_ << std::setw(17) << "step_time_gpu";
-      reactor_log_file_ << std::setw(17) << "max_time_total";
+      reactor_log_file_ << std::setw(17) << "step_time";
+      reactor_log_file_ << std::setw(17) << "avg_time";
+      reactor_log_file_ << std::setw(17) << "max_time";
       reactor_log_file_ << std::endl;
       reactor_log_file_.flush();
     }
@@ -408,7 +407,7 @@ void ZeroRKReactorManager::LoadBalance()
   std::vector<int> weighted_reactors_on_rank(nranks_);
   for(int k = 0; k < n_reactors_self_; ++k) {
       if(rc_self_[k] <= 0.0) rc_self_[k] = 1.0;
-      n_weighted_reactors += std::max((int)rc_self_[k],1);
+      n_weighted_reactors += std::max((int)rc_self_[k],1)+load_balance_noise_;
   }
 
   MPI_Allgather(&n_weighted_reactors,1,MPI_INT,
@@ -524,7 +523,7 @@ void ZeroRKReactorManager::LoadBalance()
           while(send_count < send_weighted_nreactors && send_idx>0) {
             send_idx -= 1;
             size_t sorted_reactor_idx = sorted_reactor_idxs_[send_idx];
-            send_count += std::max((int)rc_self_[sorted_reactor_idx],1);
+            send_count += std::max((int)rc_self_[sorted_reactor_idx],1)+load_balance_noise_;
             send_reactor_idxs.push_back(sorted_reactor_idx);
           }
           size_t send_nreactors = send_reactor_idxs.size();
@@ -560,11 +559,9 @@ void ZeroRKReactorManager::SolveReactors()
   n_steps_ = 0;
   n_solve_ = 0;
   for(int j = 0; j < n_reactors_self_; ++j) {
-//     rc_self_[j] = 0.0;
      rg_self_[j] = 0.0;
   }
   if(n_reactors_other_ > 0) {
-//     rc_other_.assign(n_reactors_other_, 0.0);
      rg_other_.assign(n_reactors_other_, 0.0);
   }
 
@@ -578,6 +575,7 @@ void ZeroRKReactorManager::SolveReactors()
   std::vector<double *> rc_ptrs(n_reactors_self_calc);
   std::vector<double *> rg_ptrs(n_reactors_self_calc);
   std::vector<double *> mf_ptrs(n_reactors_self_calc);
+  std::vector<double *> root_times_ptrs(n_reactors_self_calc);
   std::vector<int *> reactor_id_ptrs(n_reactors_self_calc);
   for(int j = 0; j < n_reactors_self_calc; ++j) {
     int j_sort = sorted_reactor_idxs_[j];
@@ -596,6 +594,7 @@ void ZeroRKReactorManager::SolveReactors()
       }
       rc_ptrs[j] = &rc_self_[j_sort];
       rg_ptrs[j] = &rg_self_[j_sort];
+      root_times_ptrs[j] = &root_times_self_[j_sort];
       mf_ptrs[j] = &mf_self_[j_sort*num_species_stride_];
     } else {
       j_sort -= n_reactors_self_;
@@ -613,6 +612,7 @@ void ZeroRKReactorManager::SolveReactors()
       }
       rc_ptrs[j] = &rc_other_[j_sort];
       rg_ptrs[j] = &rg_other_[j_sort];
+      root_times_ptrs[j] = &root_times_other_[j_sort];
       mf_ptrs[j] = &mf_other_[j_sort*num_species_];
     }
     if(dump_reactors_) {
@@ -669,6 +669,7 @@ void ZeroRKReactorManager::SolveReactors()
                                     y_src_reactor);
       int nsteps = solver->Integrate(dt_calc_);
       reactor_ptr_->GetState(T_ptrs[k], P_ptrs[k], mf_ptrs[k]);
+      *root_times_ptrs[k] = reactor_ptr_->GetRootTime();
       double reactor_time = getHighResolutionTime() - start_time;
       *rc_ptrs[k] = nsteps;
       n_steps_ += nsteps;
@@ -714,6 +715,8 @@ void ZeroRKReactorManager::RedistributeResults()
                    recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
           MPI_Send(&P_other_[send_idx], 1, MPI_DOUBLE,
                    recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
+          MPI_Send(&root_times_other_[send_idx], 1, MPI_DOUBLE,
+                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
           MPI_Send(&mf_other_[send_idx*num_species_], num_species_,
                    MPI_DOUBLE, recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
           send_idx += 1;
@@ -748,6 +751,9 @@ void ZeroRKReactorManager::RedistributeResults()
             MPI_Recv(&P_self_[sorted_recv_idx], 1, MPI_DOUBLE,
                      send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
                      &status);
+            MPI_Recv(&root_times_self_[sorted_recv_idx], 1, MPI_DOUBLE,
+                     send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
+                     &status);
             MPI_Recv(&mf_self_[sorted_recv_idx*num_species_stride_], num_species_,
                      MPI_DOUBLE, send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
                      &status);
@@ -767,67 +773,52 @@ void ZeroRKReactorManager::PostSolve() {
 
 void ZeroRKReactorManager::ProcessPerformance()
 {
-  double all_time = sum_reactor_time_;
-
+  //N.B. These are set in case of no-mpi or mpi with single rank
   n_reactors_solved_ranks_[rank_] = n_solve_;
-  all_time_ranks_[rank_] = all_time;
+  all_time_ranks_[rank_] = sum_reactor_time_;
 #ifdef USE_MPI
-  if(nranks_ > 1 && load_balance_) {
-    int n_total_solved = n_solve_;
-    MPI_Gather(&n_total_solved,1,MPI_INT,&n_reactors_solved_ranks_[0],1,MPI_INT,root_rank_,MPI_COMM_WORLD);
-    MPI_Gather(&all_time,1,MPI_DOUBLE,&all_time_ranks_[0],1,MPI_DOUBLE,root_rank_,MPI_COMM_WORLD);
-    // Collect timing/step count data
-    double rr; //reduced real
+  if(nranks_ > 1) {
+    MPI_Gather(&n_solve_,1,MPI_INT,&n_reactors_solved_ranks_[0],1,MPI_INT,root_rank_,MPI_COMM_WORLD);
+    MPI_Gather(&sum_reactor_time_,1,MPI_DOUBLE,&all_time_ranks_[0],1,MPI_DOUBLE,root_rank_,MPI_COMM_WORLD);
+
     int ri; //reduced int
-
-    MPI_Allreduce(&n_solve_,&ri,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
-    n_solve_ = ri;
-
-    MPI_Allreduce(&n_steps_,&ri,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
-    n_steps_ = ri;
-
-    //Calc per step times based on sum of times
-    MPI_Allreduce(&sum_reactor_time_,&rr,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-    sum_reactor_time_ = rr;
+    MPI_Reduce(&n_steps_,&ri,1,MPI_INT,MPI_SUM,root_rank_,MPI_COMM_WORLD);
+    if(rank_ == 0) n_steps_ = ri;
   }
 #endif
-  int n_steps_total = n_steps_;
-  int n_total_solved = n_solve_;
-  double nstep_avg = n_total_solved > 0 ? n_steps_total/n_total_solved : 0;
-  double per_step_time = n_solve_ > 0 ? sum_reactor_time_/n_steps_ : 0;
+  if(rank_ == root_rank_) {
+    double max_time = 0.0;
+    double total_time = 0.0;
+    int total_solved = 0;
+    for(int i = 0; i < nranks_; ++i) {
+       max_time = std::max(max_time,all_time_ranks_[i]);
+       total_time += all_time_ranks_[i];
+       total_solved += n_reactors_solved_ranks_[i];
+    }
+    double avg_time = total_time/nranks_;
+    double nstep_avg = total_solved > 0 ? n_steps_/total_solved : 0;
+    double per_step_time = n_steps_ > 0 ? total_time/n_steps_ : 0;
 
-  double max_time = 0.0;
-  if(int_options_["verbosity"] > 0) {
-    if(load_balance_) {
-      if(rank_==0) {
-        double total_time = 0.0;
-        for(int i = 0; i < nranks_; ++i) {
-          printf("Rank %d calculated %d reactors in %f seconds.\n",i,n_reactors_solved_ranks_[i],all_time_ranks_[i]);
-          total_time += all_time_ranks_[i];
-          max_time = std::max(max_time,all_time_ranks_[i]);
-        }
-        double avg_time = total_time/nranks_;
-        double wasted_time = max_time - avg_time;
-        printf("Max Time, Avg Time, Wasted Time = %f, %f, %f\n",max_time,avg_time,wasted_time);
+    //Print stats to file
+    //reactor_log_file_ << std::setprecision(16);
+    reactor_log_file_ << std::setw(13) <<  n_cycle_;
+    reactor_log_file_ << std::setw(17) <<  total_solved;
+    reactor_log_file_ << std::setw(17) <<  nstep_avg;
+    reactor_log_file_ << std::setw(17) <<  per_step_time;
+    reactor_log_file_ << std::setw(17) <<  avg_time;
+    reactor_log_file_ << std::setw(17) <<  max_time;
+    reactor_log_file_ << std::endl;
+    reactor_log_file_.flush();
+
+    if(int_options_["verbosity"] > 0) {
+      double wasted_time = max_time - avg_time;
+      for(int i = 0; i < nranks_; ++i) {
+        printf("Rank %d calculated %d reactors in %f seconds.\n",i,n_reactors_solved_ranks_[i],all_time_ranks_[i]);
       }
-    } else {
-      printf("Rank %d calculated %d reactors in %f seconds.\n",rank_,n_solve_,all_time_ranks_[rank_]);
+      printf("Max Time, Avg Time, Wasted Time = %f, %f, %f\n",max_time,avg_time,wasted_time);
     }
   }
   //commTime += getHighResolutionTime() - startTime;
-
-  //Print stats to file
-  if(rank_ == 0) {
-      //reactor_log_file_ << std::setprecision(16);
-      reactor_log_file_ << std::setw(13) <<  n_cycle_;
-      reactor_log_file_ << std::setw(17) <<  n_total_solved;
-      reactor_log_file_ << std::setw(17) <<  nstep_avg;
-      reactor_log_file_ << std::setw(17) <<  sum_reactor_time_;
-      reactor_log_file_ << std::setw(17) <<  per_step_time;
-      reactor_log_file_ << std::setw(17) <<  max_time;
-      reactor_log_file_ << std::endl;
-      reactor_log_file_.flush();
-  }
 }
 
 

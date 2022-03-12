@@ -182,8 +182,8 @@ int CvodeSolver::Integrate(const double end_time) {
   while(tcurr < end_time) {
       flag = CVode(cvode_mem, end_time, state, &tcurr, cv_mode);
       if(flag == CV_ROOT_RETURN) {
+        reactor_ref_.SetRootTime(tcurr);
         CVodeGetNumSteps(cvode_mem,&nsteps);
-        //printf("Found root at time %g (%ld steps)\n", tcurr, nsteps);
         flag = CV_SUCCESS;
         if(int_options_["stop_after_ignition"]) {
           break;
@@ -207,8 +207,8 @@ int CvodeSolver::Integrate(const double end_time) {
             break;
           }
         }
+      }
       tprev = tcurr;
-  }
   }
   CVodeGetNumSteps(cvode_mem,&nsteps);
   if(cv_mode == CV_ONE_STEP && flag == CV_SUCCESS) {

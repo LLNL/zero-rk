@@ -99,6 +99,7 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   std::vector<double> reactorDPDT(nReactors,0.0); //TODO: Using ZERO for now.
   std::vector<double> reactorCost(nReactors);
   std::vector<double> reactorESRC(nReactors, inputFileDB.e_src());
+  std::vector<double> reactorIDT(nReactors,0.0);
   std::vector<int> log_species_indexes(0);
   std::vector<std::string> log_species_names = inputFileDB.log_species();
   int n_print_reactors = std::min(inputFileDB.n_print_reactors(),nReactors);
@@ -158,7 +159,6 @@ void zerork_reactor(int inp_argc, char **inp_argv)
           reactorMassFrac.resize(nReactorsAlloc*nSpc);
           reactorDPDT.resize(nReactorsAlloc,0.0); //TODO: Using ZERO for now.
           reactorCost.resize(nReactorsAlloc,0);
-          reactorGpu.resize(nReactorsAlloc,0);
           reactorESRC.resize(nReactorsAlloc, inputFileDB.e_src());
         }
         int ival;
@@ -193,7 +193,6 @@ void zerork_reactor(int inp_argc, char **inp_argv)
     reactorMassFrac.resize(nReactors*nSpc);
     reactorDPDT.resize(nReactors);
     reactorCost.resize(nReactors);
-    reactorGpu.resize(nReactors);
     reactorESRC.resize(nReactors);
     printf("Read %d reactors from %d files\n",nReactors, inputFileDB.state_files_cfd().size());
   } else {
@@ -250,8 +249,10 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   startTime=getHighResolutionTime();
 
   int rank = 0;
+  int nranks = 1;
 #ifdef USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  MPI_Comm_size(MPI_COMM_WORLD,&nranks);
 #endif
   std::vector<std::shared_ptr<std::ofstream>> reactor_log_files(0);
   if(rank != 0) {
@@ -268,12 +269,17 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   const int constant_volume = inputFileDB.constant_volume() ? 1 : 0;
   const int stop_after_ignition = inputFileDB.stop_after_ignition();
   const double delta_temperature_ignition = inputFileDB.delta_temperature_ignition();
-  
+
+  if(rank == 0 && nranks > 1 && !inputFileDB.batched()) {
+    printf("WARNING: nranks > 1 can not be used with option \"batched\" disabled.\n");
+    printf("         Running in batched mode.\n");
+  }
+
   int flag = 0;
   double t = 0;
   double dt= tend/n_steps;
   for(int i = 0; i < n_steps; ++i) {
-      if(!inputFileDB.batched()) {
+      if(!inputFileDB.batched() && nranks == 1) {
 #ifdef USE_OMP
         #pragma omp parallel for
 #endif
@@ -282,28 +288,31 @@ void zerork_reactor(int inp_argc, char **inp_argv)
             ud.time = 0.0;
             zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
             zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
-            zerork_reactor_set_int_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+            zerork_reactor_set_double_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+            if(delta_temperature_ignition > 0) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_IGNITION_TIME, &reactorIDT[k], zrm_handle);
+            }
             if(inputFileDB.app_owns_aux_fields()) {
                 zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[k], zrm_handle);
                 zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[k], zrm_handle);
-                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_GPU, &reactorGpu[k], zrm_handle);
             }
             if(inputFileDB.e_src() != 0.0) {
                 zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[k], zrm_handle);
             }
             flag = zerork_reactor_solve(i, t, dt, 1, &reactorT[k], &reactorP[k],
                                         &reactorMassFrac[k*nSpc], zrm_handle);
-            printf("reactor[%04d]: %d, %g\n", k, ud.nsteps, ud.time);
         }
       } else {
         zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
         zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
-        zerork_reactor_set_int_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+        zerork_reactor_set_double_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+        if(delta_temperature_ignition > 0) {
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_IGNITION_TIME, &reactorIDT[0], zrm_handle);
+        }
         if(inputFileDB.app_owns_aux_fields()) {
             //For AMR/moving mesh codes
             zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[0], zrm_handle);
             zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[0], zrm_handle);
-            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_GPU, &reactorGpu[0], zrm_handle);
         }
         if(inputFileDB.e_src() != 0.0) {
             zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[0], zrm_handle);
@@ -322,6 +331,11 @@ void zerork_reactor(int inp_argc, char **inp_argv)
         break;
       }
       t += dt;
+  }
+  if(rank == 0 && delta_temperature_ignition > 0) {
+    for(int k = 0; k < nReactors; ++k) {
+      printf("reactor[%d] IDT: %g s\n", k, reactorIDT[k]);
+    }
   }
 
   stopTime=getHighResolutionTime();

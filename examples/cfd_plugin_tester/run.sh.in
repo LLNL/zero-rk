@@ -64,7 +64,6 @@ runSims() {
   if [ "x"$dodense == "xY" ]
   then
     echo "Running ${name} Dense"
-    setYMLScalar $zrkfile gpu 0
     setYMLScalar $zrkfile dense 1
     setYMLScalar $zrkfile analytic 0
     setYMLScalar $zrkfile iterative 0
@@ -75,7 +74,6 @@ runSims() {
 
   #Sparse
   echo "Running ${name} Sparse"
-  setYMLScalar $zrkfile gpu 0
   setYMLScalar $zrkfile dense 0
   setYMLScalar $zrkfile analytic 1
   setYMLScalar $zrkfile iterative 1

@@ -64,6 +64,9 @@ class ReactorBase : public Optionable {
 
   virtual int RootFunction(double t, N_Vector y, double *root_function) = 0;
 
+  virtual int SetRootTime(double t) = 0;
+  virtual double GetRootTime() = 0;
+
   virtual int GetNumStateVariables() = 0;
 
   virtual int GetNumRootFunctions() = 0;

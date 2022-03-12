@@ -95,8 +95,8 @@ spify_parser_params.append(
 {
     'name':'delta_temperature_ignition',
     'type':'double',
-    'defaultValue': 400.0,
-    'boundMin': 50.0,
+    'defaultValue': 0.0,
+    'boundMin': 0.0,
     'boundMax': 100000.0
 }
 )

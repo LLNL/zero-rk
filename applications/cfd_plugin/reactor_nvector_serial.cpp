@@ -16,6 +16,7 @@ ReactorNVectorSerial::ReactorNVectorSerial(std::shared_ptr<zerork::mechanism> me
   num_steps_ = mech_ptr_->getNumSteps();
 
   sqrt_unit_round_ = sqrt(UNIT_ROUNDOFF);
+  root_time_ = 0.0;
 
   state_ = N_VNew_Serial(num_variables_);
   batch_mask_ = N_VNew_Serial(num_variables_);
@@ -592,6 +593,16 @@ int ReactorNVectorSerial::RootFunction(double t, N_Vector y, double *root_functi
   return 0;
 }
 
+int ReactorNVectorSerial::SetRootTime(double t)
+{
+  root_time_ = t;
+  return 0;
+}
+
+double ReactorNVectorSerial::GetRootTime()
+{
+  return root_time_;
+}
 
 int ReactorNVectorSerial::GetNumStateVariables()
 {
@@ -601,7 +612,11 @@ int ReactorNVectorSerial::GetNumStateVariables()
 
 int ReactorNVectorSerial::GetNumRootFunctions()
 {
-  return 1;
+  if(double_options_["delta_temperature_ignition"] > 0) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 

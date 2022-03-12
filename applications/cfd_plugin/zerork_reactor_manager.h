@@ -70,6 +70,7 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   double* rg_self_;
   double* y_src_self_;
   double* e_src_self_;
+  double* root_times_self_;
   int* nstep_self_;
   int* reactor_ids_self_;
 
@@ -81,18 +82,21 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   std::vector<double> y_src_other_;
   std::vector<double> rc_other_;
   std::vector<double> rg_other_;
+  std::vector<double> root_times_other_;
   std::vector<int> nstep_other_;
   std::vector<int> reactor_ids_other_;
 
   bool dpdt_owned_;
   bool rc_owned_;
   bool rg_owned_;
+  bool root_times_owned_;
   bool y_src_defined_;
   bool e_src_defined_;
   bool reactor_ids_defined_;
   std::vector<double> dpdt_default_;
   std::vector<double> rc_default_;
   std::vector<double> rg_default_;
+  std::vector<double> root_times_default_;
 
   int n_calls_;
   int n_cycle_;
@@ -101,6 +105,7 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int n_weight_updates_;
   int n_reactors_min_;
   int n_reactors_max_;
+  int load_balance_noise_;
   double sum_reactor_time_;
   std::vector<double> rank_weights_;
   std::vector<int> n_reactors_solved_ranks_;

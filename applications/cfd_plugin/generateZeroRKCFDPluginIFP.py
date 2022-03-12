@@ -178,6 +178,16 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"load_balance_noise",
+    'type':'int',
+    'shortDesc' : "Parameter to improve load balance",
+    'defaultValue' : 0,
+    'boundMin': 0
+}
+)
+
+spify_parser_params.append(
+{
     'name':"sort_reactors",
     'type':'int',
     'shortDesc' : "Sort reactors by cost",
@@ -211,7 +221,9 @@ spify_parser_params.append(
     'name':"delta_temperature_ignition",
     'type':'double',
     'shortDesc' : "",
-    'defaultValue' : 400.0
+    'defaultValue' : 0.0,
+    'boundMin': 0.0,
+    'boundMax': 100000.0
 }
 )
 

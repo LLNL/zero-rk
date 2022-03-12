@@ -28,6 +28,7 @@ endif()
 
 option(ENABLE_SHARED_LIBS "" OFF)
 option(ENABLE_MPI "" ON)
+option(ENABLE_OPENMP "Enable OpenMP (currently only used in cfd_plugin_tester)" OFF)
 option(ZERORK_TESTS "Enable Zero-RK Tests" ON)
 option(ZERORK_EXP_LIBC "Use libc exponential function instead of MKL/FMATH" OFF)
 set(SUNDIALS_VERSION "5" CACHE STRING "Sundials major version interface")
@@ -41,6 +42,10 @@ endif()
 
 if(${ENABLE_MPI})
   include(cmake/mpi.cmake)
+endif()
+
+if(${ENABLE_OPENMP})
+find_package(OpenMP)
 endif()
 
 include(cmake/git.cmake)

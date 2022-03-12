@@ -40,6 +40,9 @@ class ReactorNVectorSerial : public ReactorBase
 
   int RootFunction(double t, N_Vector y, double *root_function);
 
+  int SetRootTime(double t);
+  double GetRootTime();
+
   int GetNumStateVariables();
 
   int GetNumRootFunctions();
@@ -80,6 +83,7 @@ class ReactorNVectorSerial : public ReactorBase
   std::vector<double> weights_;
 
   double sqrt_unit_round_;
+  double root_time_;
 
   int nnz_;
   std::vector<double> jacobian_data_;
