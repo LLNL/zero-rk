@@ -181,14 +181,7 @@ int CvodeSolver::Integrate(const double end_time) {
   int cv_mode = CV_ONE_STEP;
   while(tcurr < end_time) {
       flag = CVode(cvode_mem, end_time, state, &tcurr, cv_mode);
-      if(flag == CV_ROOT_RETURN) {
-        reactor_ref_.SetRootTime(tcurr);
-        CVodeGetNumSteps(cvode_mem,&nsteps);
-        flag = CV_SUCCESS;
-        if(int_options_["stop_after_ignition"]) {
-          break;
-        }
-      } else if(check_cvode_flag(&flag, "CVode", 1)) {
+      if(check_cvode_flag(&flag, "CVode", 1)) {
         num_tries += 1;
         if(num_tries == max_tries) {
           break;
@@ -198,14 +191,21 @@ int CvodeSolver::Integrate(const double end_time) {
       long int last_nlss = num_linear_solve_setups;
       CVodeGetNumLinSolvSetups(cvode_mem, &num_linear_solve_setups);
       CVodeGetNumSteps(cvode_mem,&nsteps);
-      if(flag == CV_SUCCESS && cb_fn_ != nullptr) {
-        flag = CVodeGetDky(cvode_mem, tcurr, 1, derivative);
+      if( (flag == CV_SUCCESS || flag == CV_ROOT_RETURN) && cb_fn_ != nullptr ) {
         if(N_VGetVectorID(state) == SUNDIALS_NVEC_SERIAL) {
+          flag = CVodeGetDky(cvode_mem, tcurr, 1, derivative);
           double dt = tcurr - tprev;
           cb_flag = cb_fn_(reactor_id, nsteps, tcurr, dt, NV_DATA_S(state), NV_DATA_S(derivative), cb_fn_data_);
           if(cb_flag != 0) {
             break;
           }
+        }
+      }
+      if(flag == CV_ROOT_RETURN) {
+        flag = CV_SUCCESS;
+        reactor_ref_.SetRootTime(tcurr);
+        if(int_options_["stop_after_ignition"]) {
+          break;
         }
       }
       tprev = tcurr;

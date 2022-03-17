@@ -170,7 +170,7 @@ int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
   }
   rg_other_.resize(n_reactors_other_);
   rc_other_.resize(n_reactors_other_);
-  root_times_other_.assign(n_reactors_other_, 0.0); //N.B. at start zero by definition so we don't communicate it
+  root_times_other_.assign(n_reactors_other_, -1.0); //N.B. at start negative one by definition so we don't communicate it
   mf_other_.resize(n_reactors_other_*num_species_);
 
   std::vector<double> recv_buf(tx_count_per_reactor_+extra_tx_count);
@@ -299,7 +299,7 @@ void ZeroRKReactorManager::SetInputVariables(int n_cycle,
     rc_self_ = &rc_default_[0];
   }
   if(root_times_owned_) {
-    root_times_default_.resize(n_reactors, 0.0);
+    root_times_default_.assign(n_reactors, -1.0);
     root_times_self_ = &root_times_default_[0];
   }
 
