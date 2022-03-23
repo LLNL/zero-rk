@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
     }
     double pseudo_time = 0.0;
     double kinstart_time, kinend_time;
-    flame_params.dt_ = 1.0e-3; //seems to be a good starting guess
+    flame_params.dt_ = flame_params.parser_->pseudo_unsteady_dt()*0.5; //Half the timestep for first iteration
 
     while(pseudo_time < 0.05) {
       for(int j=0; j<num_local_states; j++) {
@@ -387,6 +387,7 @@ int main(int argc, char *argv[])
                                                    &z_max_temperature_jump);
 
         pseudo_time += flame_params.dt_;
+
         if(my_pe==0) {printf("%5.3e   %5.3e   %5.3e  %d   %5.3e\n",
                              pseudo_time,
                              flame_params.dt_,
@@ -394,8 +395,12 @@ int main(int argc, char *argv[])
                              nfevals,
                              kinend_time-kinstart_time);}
 
+        //Set timestep back to desired value after first iteration
+        if(pseudo_time == flame_params.dt_)
+          flame_params.dt_ *= 2.0;
+
         // Increase time step if it's converging quickly
-        if(nfevals < 6)
+        if((nfevals < 6) and (pseudo_time > flame_params.dt_))
           flame_params.dt_ *= 2.0;
 
       } else {
@@ -493,7 +498,7 @@ int main(int argc, char *argv[])
              (int)nliniters,
              0.0,
              0.0,
-             dz/flame_params.max_velocity_,
+             dz/max_velocity,
              0.5*dz*dz/flame_params.max_thermal_diffusivity_,
              flame_params.strain_rate_,
              min_sum_mass_fraction,
@@ -829,6 +834,7 @@ static double minVelocity(const double state[],
 			  const FlameParams &params)
 {
   const int num_reactor_states = params.reactor_->GetNumStates();
+  const int num_species = params.reactor_->GetNumSpecies();
   const int num_local_points = (int)params.num_local_points_;
   double velocity;
   double local_min;
@@ -836,7 +842,7 @@ static double minVelocity(const double state[],
 
   local_min = 100000;
   for(int k=0; k<num_local_points; ++k) {
-    velocity = params.mass_flux_[k]*state[(k+1)*num_reactor_states-2];
+    velocity = state[k*num_reactor_states + num_species]*params.rel_vol_[k];
     if (velocity < local_min) {
       local_min = velocity;
     }
@@ -849,6 +855,7 @@ static double maxVelocity(const double state[],
 			  const FlameParams &params)
 {
   const int num_reactor_states = params.reactor_->GetNumStates();
+  const int num_species = params.reactor_->GetNumSpecies();
   const int num_local_points = (int)params.num_local_points_;
   double velocity;
   double local_max;
@@ -856,7 +863,7 @@ static double maxVelocity(const double state[],
 
   local_max = -100000;
   for(int k=0; k<num_local_points; ++k) {
-    velocity = params.mass_flux_[k]*state[(k+1)*num_reactor_states-2];
+    velocity = state[k*num_reactor_states + num_species]*params.rel_vol_[k];
     if (velocity > local_max) {
       local_max = velocity;
     }
