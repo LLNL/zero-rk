@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <math.h>
 #include <time.h>
 #include <cstdlib>
@@ -22,6 +21,7 @@
 
 #include <zerork/constants.h>
 #include <reactor/const_pressure_reactor.h>
+#include <utilities/math_utilities.h>
 
 typedef struct
 {
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
   if(seed == -1) {
     seed = time(0);
   }
-  srand48(seed);
+  zerork::utilities::random01seed(seed);
 
   mech.rate_constant_ = RATE_CONSTANT;
   mech.atomic_a0_     = ATOMIC_A0;
@@ -316,7 +316,7 @@ static double MarchToTime(const InitialConditions &ic,
 static int RandomInt(const int a, const int b)
 {
   double span = (double)(b-a);
-  double random_number = (double)a + drand48()*span;
+  double random_number = (double)a + zerork::utilities::random01()*span;
   return (int)random_number;
 }
 

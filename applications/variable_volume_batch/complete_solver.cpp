@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <string>
 #include <vector>
@@ -31,15 +30,7 @@
 
 const int MAX_LINE_LENGTH = 8192;
 
-static double GetHighResolutionTime(void)
-{
-    struct timeval tod;
-
-    gettimeofday(&tod, NULL);
-    double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
-    return time_seconds;
-}
-
+using zerork::getHighResolutionTime;
 
 void SetupCompleteSolver(void *cvode_memory,
                      aux_cvode_structs_t &aux_cvode,
@@ -265,7 +256,7 @@ int SolveVariableVolume(void *cvode_memory,
 {
   const int num_reactions = user_data->GetReactor()->GetNumReactions();
 
-  double sim_start = GetHighResolutionTime();
+  double sim_start = getHighResolutionTime();
 
   double current_time;
   double final_time, cvode_stop_time;
@@ -458,7 +449,7 @@ int SolveVariableVolume(void *cvode_memory,
   results[7] = max_dp_dt;
   results[8] = current_time;
 
-  (*simulation_time) = GetHighResolutionTime()-sim_start;
+  (*simulation_time) = getHighResolutionTime()-sim_start;
 
   // write up the final stats
   if(thist_params.echo_stdout) {

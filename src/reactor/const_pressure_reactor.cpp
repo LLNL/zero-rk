@@ -1155,17 +1155,19 @@ ReactorError
   const int num_noninteger_jacobian_nonzeros =
     num_noninteger_jacobian_nonzeros_;
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    noninteger_jacobian_[j] = 0.0;
-  }
+  if(num_noninteger_jacobian_nonzeros > 0) {
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      noninteger_jacobian_[j] = 0.0;
+    }
 
-  mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-    &inv_concentrations_[0],
-    &step_rates_[0],
-    &noninteger_jacobian_[0]);
+    mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      &inv_concentrations_[0],
+      &step_rates_[0],
+      &noninteger_jacobian_[0]);
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    }
   }
 
   // Use the molecular mass arrays to convert the composition Jacobian
@@ -1422,17 +1424,19 @@ ReactorError
   const int num_noninteger_jacobian_nonzeros =
     num_noninteger_jacobian_nonzeros_;
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    noninteger_jacobian_[j] = 0.0;
-  }
+  if(num_noninteger_jacobian_nonzeros > 0) {
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      noninteger_jacobian_[j] = 0.0;
+    }
 
-  mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-    &inv_concentrations_[0],
-    &step_rates_[0],
-    &noninteger_jacobian_[0]);
+    mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      &inv_concentrations_[0],
+      &step_rates_[0],
+      &noninteger_jacobian_[0]);
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    }
   }
 
   // Use the molecular mass arrays to convert the composition Jacobian
@@ -1632,17 +1636,19 @@ ReactorError
   const int num_noninteger_jacobian_nonzeros =
     num_noninteger_jacobian_nonzeros_;
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    noninteger_jacobian_[j] = 0.0;
-  }
+  if(num_noninteger_jacobian_nonzeros > 0) {
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      noninteger_jacobian_[j] = 0.0;
+    }
 
-  mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-    &inv_concentrations_[0],
-    &step_rates_[0],
-    &noninteger_jacobian_[0]);
+    mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      &inv_concentrations_[0],
+      &step_rates_[0],
+      &noninteger_jacobian_[0]);
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    }
   }
 
   // Use the molecular mass arrays to convert the composition Jacobian
@@ -1868,17 +1874,19 @@ ReactorError
   const int num_noninteger_jacobian_nonzeros =
     num_noninteger_jacobian_nonzeros_;
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    noninteger_jacobian_[j] = 0.0;
-  }
+  if(num_noninteger_jacobian_nonzeros > 0) {
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      noninteger_jacobian_[j] = 0.0;
+    }
 
-  mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-    &inv_concentrations_[0],
-    &step_rates_[0],
-    &noninteger_jacobian_[0]);
+    mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      &inv_concentrations_[0],
+      &step_rates_[0],
+      &noninteger_jacobian_[0]);
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    }
   }
 
   // Use the molecular mass arrays to convert the composition Jacobian
@@ -2124,17 +2132,19 @@ ReactorError
   const int num_noninteger_jacobian_nonzeros =
     num_noninteger_jacobian_nonzeros_;
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    noninteger_jacobian_[j] = 0.0;
-  }
+  if(num_noninteger_jacobian_nonzeros > 0) {
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      noninteger_jacobian_[j] = 0.0;
+    }
 
-  mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-    &inv_concentrations_[0],
-    &step_rates_[0],
-    &noninteger_jacobian_[0]);
+    mechanism_ptr->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      &inv_concentrations_[0],
+      &step_rates_[0],
+      &noninteger_jacobian_[0]);
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      jacobian[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    }
   }
 
   // Use the molecular mass arrays to convert the composition Jacobian

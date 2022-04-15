@@ -16,6 +16,8 @@
 
 #include "utility_funcs.h"
 
+using zerork::getHighResolutionTime;
+
 ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
                                            const char* mech_filename,
                                            const char* therm_filename)

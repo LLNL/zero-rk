@@ -1,7 +1,10 @@
+#include <algorithm> //std::max
 #include "matrix_funcs.h"
 #include "cv_param_sparse.h"
 #include "ode_funcs.h"
 #include "utility_funcs.h"
+
+using zerork::getHighResolutionTime;
 
 //Prototype for at_plus_a borrowed from get_perm_c.c of SuperLU
 void at_plus_a(const int n, const int nz, int *colptr, int *rowind, int *bnz, int **b_colptr, int **b_rowind);
@@ -1080,7 +1083,7 @@ bool reThreshCheck(const double tol, const int nsize, const int nnzA,
           double currVal = fabs(gamma*A[AsparseId]);
           if(brow != arow)
             {
-	      maxDroppedVal = max(currVal,maxDroppedVal);
+	      maxDroppedVal = std::max(currVal,maxDroppedVal);
               if(currVal >= tol) ++droppedVals;
             } else {
               if(currVal <= tol) ++retainedVals;
@@ -1110,7 +1113,7 @@ int calcMismatch(const double tol, const int nsize, const int nnzA,
   int AsparseId=0;
   int BsparseId=0;
 //  int newB[nnzA];
-  int newBcolSum[nsize+1];
+  std::vector<int> newBcolSum(nsize+1);
 //  int newBrowId[nnzA];
 
   AsparseId=BsparseId=0;

@@ -21,7 +21,10 @@ set(public_headers atomicMassDB.h constants.h constants_api.h
    info_net.h mechanism.h nasa_poly.h non_integer_reaction_network.h
    perf_net.h plog_reaction.h rate_const.h simple_network.h
    species.h utilities.h)
-target_link_libraries(zerork PUBLIC ckconverter dl m)
+target_link_libraries(zerork PUBLIC ckconverter)
+if(NOT WIN32)
+target_link_libraries(zerork PUBLIC dl m)
+endif()
 if(${ZERORK_HAVE_MKL})
 target_link_libraries(zerork PUBLIC mkl) #for vmdExp in fast_exp.cpp
 endif()
@@ -30,5 +33,6 @@ set_target_properties(zerork PROPERTIES
  PUBLIC_HEADER  "${public_headers}")
 install(TARGETS zerork
  LIBRARY DESTINATION lib
+ ARCHIVE DESTINATION lib
  PUBLIC_HEADER DESTINATION include/zerork)
 

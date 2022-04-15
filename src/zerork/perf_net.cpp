@@ -1,9 +1,8 @@
 #include <stdlib.h>
 #include <assert.h>
-#include <sys/time.h>
 
+#include "utilities.h"
 #include "perf_net.h"
-
 
 
 namespace zerork {
@@ -22,16 +21,6 @@ static void UnsupportedFeature(const char filename[], const int line_num)
   fflush(stdout);
   assert(0);  // disabled with macro #define NDEBUG
               // or -DNDEBUG for the compiler
-}
-
-
-static double getHighResolutionTime(void)
-{
-    struct timeval tod;
-
-    gettimeofday(&tod, NULL);
-    double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
-    return time_seconds;
 }
 
 

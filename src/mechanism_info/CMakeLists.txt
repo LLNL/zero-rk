@@ -11,5 +11,6 @@ set_target_properties(mechanisminfo PROPERTIES
  PUBLIC_HEADER  "${public_headers}")
 install(TARGETS mechanisminfo
  LIBRARY DESTINATION lib
+ ARCHIVE DESTINATION lib
  PUBLIC_HEADER DESTINATION include/mechanism_info)
 

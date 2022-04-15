@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <string.h> // for memcpy
+#ifndef WIN32
 #include <dlfcn.h> // for loading external func lib
-#include <unistd.h> // for sleep
+#endif
 
 #include <string>
 #include <algorithm> //for std::sort
@@ -62,14 +63,9 @@ mechanism::mechanism(const char *mechFileName,
         printf("       check converter log file %s\n",convertFileStr.c_str());
       }
     }
-//    else
-//    {
-//      //Give enough time for root process to print the error.
-//      sleep(2);
-//    }
-      delete ckrobj;
-      fflush(stdout);
-      exit(-1);
+    delete ckrobj;
+    fflush(stdout);
+    exit(-1);
   }
 
   if(ckrobj == NULL)
@@ -108,7 +104,9 @@ mechanism::~mechanism()
 
   delete thermo;
   //delete rxnNet;
+#ifndef WIN32
   if(externalFuncLibHandle) dlclose(externalFuncLibHandle);
+#endif
 }
 
 // build_mechanism(...)
@@ -725,7 +723,7 @@ void mechanism::getMassCvFromTY_mr(const int nReactors, const double T[], const 
 void mechanism::getCfromVY_mr(const int nReactors, const double v[], const double y[],
                                double c[]) const
 {
-  double dens[nReactors];
+  std::vector<double> dens(nReactors);
   for(int k=0; k<nReactors; ++k)
     { dens[k] = 1.0/v[k]; }
   for(int j=0; j<nSpc; j++)
@@ -1137,6 +1135,7 @@ void mechanism::getSpeciesHeliumCount(int num_atoms[]) const
 
 void mechanism::initExternalFuncs()
 {
+#ifndef WIN32
   char * externalFuncLibPath;
   char * dl_error;
   char * ext_flags;
@@ -1221,7 +1220,7 @@ void mechanism::initExternalFuncs()
   perfNet->setExRatesFunc(ex_func_calc_rates);
   Kconst->setExArrhFunc(ex_func_calc_arrh);
   Kconst->setExKeqFunc(ex_func_calc_keq);
-
+#endif
 }
 
 void mechanism::buildReactionString(const int idx,
@@ -1332,7 +1331,7 @@ void mechanism::generateCircosFilesTPY(const double T, const double P,
     }
 
     //Scale by max and take log10
-    double scaledROPS[nStep];
+    std::vector<double> scaledROPS(nStep);
     for(int j=0; j<nStep; ++j)
     {
         numReactants = getOrderOfStep(j);

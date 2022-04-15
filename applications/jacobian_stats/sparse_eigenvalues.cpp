@@ -39,8 +39,8 @@ int GetEigenvalues(const int num_rows,
                            // workspace argument
   
   // non-constant arguments for the LAPACK call by reference
-  double right_eigenvectors[0];
-  double left_eigenvectors[0];
+  double* right_eigenvectors = NULL;
+  double* left_eigenvectors = NULL;
   int ld_eigenvectors=num_rows;
   int copy_num_rows = num_rows;
 

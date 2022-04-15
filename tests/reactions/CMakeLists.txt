@@ -9,7 +9,7 @@ endforeach()
 
 zerork_add_test(plog_test.x
     SOURCES plog_test.cpp
-    LINK_LIBRARIES zerork
+    LINK_LIBRARIES zerork zerorkutilities
     ARGUMENTS 1000 -1 1.0e-20 1.0e-8)
 #add_test(NAME plog_test.x COMMAND plog_test.x 1000 -1 1.0e-20 1.0e-8)
 

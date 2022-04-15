@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <math.h>
 #include <time.h>
 
@@ -19,6 +18,7 @@
 #include <sunlinsol/sunlinsol_dense.h> /* access to dense SUNLinearSolver      */
 #endif
 
+#include <utilities/math_utilities.h>
 #include <reactor/const_pressure_reactor.h>
 
 // TEST CONSTANTS
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
   if(seed == -1) {
     seed = time(0);
   }
-  srand48(seed);
+  zerork::utilities::random01seed(seed);
 
   for(int j=0; j<num_runs; ++j) {
     initial_temperature = (double)RandomInt((int)MIN_TEMPERATURE,
@@ -281,7 +281,7 @@ static double MarchToFinalTemperature(const double atomic_mass_fraction,
 static int RandomInt(const int a, const int b)
 {
   double span = (double)(b-a);
-  double random_number = (double)a + drand48()*span;
+  double random_number = (double)a + zerork::utilities::random01()*span;
   return (int)random_number;
 }
 

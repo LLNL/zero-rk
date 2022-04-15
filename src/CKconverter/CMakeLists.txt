@@ -12,5 +12,6 @@ set_target_properties(ckconverter PROPERTIES
  PUBLIC_HEADER  "${public_headers}")
 install(TARGETS ckconverter
  LIBRARY DESTINATION lib
+ ARCHIVE DESTINATION lib
  PUBLIC_HEADER DESTINATION include/CKconverter)
 

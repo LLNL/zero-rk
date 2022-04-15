@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <algorithm> // for std::max
 
 #include "rate_const.h"
 #include "constants.h"
 #include "fast_exps.h"
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 //C11 aligned alloc not available in Mac OS X as of July 2020
 static inline void* aligned_alloc(size_t alignment, size_t size)
 {
@@ -14,10 +15,24 @@ static inline void* aligned_alloc(size_t alignment, size_t size)
         int flag = posix_memalign(&p, alignment, size);
         return (flag == 0) ? p : 0;
 }
+#define _aligned_free free
+#elif defined(WIN32)
+static inline void* aligned_alloc(size_t alignment, size_t size)
+{
+        void* p = _aligned_malloc(size, alignment);
+        return (p == nullptr) ? 0 : p;
+}
+#else
+#define _aligned_free free
 #endif
 
+#ifndef WIN32
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
 #define likely(expr) __builtin_expect(!!(expr), 1)
+#else
+#define unlikely(expr) expr
+#define likely(expr) expr
+#endif
 
 namespace zerork {
 
@@ -108,8 +123,8 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   setPLogInterpolationStepList(*ckrobj,*netobj);
 
 //  expWorkArray = new double[max(nFromKeqStep,nDistinctArrhenius)];
-  int allocSize = max(nPLogInterpolationStep,
-                      max(nDistinctArrhenius,nFromKeqStep));
+  int allocSize = std::max(nPLogInterpolationStep,
+                      std::max(nDistinctArrhenius,nFromKeqStep));
   allocSize = ((allocSize + 15)/16)*16; //round to next even multiple of 16
   expWorkArray = (double*)aligned_alloc(16, sizeof(double)*allocSize);
   memset(expWorkArray,0.0,sizeof(double)*allocSize);
@@ -133,7 +148,7 @@ rate_const::~rate_const()
   delete [] Gibbs_RT;
   delete [] Kwork;
 //  delete [] expWorkArray;
-  free(expWorkArray);
+  _aligned_free(expWorkArray);
 }
 
 void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)

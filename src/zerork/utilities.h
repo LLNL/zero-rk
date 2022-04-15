@@ -7,6 +7,7 @@ namespace zerork {
 
 void upperToLower(std::string s);
 void upperToLower(char *s);
+double getHighResolutionTime(void);
 
 } // namespace zerork
 

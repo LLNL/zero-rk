@@ -1,6 +1,9 @@
+#include <algorithm> //std::max
 #include "ode_funcs.h"
 #include "cv_param_sparse.h"
 #include "utility_funcs.h"
+
+using zerork::getHighResolutionTime;
 
 int const_vol_wsr(realtype t, N_Vector y, N_Vector ydot,
 			 void *user_data)
@@ -20,7 +23,7 @@ int const_vol_wsr(realtype t, N_Vector y, N_Vector ydot,
 
   // Get mass and mdot_in
   cvp->mass = NV_Ith_S(y,cvp->nSpc+1);
-  mdot_in = max(cvp->mass/cvp->residenceTime, 0.0);
+  mdot_in = std::max(cvp->mass/cvp->residenceTime, 0.0);
 
   // Get density
   cvp->Dens = cvp->mass/cvp->volume;
@@ -54,7 +57,7 @@ int const_vol_wsr(realtype t, N_Vector y, N_Vector ydot,
   // dm/dt = m_in - m_out
   // m_out = K*(Pin-Pout) + m_in
   K = cvp->Kpressure*cvp->volume;
-  mdot_out = max(-K*(cvp->pressure-pres) + mdot_in, 0.0);
+  mdot_out = std::max(-K*(cvp->pressure-pres) + mdot_in, 0.0);
   NV_Ith_S(ydot,cvp->nSpc+1)= mdot_in - mdot_out;
 
   // Energy Eq

@@ -15,6 +15,8 @@
 #include "mpi.h"
 #endif
 
+using zerork::getHighResolutionTime;
+
 template <typename T>
 static std::vector<T> linspace(T a, T b, size_t N);
 

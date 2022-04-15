@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <vector>
 
 namespace zerork {
 
@@ -208,7 +209,7 @@ void nasa_poly_group::getH_RT_mr(const int nReactors, const double T[], double H
 {
   int j,k,coefAddr;
   double Tmid;
-  double invT[nReactors];
+  std::vector<double> invT(nReactors);
   double hMult[4];
 
   for(k=0;k<nReactors;++k)

@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 
 #include "AFactorIFP.h"
 #include "idtControlParams.h"
@@ -8,6 +7,8 @@
 #include "utility_funcs.h"
 
 #include "perturbAFactor_common.h"
+
+using zerork::getHighResolutionTime;
 
 int main(int argc, char *argv[])
 {

@@ -150,6 +150,19 @@ TEST(StringIsDouble, AlmostUnderflow)
   EXPECT_TRUE(zerork::utilities::StringIsDouble("-3.0e-308"))
     << "strtod = " << strtod("-3.0e-308",NULL) << std::endl;
 }
+#ifdef WIN32
+//For some unknown reason 'strod' in Visual Studio doesn't
+//underflow at DBL_MIN and we have to push this further to
+//get it to set errno. Leaving other systems at the "normal"
+//value.
+TEST(StringIsDouble, Underflow)
+{
+  EXPECT_FALSE(zerork::utilities::StringIsDouble("2.0e-324"))
+    << "strtod = " << strtod("2.0e-324",NULL) << std::endl;
+  EXPECT_FALSE(zerork::utilities::StringIsDouble("-2.0e-324"))
+    << "strtod = " << strtod("-2.0e-324",NULL) << std::endl;
+}
+#else
 TEST(StringIsDouble, Underflow)
 {
   EXPECT_FALSE(zerork::utilities::StringIsDouble("2.0e-308"))
@@ -157,6 +170,7 @@ TEST(StringIsDouble, Underflow)
   EXPECT_FALSE(zerork::utilities::StringIsDouble("-2.0e-308"))
     << "strtod = " << strtod("-2.0e-308",NULL) << std::endl;
 }
+#endif
 
 TEST(StringIsDouble, JustPlus)
 {

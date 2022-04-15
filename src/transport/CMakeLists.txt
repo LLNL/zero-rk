@@ -16,4 +16,5 @@ set_target_properties(zerorktransport PROPERTIES
  PUBLIC_HEADER  "${public_headers}")
 install(TARGETS zerorktransport
  LIBRARY DESTINATION lib
+ ARCHIVE DESTINATION lib
  PUBLIC_HEADER DESTINATION include/transport)

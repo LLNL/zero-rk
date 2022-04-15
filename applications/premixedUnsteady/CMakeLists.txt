@@ -7,7 +7,8 @@ add_mpi_executable(premixed_unsteady_flame_solver.x premixed_unsteady_flame_solv
 target_link_libraries(premixed_unsteady_flame_solver.x zerorkutilities mechanisminfo reactor
                       zerorktransport zerork superlu spify sundials_cvode sundials_nvecparallel)
 
-install(TARGETS premixed_unsteady_flame_solver.x)
+install(TARGETS premixed_unsteady_flame_solver.x
+        RUNTIME DESTINATION bin)
 
 add_spifyIFP_target(UnsteadyFlameIFP premixed_unsteady_flame_solver.x)
 endif()

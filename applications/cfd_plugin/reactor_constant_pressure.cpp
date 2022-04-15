@@ -1,3 +1,4 @@
+#include <algorithm> //std::max,min
 
 #include "reactor_constant_pressure.h"
 

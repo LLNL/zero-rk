@@ -13,6 +13,7 @@
 #include "atomicMassDB.h"
 #include "external_funcs.h"
 #include "non_integer_reaction_network.h"
+#include "utilities.h"
 
 namespace zerork {
 

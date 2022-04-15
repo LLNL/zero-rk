@@ -8,13 +8,15 @@ set(SPIFY_APPS    constVolumeWSR_TLA.x)
 add_executable(constVolumeWSR_TLA.x ${MAIN_SRC} ${COMMON_SRC} ${SPIFY_SRC})
 target_link_libraries(constVolumeWSR_TLA.x zerork sundials_nvecserial sundials_cvode superlu spify)
 target_compile_definitions(constVolumeWSR_TLA.x PRIVATE SPIFY)
-install(TARGETS constVolumeWSR_TLA.x)
+install(TARGETS constVolumeWSR_TLA.x
+        RUNTIME DESTINATION bin)
 
 if(ENABLE_MPI)
 add_mpi_executable(constVolumeWSR_TLA_mpi.x ${MAIN_SRC} ${COMMON_SRC} ${SPIFY_SRC})
 target_link_libraries(constVolumeWSR_TLA_mpi.x zerork sundials_nvecserial sundials_cvode superlu spify)
 target_compile_definitions(constVolumeWSR_TLA_mpi.x PRIVATE SPIFY)
-install(TARGETS constVolumeWSR_TLA_mpi.x)
+install(TARGETS constVolumeWSR_TLA_mpi.x
+        RUNTIME DESTINATION bin)
 set(SPIFY_APPS    "${SPIFY_APPS};constVolumeWSR_TLA_mpi.x")
 endif()
 

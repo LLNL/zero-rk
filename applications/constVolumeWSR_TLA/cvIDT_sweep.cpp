@@ -52,6 +52,8 @@ const int MAX_FLOAT_LEN=256;
 #endif
 #include "utility_funcs.h"
 
+using zerork::getHighResolutionTime;
+
 typedef struct
 {
   int rxnId;

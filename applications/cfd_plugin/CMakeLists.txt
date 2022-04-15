@@ -1,5 +1,11 @@
 
 
+#This module will make a header that contains
+#the appropriate Windows definitions for
+#creating/using a shared library
+include(GenerateExportHeader)
+
+
 set(COMMON_SRCS utility_funcs.cpp
        optionable.cpp reactor_base.cpp
        reactor_constant_volume.cpp
@@ -22,7 +28,9 @@ add_executable(zerork_cfd_plugin_tester.x zerork_cfd_plugin_tester.cpp ZeroRKCFD
 endif()
 
 target_link_libraries(zerork_cfd_plugin zerork superlu spify sundials_cvode sundials_nvecserial)
+if(NOT WIN32)
 target_link_options(zerork_cfd_plugin PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)
+endif()
 target_link_libraries(zerork_cfd_plugin_tester.x zerork_cfd_plugin)
 
 if(ENABLE_OPENMP)
@@ -33,9 +41,17 @@ endif()
 set(SPIFY_PLUGIN_TARGETS "zerork_cfd_plugin")
 set(SPIFY_TESTER_TARGETS "zerork_cfd_plugin_tester.x")
 
+GENERATE_EXPORT_HEADER(zerork_cfd_plugin
+    BASE_NAME zerork_cfd_plugin
+    EXPORT_MACRO_NAME ZERORK_CFD_PLUGIN_EXPORTS
+    EXPORT_FILE_NAME zerork_cfd_plugin_exports.h
+    STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC)
+
 set_target_properties(zerork_cfd_plugin PROPERTIES PUBLIC_HEADER  "zerork_cfd_plugin.h")
-install(TARGETS zerork_cfd_plugin LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include)
-install(TARGETS zerork_cfd_plugin_tester.x)
+install(TARGETS zerork_cfd_plugin LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include
+        RUNTIME DESTINATION bin)
+install(TARGETS zerork_cfd_plugin_tester.x
+        RUNTIME DESTINATION bin)
 
 add_spifyIFP_target(ZeroRKCFDPluginIFP ${SPIFY_PLUGIN_TARGETS})
 add_spifyIFP_target(ZeroRKCFDPluginTesterIFP ${SPIFY_TESTER_TARGETS})

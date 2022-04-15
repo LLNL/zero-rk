@@ -1,51 +1,51 @@
 phi= 0.75 Tf= 300.0 mf= 2.3 p= 101325.0 egr= 0.0
-  Max Temperature: 1930.8475 K
-  Flame thickness: 0.00058096134 m
-  Flame location: 0.019977654 m
-  Strain rate: 158.6936 1/s
+  Max Temperature: 1928.4154 K
+  Flame thickness: 0.00059156798 m
+  Flame location: 0.020107542 m
+  Strain rate: 158.29067 1/s
 phi= 0.75 Tf= 300.0 mf= 2.4 p= 101325.0 egr= 0.0
-  Max Temperature: 1927.9367 K
-  Flame thickness: 0.00058283088 m
-  Flame location: 0.020194134 m
-  Strain rate: 165.05565 1/s
+  Max Temperature: 1925.3676 K
+  Flame thickness: 0.00059276781 m
+  Flame location: 0.020324022 m
+  Strain rate: 164.64045 1/s
 phi= 0.75 Tf= 300.0 mf= 2.5 p= 101325.0 egr= 0.0
-  Max Temperature: 1924.9747 K
-  Flame thickness: 0.00058285576 m
-  Flame location: 0.020410615 m
-  Strain rate: 171.39767 1/s
+  Max Temperature: 1922.1403 K
+  Flame thickness: 0.00059460653 m
+  Flame location: 0.020540503 m
+  Strain rate: 170.9932 1/s
 phi= 0.75 Tf= 300.0 mf= 2.7 p= 101325.0 egr= 0.0
-  Max Temperature: 1919.4849 K
-  Flame thickness: 0.00058611542 m
-  Flame location: 0.020756983 m
-  Strain rate: 184.1232 1/s
-   Moving fine region downstream to  0.019787709497189998
-  Max Temperature: 1918.7128 K
-  Flame thickness: 0.0005872945 m
-  Flame location: 0.020777754 m
-  Strain rate: 183.99771 1/s
+  Max Temperature: 1918.4721 K
+  Flame thickness: 0.00059654405 m
+  Flame location: 0.020843575 m
+  Strain rate: 183.82414 1/s
+   Moving fine region downstream to  0.0197877094972
+  Max Temperature: 1915.6524 K
+  Flame thickness: 0.00059844131 m
+  Flame location: 0.020894229 m
+  Strain rate: 183.59033 1/s
 phi= 0.75 Tf= 300.0 mf= 2.9 p= 101325.0 egr= 0.0
-  Max Temperature: 1912.2031 K
-  Flame thickness: 0.0005906624 m
-  Flame location: 0.021127181 m
-  Strain rate: 196.64728 1/s
+  Max Temperature: 1909.5149 K
+  Flame thickness: 0.00060275902 m
+  Flame location: 0.021214538 m
+  Strain rate: 196.27006 1/s
 phi= 0.75 Tf= 300.0 mf= 3.2 p= 101325.0 egr= 0.0
-  Max Temperature: 1902.2306 K
-  Flame thickness: 0.00059745399 m
-  Flame location: 0.021534846 m
-  Strain rate: 215.60297 1/s
+  Max Temperature: 1897.8903 K
+  Flame thickness: 0.00060689952 m
+  Flame location: 0.021651322 m
+  Strain rate: 215.15633 1/s
 phi= 0.75 Tf= 300.0 mf= 3.5 p= 101325.0 egr= 0.0
-  Max Temperature: 1890.7204 K
-  Flame thickness: 0.00060018732 m
-  Flame location: 0.021884273 m
-  Strain rate: 234.48061 1/s
+  Max Temperature: 1885.9261 K
+  Flame thickness: 0.00061321349 m
+  Flame location: 0.022000749 m
+  Strain rate: 234.03646 1/s
 phi= 0.75 Tf= 300.0 mf= 3.9 p= 101325.0 egr= 0.0
-  Max Temperature: 1876.7516 K
-  Flame thickness: 0.00060592918 m
-  Flame location: 0.022291938 m
-  Strain rate: 259.77079 1/s
+  Max Temperature: 1869.6049 K
+  Flame thickness: 0.00061977905 m
+  Flame location: 0.022379295 m
+  Strain rate: 259.23354 1/s
 phi= 0.75 Tf= 300.0 mf= 4.4 p= 101325.0 egr= 0.0
-  Max Temperature: 1850.9381 K
-  Flame thickness: 0.00061786877 m
-  Flame location: 0.022728723 m
-  Strain rate: 291.0359 1/s
-Time elapsed:  380.34318685531616
+  Max Temperature: 1843.079 K
+  Flame thickness: 0.00063086001 m
+  Flame location: 0.022816079 m
+  Strain rate: 290.51011 1/s
+Time elapsed:  258.5568857192993

@@ -50,6 +50,7 @@ const int MAX_FLOAT_LEN=256;
 #endif
 #include "utility_funcs.h"
 
+using zerork::getHighResolutionTime;
 
 int setMoleFracFromFile(zerork::mechanism &mechInp, const char *fileName,
 			double moleFrac[]);

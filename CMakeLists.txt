@@ -9,7 +9,9 @@ endif()
 
 cmake_minimum_required(VERSION 3.12)
 
-project(zerork LANGUAGES C CXX)
+project(zerork LANGUAGES C CXX VERSION 3.0.8)
+
+find_package (Python3 COMPONENTS Interpreter)
 
 set(ZERORK_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(ZERORK_DATA_DIR ${ZERORK_SOURCE_DIR}/data)

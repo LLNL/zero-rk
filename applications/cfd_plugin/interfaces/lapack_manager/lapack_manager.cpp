@@ -1,4 +1,6 @@
 #include <cstring> //std::memcpy
+#include <algorithm> //std::max,min
+
 #include "lapack_manager.h"
 
 #ifndef USE_MKL

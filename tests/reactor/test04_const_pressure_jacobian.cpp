@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <math.h>
 #include <time.h>
 
@@ -8,6 +7,7 @@
 #include <vector>
 
 #include <zerork/constants.h>
+#include <utilities/math_utilities.h>
 #include <reactor/const_pressure_reactor.h>
 
 #include "test04_utilities.h"
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
   if(seed == -1) {
     seed = time(0);
   }
-  srand48(seed);
+  zerork::utilities::random01seed(seed);
 
   const char * ZERORK_DATA_DIR = std::getenv("ZERORK_DATA_DIR");
   std::string load_mech(TEST_MECH);
@@ -322,7 +322,7 @@ static int GetDirectJacobian(ConstPressureReactor &reactor,
 static int RandomInt(const int a, const int b)
 {
   double span = (double)(b-a);
-  double random_number = (double)a + drand48()*span;
+  double random_number = (double)a + zerork::utilities::random01()*span;
   return (int)random_number;
 }
 
@@ -336,7 +336,7 @@ static void RandomNormalizedVector(const size_t num_elements,
   v->clear();
   v->assign(num_elements,0.0);
   for(size_t j=0; j<num_elements; ++j) {
-    v->at(j) = drand48();
+    v->at(j) = zerork::utilities::random01();
     vector_sum += v->at(j);
   }
   // normalize

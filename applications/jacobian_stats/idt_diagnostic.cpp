@@ -1,8 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <unistd.h>
 #include <fenv.h>
+#ifdef WIN32
+#include <io.h>
+#define F_OK 00
+#define R_OK 04
+#define access _access
+#else
+#include "unistd.h"
+#endif
 
 #include <cvode/cvode.h>            // prototypes for CVODE fcts. and consts.
 #ifdef SUNDIALS2

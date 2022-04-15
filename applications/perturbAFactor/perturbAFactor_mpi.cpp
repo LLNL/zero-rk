@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-//#include <mpi/mpi.h> // ubuntu 12.0.4 mpich2 install location
 #include <mpi.h>
 
 #include "AFactorIFP.h"
@@ -10,6 +9,8 @@
 #include "utility_funcs.h"
 
 #include "perturbAFactor_common.h"
+
+using zerork::getHighResolutionTime;
 
 const int MASTER_RANK=0;
 const int WORK_TAG=1;
