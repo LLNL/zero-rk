@@ -42,14 +42,16 @@ set(SPIFY_PLUGIN_TARGETS "zerork_cfd_plugin")
 set(SPIFY_TESTER_TARGETS "zerork_cfd_plugin_tester.x")
 
 GENERATE_EXPORT_HEADER(zerork_cfd_plugin
-    BASE_NAME zerork_cfd_plugin
-    EXPORT_MACRO_NAME ZERORK_CFD_PLUGIN_EXPORTS
-    EXPORT_FILE_NAME zerork_cfd_plugin_exports.h
-    STATIC_DEFINE SHARED_EXPORTS_BUILT_AS_STATIC)
+                       BASE_NAME zerork_cfd_plugin
+                       EXPORT_MACRO_NAME ZERORK_CFD_PLUGIN_EXPORTS
+                       EXPORT_FILE_NAME zerork_cfd_plugin_exports.h)
 
-set_target_properties(zerork_cfd_plugin PROPERTIES PUBLIC_HEADER  "zerork_cfd_plugin.h")
-install(TARGETS zerork_cfd_plugin LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include
-        RUNTIME DESTINATION bin)
+set_target_properties(zerork_cfd_plugin PROPERTIES PUBLIC_HEADER
+                      "zerork_cfd_plugin.h;${CMAKE_CURRENT_BINARY_DIR}/zerork_cfd_plugin_exports.h")
+install(TARGETS zerork_cfd_plugin PUBLIC_HEADER DESTINATION include
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION lib
+        ARCHIVE DESTINATION lib)
 install(TARGETS zerork_cfd_plugin_tester.x
         RUNTIME DESTINATION bin)
 
