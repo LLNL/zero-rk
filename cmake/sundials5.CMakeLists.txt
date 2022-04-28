@@ -6,7 +6,7 @@ include(ExternalProject)
 ExternalProject_Add(
   sundials5
   URL        https://github.com/LLNL/sundials/archive/refs/tags/v5.8.0.tar.gz
-  URL_HASH   MD5=4e459f01da71092f6c28f710825ebc40
+  URL_HASH   MD5=a087032a72127c12e162bfe4405b03cd
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${sundials_prefix}
              -DEXAMPLES_ENABLE_C=OFF
              -DEXAMPLES_INSTALL=OFF

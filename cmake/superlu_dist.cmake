@@ -48,11 +48,3 @@ set_target_properties(superlu_dist PROPERTIES
 
 target_link_libraries(superlu_dist INTERFACE lapack blas pthread)
 
-#TODO: This is clunky and possibly brittle
-find_package(OpenMP)
-if(OPENMP_FOUND)
-  set_target_properties(superlu_dist PROPERTIES 
-                        INTERFACE_COMPILE_OPTIONS "${OpenMP_C_FLAGS}"
-                        INTERFACE_LINK_OPTIONS "${OpenMP_C_FLAGS}")
-endif()
-

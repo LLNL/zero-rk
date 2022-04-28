@@ -9,6 +9,7 @@ ExternalProject_Add(
   CMAKE_ARGS -Denable_tests=OFF
              -Denable_examples=OFF
              -Denable_complex16=OFF
+             -Denable_openmp=OFF
              -DTPL_ENABLE_PARMETISLIB=OFF
              -DXSDK_ENABLE_Fortran=OFF
              -DCMAKE_INSTALL_PREFIX=${superlu_dist_prefix}
