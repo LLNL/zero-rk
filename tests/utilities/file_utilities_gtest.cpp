@@ -381,7 +381,7 @@ TEST (LoggerConstructor, AllocateStdoutOnly)
 {
   zerork::utilities::Logger *test_log = NULL;
 
-  test_log = new zerork::utilities::Logger("/dev/null",
+  test_log = new zerork::utilities::Logger("",
                                    true,
                                    false);
   
@@ -394,7 +394,7 @@ TEST (LoggerConstructor, AllocateStderrOnly)
 {
   zerork::utilities::Logger *test_log = NULL;
 
-  test_log = new zerork::utilities::Logger("/dev/null",
+  test_log = new zerork::utilities::Logger("",
                                    false,
                                    true);
   
@@ -446,9 +446,9 @@ TEST (LoggerMessage, SimpleText)
 {
   char message_format[] = "Message 1: simple text with no arguments\n";
 
-  zerork::utilities::Logger blackhole("/dev/null");
+  zerork::utilities::Logger blackhole("");
   zerork::utilities::Logger stdout_only;
-  zerork::utilities::Logger stderr_only("/dev/null",false,true);
+  zerork::utilities::Logger stderr_only("",false,true);
   zerork::utilities::Logger file_only("test_output/file_only_message.log");
   int message_length;
 
@@ -469,9 +469,9 @@ TEST (LoggerMessage, SingleInteger)
 {
   char message_format[] = "Message 2: 7*13 = %d single integer\n";
 
-  zerork::utilities::Logger blackhole("/dev/null");
+  zerork::utilities::Logger blackhole("");
   zerork::utilities::Logger stdout_only;
-  zerork::utilities::Logger stderr_only("/dev/null",false,true);
+  zerork::utilities::Logger stderr_only("",false,true);
   zerork::utilities::Logger file_only("test_output/file_only_message.log");
   int message_length;
 
@@ -493,9 +493,9 @@ TEST (LoggerMessage, MultipleValues)
 {
   char message_format[] = "Message 3: old pi = %d, %5.3f from %s\n";
 
-  zerork::utilities::Logger blackhole("/dev/null");
+  zerork::utilities::Logger blackhole("");
   zerork::utilities::Logger stdout_only;
-  zerork::utilities::Logger stderr_only("/dev/null",false,true);
+  zerork::utilities::Logger stderr_only("",false,true);
   zerork::utilities::Logger file_only("test_output/file_only_message.log");
   int message_length;
 

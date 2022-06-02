@@ -18,8 +18,11 @@
 #include <sunlinsol/sunlinsol_dense.h> /* access to dense SUNLinearSolver      */
 #endif
 
-#include <utilities/math_utilities.h>
 #include <reactor/const_pressure_reactor.h>
+#include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
+
+using zerork::utilities::null_filename;
 
 // TEST CONSTANTS
 const double PRESSURE        = 2.5e6;  // [Pa]
@@ -187,7 +190,7 @@ static double MarchToFinalTemperature(const double atomic_mass_fraction,
   }
   ConstPressureReactor user_data(load_mech.c_str(),
                                  load_therm.c_str(),
-                                 "/dev/null",
+                                 null_filename,
                                  COMPRESSED_COL_STORAGE,
                                  PRESSURE);
   *final_time  = 0.0;

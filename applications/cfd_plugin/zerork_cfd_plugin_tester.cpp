@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <iomanip>
 #include <sstream>
 
@@ -9,6 +10,7 @@
 #include "ZeroRKCFDPluginTesterIFP.h"
 
 #include "zerork/mechanism.h"
+#include "file_utilities.h"
 #include "zerork_cfd_plugin.h"
 
 #ifdef USE_MPI
@@ -67,7 +69,11 @@ void zerork_reactor(int inp_argc, char **inp_argv)
 
   const char* mechfilename = inputFileDB.mechanism_file().c_str();
   const char* thermfilename = inputFileDB.thermo_file().c_str();
-  const char* zerorkfilename = inputFileDB.zerork_cfd_plugin_input().c_str();
+  
+  const char* zerorkfilename = nullptr;
+  if(inputFileDB.zerork_cfd_plugin_input().size() > 0) {
+    zerorkfilename = inputFileDB.zerork_cfd_plugin_input().c_str();
+  }
 #ifdef USE_OMP
   #pragma omp threadprivate(zrm_handle, ud)
   #pragma omp parallel
@@ -81,7 +87,7 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   }
 #endif
 
-  const char* cklogfilename = "/dev/null"; //We already parsed in reactor manager no need to have another log
+  const char* cklogfilename = zerork::utilities::null_filename; //We already parsed in reactor manager no need to have another log
   // TODO: Avoid parsing twice/having two mechanisms
   zerork::mechanism mech(mechfilename, thermfilename, cklogfilename);
 
@@ -109,11 +115,12 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   if( inputFileDB.log_species().size() > 0 ) {
      for (int k = 0; k < inputFileDB.log_species().size(); ++k) {
         std::string sp = inputFileDB.log_species()[k];
-        //TODO: This currently will fail on invalid species name
-        //      should throw exception or return negative instead
-        //      so we can catch/handle
         int idx=mech.getIdxFromName(sp.c_str());
-        log_species_indexes.push_back(idx);
+        if(idx == -1) {
+          printf("WARNING: log_species %s not found in mechanism. Ignoring\n",sp.c_str());
+        } else {
+          log_species_indexes.push_back(idx);
+        }
      }
   }
   if(inputFileDB.state_files().size() != 0) {
@@ -229,6 +236,8 @@ void zerork_reactor(int inp_argc, char **inp_argv)
         {
             std::string spcName = mapit->first;
             int spcIdx = mech.getIdxFromName(spcName.c_str());
+            //N.B. We already checked fuel names in getFracsFromCompMap;
+            assert(spcIdx != -1);
             log_species_indexes.push_back(spcIdx);
             log_species_names.push_back(spcName);
         }
@@ -237,6 +246,8 @@ void zerork_reactor(int inp_argc, char **inp_argv)
         {
             std::string spcName = mapit->first;
             int spcIdx = mech.getIdxFromName(spcName.c_str());
+            //N.B. We already checked oxid names in getFracsFromCompMap;
+            assert(spcIdx != -1);
             log_species_indexes.push_back(spcIdx);
             log_species_names.push_back(spcName);
         }

@@ -20,8 +20,8 @@ transport_model: 'MixAvg'
 
 #Mechanism Parser log file
 #Type: string
-#Optional with default value of '/dev/null'
-log_file: '/dev/null'
+#Optional with default value of '@DEVNUL@'
+log_file: '@DEVNUL@'
 
 
 #Fuel composition mole fraction map for inlet

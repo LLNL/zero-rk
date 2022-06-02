@@ -7,8 +7,11 @@
 #include <vector>
 
 #include <zerork/constants.h>
-#include <utilities/math_utilities.h>
 #include <reactor/const_pressure_reactor.h>
+#include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
+
+using zerork::utilities::null_filename;
 
 #include "test04_utilities.h"
 
@@ -133,7 +136,7 @@ int main(int argc, char *argv[])
                                                 (int)MAX_PRESSURE);
     user_data = new ConstPressureReactor(load_mech.c_str(),
                                          load_therm.c_str(),
-                                         "/dev/null",
+                                         null_filename,
                                          COMPRESSED_COL_STORAGE,
                                          initial_pressure);
     user_data->SetReferenceTemperature(REF_TEMPERATURE);

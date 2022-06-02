@@ -241,10 +241,11 @@ struct ExpCode : public Xbyak::CodeGenerator {
 			return;
 		} catch (std::exception& e) {
 			fprintf(stderr, "ExpCode ERR:%s\n", e.what());
+                        throw;
 		} catch (...) {
 			fprintf(stderr, "ExpCode ERR:unknown error\n");
+                        throw;
 		}
-		::exit(1);
 	}
 	template<size_t N>
 	void makeExp(const ExpVar<N> *self, const Xbyak::util::Cpu& /*cpu*/)

@@ -34,7 +34,7 @@ idtControlParams::idtControlParams(char *inpFile, int printLevel)
   if(printLevel == 0) {
     mech = new zerork::mechanism(mechFile.c_str(),
                               thermFile.c_str(),
-                              "/dev/null");
+                              "");
   } else {
     mech = new zerork::mechanism(mechFile.c_str(),
                               thermFile.c_str(),
@@ -429,6 +429,10 @@ void idtControlParams::setupIdtState(GSA_AFactorIFP &parser)
       ++iter) {
 
     spcIdx = mech->getIdxFromName(iter->first.c_str());
+    if(spcIdx == -1) {
+       printf("ERROR: fuel species %s: not found in mechanism.\n", iter->first.c_str());
+       exit(1);
+    }
     fuelMoleFrac[spcIdx]=iter->second;
     //printf("fuel species %s (id = %d): %.18g\n",
     //       iter->first.c_str(),spcIdx,fuelMoleFrac[spcIdx]);
@@ -440,6 +444,10 @@ void idtControlParams::setupIdtState(GSA_AFactorIFP &parser)
       ++iter) {
 
     spcIdx = mech->getIdxFromName(iter->first.c_str());
+    if(spcIdx == -1) {
+       printf("ERROR: oxid species %s: not found in mechanism.\n", iter->first.c_str());
+       exit(1);
+    }
     oxidMoleFrac[spcIdx]=iter->second;
     //printf("oxid species %s (id = %d): %.18g\n",
     //       iter->first.c_str(),spcIdx,oxidMoleFrac[spcIdx]);

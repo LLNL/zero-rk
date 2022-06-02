@@ -90,6 +90,8 @@ class FlameParams
   int j_fix_;
   double deltaTfix_;
 
+  double length_;
+
   // data to evaluate explicit time step limits, evaluated by the CVode
   // right hand side function
   double max_velocity_;          // [m/s]

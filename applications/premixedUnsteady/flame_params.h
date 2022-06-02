@@ -27,6 +27,7 @@ class FlameParams
   int my_pe_,npes_;
   int num_procs_;
   int num_local_points_;
+  int num_points_;
 
   zerork::mechanism *mechanism_; // TODO: avoid using a separate mechanism
 
@@ -69,6 +70,8 @@ class FlameParams
   double max_temperature_;
   double mass_change_;
   double continuity_error_;
+
+  double length_;
 
   std::vector<double> step_limiter_;
 

@@ -23,12 +23,27 @@ int Optionable::GetDoubleOption(const std::string option_name, double* option_va
   }
 }
 
+int Optionable::GetStringOption(const std::string option_name, std::string* option_value) {
+  std::map<std::string,std::string>::iterator it;
+  it = string_options_.find(option_name);
+  if( it != string_options_.end() ) {
+    *option_value = it->second;
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
 void Optionable::GetIntOptions(IntOptions* options) {
   *options = int_options_;
 }
 
 void Optionable::GetDoubleOptions(DoubleOptions* options) {
   *options = double_options_;
+}
+
+void Optionable::GetStringOptions(StringOptions* options) {
+  *options = string_options_;
 }
 
 int Optionable::SetIntOption(const std::string option_name, int option_value) {
@@ -41,12 +56,21 @@ int Optionable::SetDoubleOption(const std::string option_name, double option_val
   return 0;
 }
 
+int Optionable::SetStringOption(const std::string option_name, std::string option_value) {
+  string_options_[option_name] = option_value;
+  return 0;
+}
+
 void Optionable::SetIntOptions(const IntOptions& options) {
   int_options_ = options;
 }
 
 void Optionable::SetDoubleOptions(const DoubleOptions& options) {
   double_options_ = options;
+}
+
+void Optionable::SetStringOptions(const StringOptions& options) {
+  string_options_ = options;
 }
 
 

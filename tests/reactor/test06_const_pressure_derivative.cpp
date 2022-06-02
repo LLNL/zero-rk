@@ -9,6 +9,9 @@
 #include <zerork/constants.h>
 #include <reactor/const_pressure_reactor.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
+
+using zerork::utilities::null_filename;
 
 // TEST CONSTANTS
 const double MIN_PRESSURE    = 1.0e5;  // [Pa]
@@ -209,7 +212,7 @@ static int GetReactorDerivative(const double atomic_mass_fraction,
   }
   ConstPressureReactor reactor(load_mech.c_str(),
                                load_therm.c_str(),
-                               "/dev/null",
+                               null_filename,
                                COMPRESSED_COL_STORAGE,
                                pressure);
   const double gas_constant = reactor.GetGasConstant();

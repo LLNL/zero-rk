@@ -11,7 +11,7 @@ if(EXISTS ${SYSTEM_SUPERLU_DIST_ROOT})
     set(superlu_dist_system_working OFF)
   endif()
 else()
-  set(superlu_dist_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/superlu_dist)
+  set(superlu_dist_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/superlu_dist/${ZERORK_EXTERNALS_BUILD_TYPE})
 endif()
 
 if((NOT EXISTS ${superlu_dist_prefix}) OR (NOT ${superlu_dist_system_working}))
@@ -25,7 +25,7 @@ if((NOT EXISTS ${superlu_dist_prefix}) OR (NOT ${superlu_dist_system_working}))
   if(result)
     message(FATAL_ERROR "CMake step for SuperLU_DIST failed: ${result}")
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  execute_process(COMMAND ${CMAKE_COMMAND} --build . --config ${ZERORK_EXTERNALS_BUILD_TYPE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/superlu_dist-build)
   if(result)

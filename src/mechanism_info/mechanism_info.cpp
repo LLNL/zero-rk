@@ -136,7 +136,7 @@ int MechanismInfo::Impl::SetFileDefinitionsFromParser()
 
   if(!(ckrobj->read(mechanism_name_,
                     thermodynamics_name_,
-                    "/dev/null"))) {
+                    ""))) {
     // TODO: add another CKReader object read step to include the parser log
     printf("ERROR: In MechanismInfo::SetFileDefinitionsFromParser(),\n");
     printf("       could not parse mechanism file %s, and\n",
@@ -436,7 +436,7 @@ int MechanismInfo::Impl::GetStateDependencyMatrix_CV_YT(
 
   if(!(ckreader->read(mechanism_name_,
                       thermodynamics_name_,
-                      "/dev/null"))) {
+                      ""))) {
     // TODO: add another CKReader object read step to include the parser log
     printf("# ERROR: In MechanismInfo::GetStateDependencyMatrix(),\n");
     printf("#       could not re-parse mechanism file %s, and\n",

@@ -234,7 +234,11 @@ int seulex::solve(double* x_in, double xend, N_Vector y)
   nsol = 0;
 
   //TODO: do we need to know N?
+#ifdef SUNDIALS2
+  long int lrw, liw;
+#else
   sunindextype lrw, liw;
+#endif
   N_VSpace(y,&lrw, &liw);
   assert(lrw == n);//problem is same size as we were initialized with
   assert(deriv_fcn != NULL);

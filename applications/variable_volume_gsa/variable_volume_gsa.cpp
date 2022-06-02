@@ -554,7 +554,7 @@ int MasterTasks(int inp_argc, char *inp_argv[])
   // of normal parameters for log(afactor_mult)
   MechanismInfo mech_info(user_data->GetParser()->mechFile().c_str(),
 			  user_data->GetParser()->thermFile().c_str(),
-                          "/dev/null");
+                          "");
   fprintf(gsa_check_fptr,
           "# Basic distribution statistics for each reaction's perturbation multiplier.\n");
   fprintf(gsa_check_fptr,

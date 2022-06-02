@@ -1,9 +1,9 @@
 #include "nasa_poly.h"
 #include "constants.h"
-#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <vector>
+#include <assert.h>
 
 namespace zerork {
 
@@ -13,13 +13,12 @@ nasa_poly_group::nasa_poly_group(const int inpSpc,
 {
   int j,k;
 
-  if(inpSpc < 1)
-  {
-    printf("ERROR: allocator nasa_poly_group(...) failed\n");
-    printf("       because the number of species in the group %d < 1.\n",
-           inpSpc);
-    exit(-1);
-  }
+//  if(inpSpc < 1) {
+//    printf("ERROR: allocator nasa_poly_group(...) failed\n");
+//    printf("       because the number of species in the group %d < 1.\n",
+//           inpSpc);
+//  }
+  assert(inpSpc > 0);
   thermoCoef = new double[inpSpc*LDA_THERMO_POLY_D5R2];
   Tlow = new double[inpSpc];
   Thigh = new double[inpSpc];

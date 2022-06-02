@@ -36,12 +36,6 @@ static inline void* aligned_alloc(size_t alignment, size_t size)
 
 namespace zerork {
 
-#ifdef EXIT_THROWS_EXCEPTION
-  // create a local function to overide the system exit and throw an exception
-  // with the status integer.
-  static void exit(int status) {throw status;}
-#endif // EXIT_THROWS_EXCEPTION
-
 static void UnsupportedFeature(const char filename[], const int line_num)
 {
   printf("# ERROR: Zero-RK reached an unsupported feature\n");
@@ -55,19 +49,17 @@ static void UnsupportedFeature(const char filename[], const int line_num)
 rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
 			       nasa_poly_group *tobj)
 {
-  if(ckrobj == NULL)
-    {
-      printf("ERROR: in rate_const() CKReader object not allocated\n");
-      exit(-1);
-    }
-  if(netobj == NULL)
-    {
-      printf("ERROR: in rate_const() info_net object not allocated\n");
-      exit(-1);
-    }
+  assert(ckrobj != NULL);
+  assert(netobj != NULL);
+  //N.B. all checks for validity should be done in CKReader/CKParser.
+  //  asserts are used here to make sure that rate_const is kept up
+  //  with CKReader, but they should not be catching issues with input
+  //  files, such that if we get here we have parsed the inputs and
+  //  know that they are OK.
 
   // determine the multiplier to convert the activation energy units in the
   // prescribed mech into kelvin
+  convertE = 0;
   if(ckrobj->units.ActEnergy == ckr::Cal_per_Mole)
     {convertE = CAL_PER_MOL_TACT;}
   else if(ckrobj->units.ActEnergy == ckr::Kcal_per_Mole)
@@ -78,27 +70,15 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
     {convertE = KJOULES_PER_MOL_TACT;}
   else if(ckrobj->units.ActEnergy == ckr::Joules_per_Mole)
     {convertE = JOULES_PER_MOL_TACT;}
-  else
-    {
-      printf("ERROR: mechanism Activation Energy units type %d not recognized\n",
-	     ckrobj->units.ActEnergy);
-      exit(-1);
-    }
+  assert(convertE!=0); //This is to make sure we handled parsing correctly in ckr
 
-  // determine the multiplier to convert the concentration units in the rate
+  // convert the concentration units in the rate
   // constants to kmol/m^3
-  if(ckrobj->units.Quantity == ckr::Moles)
-    {
-      // note that the length scale in the CKReader object is [cm]
-      // [mol/cm^3] * convertC = [kmol/m^3]
-      convertC=1000.0;
-    }
-   else
-    {
-      printf("ERROR: mechanism Quantity units type %d not recognized\n",
-	     ckrobj->units.Quantity);
-      exit(-1);
-    }
+  assert(ckrobj->units.Quantity == ckr::Moles);
+  // note that the length scale in the CKReader object is [cm]
+  // [mol/cm^3] * convertC = [kmol/m^3]
+  convertC=1000.0;
+
   thermoPtr=tobj;
   nStep=netobj->getNumSteps();
   cpySize=nStep*sizeof(double);
@@ -166,23 +146,15 @@ void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)
 	{++nArrheniusStep;}
       else if(ckrobj->reactions[j].kf.type == ckr::PLogInterpolation)
         {++nPLogInterpolationStep;}
-      else
-	{
-	  printf("ERROR: reaction %d fwd is not a recognized type = %d\n",j,
-		 ckrobj->reactions[j].kf.type);
-	  exit(-1);
-	}
+      else {
+        assert(("Unsupported forward reaction type", false));
+      }
 
       if(ckrobj->reactions[j].isReversible && ckrobj->reactions[j].krev.A != 0.0)
 	{
           // krev.type =ckr::Arrhenius for REV keyword and for reversible
           // reactions with no reverse parameters specified, including PLOG
-	  if(ckrobj->reactions[j].krev.type != ckr::Arrhenius)
-	    {
-	      printf("ERROR: reaction %d rev is not a recognized type = %d\n",j,
-		     ckrobj->reactions[j].krev.type);
-	      exit(-1);
-	    }
+	  assert(("Unsupported reverse reaction type.", ckrobj->reactions[j].krev.type == ckr::Arrhenius));
 	  if(ckrobj->reactions[j].krev.A > 0.0)
 	    {++nArrheniusStep;}
 	  else
@@ -205,12 +177,7 @@ void rate_const::setRxnCount_Ptype(ckr::CKReader &ckrobj)
     }
     if(ckrobj.reactions[j].isFalloffRxn &&
        ckrobj.reactions[j].isThreeBodyRxn) {
-
-      printf("ERROR: reaction %d is both a fall-off and 3rd-body reaction\n",
-                     j);
-      printf("       These are treated as exclusive classes.\n");
-      printf("       Exiting now.\n");
-      exit(-1);
+      assert(("Can't be both fall-off and 3rd-body", false));
     }
   }
 }
@@ -273,15 +240,11 @@ void rate_const::setArrheniusStepList(ckr::CKReader *ckrobj,
 	  }
        }
     } // end for(j=0; j<nStep; j++)
-    if(k != nArrheniusStep) {
-      printf("ERROR: In rate_const::setArrheniusStepList(...),\n");
-      printf("       The number of arrheniusSteps recorded %d\n",
-             k);
-      printf("       is not the same as the number found %d in\n",
-             nArrheniusStep);
-      printf("       rate_const::setStepCount_Ttype(...)\n");
-      exit(-1);
-    }
+
+    //The number of arrheniusSteps recorded (k)
+    //should match the same as the number found in
+    //rate_const::setStepCount_Ttype(...) (nArrheniusStep)
+    assert(("Logical error in step counts.", k == nArrheniusStep));
 
     qsort((void *)paramListTmp,nArrheniusStep,sizeof(arrheniusSortElem),
           compareArrhenius);
@@ -414,11 +377,6 @@ void rate_const::setThirdBodyRxnList(ckr::CKReader &ckrobj,
       thirdBodyRxnList[k].revStepIdx=netobj.getStepIdxOfRxn(j,-1);
       nEnh=ckrobj.reactions[j].e3b.size();
 
-      if(strcmp(ckrobj.reactions[j].thirdBody.c_str(),"M")!=0) {
-	printf("ERROR: reaction %d has a third body %s != M\n",
-	       j,ckrobj.reactions[j].thirdBody.c_str());
-	exit(-1);
-      }
       if(nEnh > 0) {
 
         thirdBodyRxnList[k].etbSpcIdx.resize(nEnh);
@@ -507,22 +465,18 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
 	// T*
         falloffRxnList[k].param[5]=ckrobj.reactions[j].falloffParameters[2];
 
-        if(ckrobj.reactions[j].falloffParameters.size()==3) {
+        int nParams = ckrobj.reactions[j].falloffParameters.size();
+        assert(("Incorrect number of falloff parameters", nParams==3 || nParams==4));
+        if(nParams==3) {
           // 3-parameter TROE
           falloffRxnList[k].falloffType = TROE_THREE_PARAMS;
           falloffRxnList[k].param.resize(6);
         }
-        else if(ckrobj.reactions[j].falloffParameters.size()==4) {
+        else if(nParams==4) {
           // 4-parameter TROE
           falloffRxnList[k].falloffType = TROE_FOUR_PARAMS;
           // T**
           falloffRxnList[k].param[6]=ckrobj.reactions[j].falloffParameters[3];
-        }
-        else {
-
-          printf("ERROR: rxn %d TROE falloff with %d parameters\n",j+1,
-                 (int)ckrobj.reactions[j].falloffParameters.size());
-          exit(-1);
         }
       } // end of if reaction j is a 3 or 4 parameter Troe reaction
       else if(ckrobj.reactions[j].falloffType == ckr::SRI) {
@@ -548,9 +502,7 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
         }
       }
       else {
-        printf("# ERROR: reaction %d falloff type %d not recognized\n",
-               j+1, ckrobj.reactions[j].falloffType);
-        exit(-1);
+        assert(("Unsupported falloff reaction type", false));
       }
 
       ++k;  // falloffRxn counter

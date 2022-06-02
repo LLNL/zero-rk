@@ -54,6 +54,9 @@ set(INPUT_FILES ${INPUT_FILES}
   flame_speed/unsteady/input.yml.in
   flame_speed/unsteady/sweep_unsteady.py.in
   flame_speed/unsteady/run.sh.in
+  flame_speed/pseudounsteady/input.yml.in
+  flame_speed/pseudounsteady/sweep_pseudounsteady.py.in
+  flame_speed/pseudounsteady/run.sh.in
   counterflow_flame_sweeps/premixed_unsteady/input.yml.in
   counterflow_flame_sweeps/premixed_unsteady/sweep_unsteady.py.in
   counterflow_flame_sweeps/premixed_unsteady/run.sh.in

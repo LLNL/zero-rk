@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "flame_params.h"
 
@@ -487,7 +488,7 @@ void FlameParams::SetGrid()
   length_ = parser_->length();
   int num_points = parser_->num_points();
 
-  if(parser_->grid_file() == std::string("/dev/null")) {
+  if(parser_->grid_file() == std::string(zerork::utilities::null_filename)) {
     // if no grid provided -> uniform grid from input file parameters
     if(parser_->num_points() < 2) {
       printf("# ERROR: number of grid points must be two or greater than two\n"

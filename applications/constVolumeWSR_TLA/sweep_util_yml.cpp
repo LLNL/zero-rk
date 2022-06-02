@@ -46,7 +46,11 @@ idt_sweep_params::idt_sweep_params(char *inputFileName)
       for(j = 0; j < this->tracked_species_names().size(); ++j) {
           std::string spcName = this->tracked_species_names()[j];
           int spcIdx = gasMech->getIdxFromName(spcName.c_str());
-          trackSpcIdx.push_back(spcIdx);
+          if(spcIdx == -1) {
+            printf("WARNING: tracked_species %s not found in mechanism. Ignoring\n",spcName.c_str());
+          } else {
+            trackSpcIdx.push_back(spcIdx);
+          }
       }
   }
   for(j=0; j<nSpc; j++)

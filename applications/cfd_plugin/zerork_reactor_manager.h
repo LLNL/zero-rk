@@ -103,8 +103,6 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int n_solve_;
   int n_steps_;
   int n_weight_updates_;
-  int n_reactors_min_;
-  int n_reactors_max_;
   int load_balance_noise_;
   double sum_reactor_time_;
   std::vector<double> rank_weights_;

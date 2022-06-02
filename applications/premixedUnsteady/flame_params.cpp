@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "flame_params.h"
 
@@ -526,7 +527,10 @@ void FlameParams::SetInitialComposition()
 // Set grid
 void FlameParams::SetGrid()
 {
-  if(parser_->grid_file() == std::string("/dev/null")) {
+  length_ = parser_->length();
+  int num_points = parser_->num_points();
+
+  if(parser_->grid_file() == std::string(zerork::utilities::null_filename)) {
     // if no grid provided -> uniform grid from input file parameters
     if(parser_->num_points() < 2) {
       printf("# ERROR: number of grid points must be two or greater than two\n"
@@ -540,10 +544,11 @@ void FlameParams::SetGrid()
       exit(-1);
     }
 
-    const int num_points = parser_->num_points();
+    const double delta_z = length_/(double)(num_points+1-1);
+    num_points_ = num_points;
     z_.assign(num_points, 0.0);
     for(int j=0; j<num_points; ++j) {
-      z_[j] = (double)j*parser_->length()/(double)(num_points-1);
+      z_[j] = delta_z + (double)j*delta_z;
     }
 
   } else {
@@ -581,9 +586,13 @@ void FlameParams::SetGrid()
       exit(-1);
     } // if z.size
 
+    length_ = z_[z_.size()-1];
+    //Remove first point
+    z_.erase(z_.begin());
   }
 
-  const int num_points = z_.size();
+  num_points = z_.size();
+  num_points_ = num_points;
   num_local_points_ = num_points/npes_;
 
   if(num_points % npes_ != 0 ) {
@@ -710,7 +719,7 @@ void FlameParams::SetWallProperties()
                            parser_->inlet_temperature()/
                            parser_->ref_temperature());
 
-  if(parser_->wall_temperature_file() == std::string("/dev/null")) {
+  if(parser_->wall_temperature_file() == std::string(zerork::utilities::null_filename)) {
     // if no wall temperature file is specified, then wall temperature
     // remains equal to the inlet_temperature and the nusselt number is
     // set to zero for an adiabatic calculation
@@ -788,7 +797,7 @@ void FlameParams::SetWallProperties()
       wall_temperature_[j] /= parser_->ref_temperature();
     }
 
-  } // if(parser_->wall_temperature_file() == std::string("/dev/null")) else
+  } // if(parser_->wall_temperature_file() == std::string(zerork::utilities::null_filename)) else
 
 }
 

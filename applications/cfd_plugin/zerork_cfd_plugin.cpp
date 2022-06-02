@@ -49,6 +49,17 @@ int zerork_reactor_set_double_option(const char* option_name_chr,
 }
 
 extern "C"
+int zerork_reactor_set_string_option(const char* option_name_chr,
+                                     const char* option_value,
+                                     zerork_handle handle)
+{
+  ZeroRKReactorManagerBase* zrm = handle->r.get();
+  std::string option_name = option_name_chr;
+  std::string option_value_str = option_value;
+  return zrm->SetStringOption(option_name, option_value_str);
+}
+
+extern "C"
 int zerork_reactor_get_int_option(const char* option_name_chr,
                                   int* option_value,
                                   zerork_handle handle)
@@ -68,6 +79,21 @@ int zerork_reactor_get_double_option(const char* option_name_chr,
   return zrm->GetDoubleOption(option_name, option_value);
 }
 
+extern "C"
+int zerork_reactor_get_string_option(const char* option_name_chr,
+                                     char** option_value,
+                                     int string_length,
+                                     zerork_handle handle)
+{
+  ZeroRKReactorManagerBase* zrm = handle->r.get();
+  std::string option_name = option_name_chr;
+  std::string option_value_str;
+  int flag = zrm->GetStringOption(option_name, &option_value_str);
+  if(flag == 0) {
+    strncpy(*option_value, option_value_str.c_str(), string_length);
+  }
+  return flag;
+}
 
 extern "C"
 int zerork_reactor_solve(const int n_cycle, const double time,

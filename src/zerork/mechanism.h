@@ -262,7 +262,6 @@ class mechanism
   double Ru;   // [J/kmol-K] universal gas constant
 
   // informational, organizational data
-  element *elementList;
   species *speciesList;
 
   // reaction rate workspace

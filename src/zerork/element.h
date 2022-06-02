@@ -14,10 +14,10 @@ class element
   ~element();
 
   // data assignment
-  void setElement(const int num, const double m, const char *sym);
-  void setElement(const int num);
-  void setElement(const char *sym);
-  
+  bool setElement(const int num, const double m, const char *sym);
+  bool setElement(const int num);
+  bool setElement(const char *sym);
+
   // data access (constant member functions)
   int    getNumber() const {return number;}
   double getMass() const {return mass;}

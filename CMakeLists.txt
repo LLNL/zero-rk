@@ -9,9 +9,15 @@ endif()
 
 cmake_minimum_required(VERSION 3.12)
 
+# enable MSVC_RUNTIME_LIBRARY target property
+# see https://cmake.org/cmake/help/latest/policy/CMP0091.html
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
 project(zerork LANGUAGES C CXX VERSION 3.0.8)
 
-find_package (Python3 COMPONENTS Interpreter)
+find_package (Python3 REQUIRED COMPONENTS Interpreter)
 
 set(ZERORK_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(ZERORK_DATA_DIR ${ZERORK_SOURCE_DIR}/data)
@@ -35,6 +41,8 @@ option(ZERORK_TESTS "Enable Zero-RK Tests" ON)
 option(ZERORK_EXP_LIBC "Use libc exponential function instead of MKL/FMATH" OFF)
 set(SUNDIALS_VERSION "5" CACHE STRING "Sundials major version interface")
 set_property(CACHE SUNDIALS_VERSION PROPERTY STRINGS "2;3;4;5")
+set(ZERORK_EXTERNALS_BUILD_TYPE "Release" CACHE STRING "Build type for external dependencies built during config.")
+set_property(CACHE ZERORK_EXTERNALS_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 
 if(${ENABLE_SHARED_LIBS})
   set(BUILD_SHARED_LIBS ON CACHE INTERNAL "")
@@ -50,6 +58,7 @@ if(${ENABLE_OPENMP})
 find_package(OpenMP)
 endif()
 
+include(cmake/platform.cmake)
 include(cmake/git.cmake)
 include(cmake/spify.cmake)
 include(cmake/blas.cmake)

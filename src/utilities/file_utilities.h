@@ -10,6 +10,7 @@ namespace zerork
 namespace utilities 
 {
 
+extern const char* null_filename;
 
 // Returns false if fopen(file_name.c_str(),"r") is NULL, and true otherwise.
 bool FileIsReadable(const std::string &file_name);
@@ -66,7 +67,7 @@ std::istream& GetFirstLineWithKeyword(std::istream &input_stream,
 
 // The Logger class allows a single printf or flush command to be sent to all
 // log streams. It also allows for the suppression of all log streams by
-// setting the log_filename to "/dev/null/" and use_stdout and use_stderr to
+// setting the log_filename to null_filename and use_stdout and use_stderr to
 // false.  
 class Logger
 {

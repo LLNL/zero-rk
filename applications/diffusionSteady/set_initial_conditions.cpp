@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "set_initial_conditions.h"
 
@@ -100,7 +101,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
 
   // Restart using binary file if provided
-  if(flame_params.parser_->restart_file() != std::string("/dev/null")) {
+  if(flame_params.parser_->restart_file() != std::string(zerork::utilities::null_filename)) {
     const char* filename1;//[32];
     char filename2[32];
     int num_points_file, num_vars_file;

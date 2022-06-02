@@ -16,6 +16,8 @@
 
 #include "utility_funcs.h"
 
+#include "file_utilities.h" //zerork::utilities
+
 using zerork::getHighResolutionTime;
 
 ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
@@ -30,7 +32,10 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   sorted_rank_ = 0;
   nranks_ = 1;
   root_rank_ = 0;
+
+  //Non-optionable defaults
   load_balance_ = 1;
+  load_balance_noise_ = 0;
   dump_reactors_ = false;
 
 #ifdef USE_MPI
@@ -39,7 +44,7 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
 #endif
 
   //Default options
-  //
+
   //Manager Options
   int_options_["verbosity"] = 4;
   int_options_["sort_reactors"]= 1;
@@ -65,46 +70,48 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
   double_options_["delta_temperature_ignition"] = 0.0;
   double_options_["min_mass_fraction"] = 1.0e-30;
 
-  std::string reactor_timing_log_filename("/dev/null");
+  //File-output Options
+  string_options_["mech_filename"] = std::string(mech_filename);
+  string_options_["therm_filename"] = std::string(therm_filename);
+  string_options_["reactor_timing_log_filename"] = std::string(zerork::utilities::null_filename);
+  string_options_["mechanism_parsing_log_filename"] = std::string(zerork::utilities::null_filename);
 
   //Overrides from input file
-  ZeroRKCFDPluginIFP inputFileDB(input_filename);
-  int_options_["verbosity"] = inputFileDB.verbosity();
-  int_options_["sort_reactors"] = inputFileDB.sort_reactors();
+  if(input_filename != nullptr) {
+    ZeroRKCFDPluginIFP inputFileDB(input_filename);
+    int_options_["verbosity"] = inputFileDB.verbosity();
+    int_options_["sort_reactors"] = inputFileDB.sort_reactors();
 
-  int_options_["max_steps"] = inputFileDB.max_steps();
-  int_options_["dense"] = inputFileDB.dense();
-  int_options_["analytic"] = inputFileDB.analytic();
-  int_options_["iterative"] = inputFileDB.iterative();
-  int_options_["integrator"] = inputFileDB.integrator();
-  int_options_["abstol_dens"] = inputFileDB.abstol_dens();
-  double_options_["abs_tol"] = inputFileDB.absolute_tolerance();
-  double_options_["rel_tol"] = inputFileDB.relative_tolerance();
-  double_options_["eps_lin"] = inputFileDB.eps_lin();
-  double_options_["nonlinear_convergence_coeff"] = inputFileDB.nonlinear_convergence_coeff();
-  double_options_["preconditioner_threshold"] = inputFileDB.preconditioner_threshold();
-  double_options_["max_dt"] = inputFileDB.max_dt();
+    int_options_["max_steps"] = inputFileDB.max_steps();
+    int_options_["dense"] = inputFileDB.dense();
+    int_options_["analytic"] = inputFileDB.analytic();
+    int_options_["iterative"] = inputFileDB.iterative();
+    int_options_["integrator"] = inputFileDB.integrator();
+    int_options_["abstol_dens"] = inputFileDB.abstol_dens();
+    double_options_["abs_tol"] = inputFileDB.absolute_tolerance();
+    double_options_["rel_tol"] = inputFileDB.relative_tolerance();
+    double_options_["eps_lin"] = inputFileDB.eps_lin();
+    double_options_["nonlinear_convergence_coeff"] = inputFileDB.nonlinear_convergence_coeff();
+    double_options_["preconditioner_threshold"] = inputFileDB.preconditioner_threshold();
+    double_options_["max_dt"] = inputFileDB.max_dt();
 
-  int_options_["constant_volume"] = inputFileDB.constant_volume();
-  double_options_["reference_temperature"] = inputFileDB.reference_temperature();
-  double_options_["delta_temperature_ignition"] = inputFileDB.delta_temperature_ignition();
-  double_options_["min_mass_fraction"] = inputFileDB.min_mass_fraction();
+    int_options_["constant_volume"] = inputFileDB.constant_volume();
+    double_options_["reference_temperature"] = inputFileDB.reference_temperature();
+    double_options_["delta_temperature_ignition"] = inputFileDB.delta_temperature_ignition();
+    double_options_["min_mass_fraction"] = inputFileDB.min_mass_fraction();
 
-  n_reactors_max_ = inputFileDB.n_reactors_max();
-  n_reactors_min_ = inputFileDB.n_reactors_min();
 #ifdef USE_MPI
-  load_balance_ = inputFileDB.load_balance();
-  load_balance_noise_ = inputFileDB.load_balance_noise();
+    load_balance_ = inputFileDB.load_balance();
+    load_balance_noise_ = inputFileDB.load_balance_noise();
 #endif
+    dump_reactors_ = (inputFileDB.dump_reactors() != 0);
+
+    string_options_["reactor_timing_log_filename"] = inputFileDB.reactor_timing_log();
+    string_options_["mechanism_parsing_log_filename"] = inputFileDB.mechanism_parsing_log();
+  }
+
   if(nranks_ == 1) {
     load_balance_ = 0;
-  }
-  dump_reactors_ = (inputFileDB.dump_reactors() != 0);
-
-  reactor_timing_log_filename = inputFileDB.reactor_timing_log();
-  
-  if(rank_ == 0) { 
-    reactor_log_file_.open(reactor_timing_log_filename);
   }
 
   T_other_.clear();
@@ -134,13 +141,6 @@ ZeroRKReactorManager::ZeroRKReactorManager(const char* input_filename,
 
   cb_fn_ = nullptr;
   cb_fn_data_ = nullptr;
-
-  const char* cklog_filename = inputFileDB.mechanism_parsing_log().c_str();
-  if(rank_ != root_rank_) {
-     cklog_filename = "/dev/null";
-  }
-
-  mech_ptr_ = std::make_shared<zerork::mechanism>(mech_filename, therm_filename, cklog_filename);
 }
 
 #ifndef USE_MPI
@@ -348,6 +348,20 @@ void ZeroRKReactorManager::SetCallbackFunction(zerork_callback_fn fn, void* cb_f
 
 void ZeroRKReactorManager::FinishInit() {
   if(n_calls_ == 0) {
+
+    if(rank_ == root_rank_) { 
+      reactor_log_file_.open(string_options_["reactor_timing_log_filename"]);
+    }
+
+    std::string cklog_filename(string_options_["mechanism_parsing_log_file"]);
+    if(rank_ != root_rank_) {
+       cklog_filename = std::string(zerork::utilities::null_filename);
+    }
+
+    mech_ptr_ = std::make_shared<zerork::mechanism>(string_options_["mech_filename"].c_str(),
+                    string_options_["therm_filename"].c_str(),
+                    cklog_filename.c_str());
+
     num_species_ = mech_ptr_->getNumSpecies();
     num_species_stride_ = num_species_;
 

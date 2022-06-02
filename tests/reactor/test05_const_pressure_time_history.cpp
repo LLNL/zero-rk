@@ -22,6 +22,9 @@
 #include <zerork/constants.h>
 #include <reactor/const_pressure_reactor.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
+
+using zerork::utilities::null_filename;
 
 typedef struct
 {
@@ -224,7 +227,7 @@ static double MarchToTime(const InitialConditions &ic,
   }
   ConstPressureReactor user_data(load_mech.c_str(),
                                  load_therm.c_str(),
-                                 "/dev/null",
+                                 null_filename,
                                  COMPRESSED_COL_STORAGE,
                                  ic.pressure_);
 

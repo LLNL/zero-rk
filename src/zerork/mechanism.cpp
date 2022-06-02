@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h> // for memcpy
+#include <assert.h>
 #ifndef WIN32
 #include <dlfcn.h> // for loading external func lib
 #endif
@@ -32,19 +33,16 @@ mechanism::mechanism(const char *mechFileName,
   //      unless an error happens.  Then we will print parser output
   //      only if verbosity > 0.
   //      This is our strategy for multiple parsers on MPI programs.
-  ckr::CKReader *ckrobj;
-
   std::string ckFileStr = convertFileStr;
   if (ckFileStr.length() == 0)
   {
-      ckFileStr = "/dev/null";
       convertFileStr = mechFileStr + ".out";
   }
 
-  ckrobj = new ckr::CKReader();
-  if(!(ckrobj->read(mechFileStr,thermFileStr,ckFileStr)))
+  ckr::CKReader ckrobj;
+  if(!(ckrobj.read(mechFileStr,thermFileStr,ckFileStr)))
   {
-    if(ckFileStr.compare("/dev/null") != 0)
+    if(ckFileStr.length() == 0)
     {
       //Don't print an error message if we don't have a log file.
       printf("ERROR: could not parse mech (%s) and thermo (%s) files,\n",
@@ -54,36 +52,24 @@ mechanism::mechanism(const char *mechFileName,
     else if(verbosity > 0)
     {
       //Retry parse with non-null output
-      delete ckrobj;
-      ckrobj = new ckr::CKReader();
-      if(!(ckrobj->read(mechFileStr,thermFileStr,convertFileStr)))
+      ckr::CKReader ckrobj2;
+      if(!(ckrobj2.read(mechFileStr,thermFileStr,convertFileStr)))
       {
         printf("ERROR: could not parse mech (%s) and thermo (%s) files,\n",
                mechFileStr.c_str(),thermFileStr.c_str());
         printf("       check converter log file %s\n",convertFileStr.c_str());
       }
     }
-    delete ckrobj;
     fflush(stdout);
     exit(-1);
   }
 
-  if(ckrobj == NULL)
-    {
-      printf("ERROR: allocator mechanism(char *, char *, char *) failed\n");
-      printf("       because CKReader object is NULL.\n");
-      fflush(stdout);
-      exit(-1);
-    }
-
   //This is our flag to not output parser warnings from rate_const
-  if(verbosity == 0 || ckFileStr.compare("/dev/null") ==0)
+  if(verbosity == 0 || ckFileStr.length() ==0)
   {
-    ckrobj->verbose = false;
+    ckrobj.verbose = false;
   }
-  build_mechanism(ckrobj);
-
-  delete ckrobj;
+  build_mechanism(&ckrobj);
 }
 
 mechanism::~mechanism()
@@ -92,7 +78,6 @@ mechanism::~mechanism()
   delete Kconst;
   delete infoNet;
   delete [] rxnDefinition;
-  delete [] elementList;
   delete [] speciesList;
   delete [] molWt;
   delete [] invMolWt;
@@ -120,26 +105,13 @@ void mechanism::build_mechanism(ckr::CKReader *ckrobj)
   vector <int> constCount;
   vector <element> constList;
 
-  if(ckrobj == NULL)
-  {
-    printf("ERROR: build_mechanism(ckr::CKReader *) failed\n");
-    printf("       because CKReader object is NULL.\n");
-    fflush(stdout);
-    exit(-1);
-  }
+  assert(ckrobj != NULL);
 
   // set the gas constant
   Ru=NIST_RU;
 
   // create and fill the element list
   nElm=static_cast<int>(ckrobj->elements.size());
-
-  elementList = new element[nElm];
-
-  for(j=0; j<nElm; j++)
-  {
-    elementList[j].setElement(ckrobj->elements[j].name.c_str());
-  }
 
   // create and fill the species sized lists
   nSpc=static_cast<int>(ckrobj->species.size());
@@ -162,7 +134,8 @@ void mechanism::build_mechanism(ckr::CKReader *ckrobj)
       for(k=0; k<nConst; k++)
       {
         constCount[k]=ckrobj->species[j].elements[k].number;
-        constList[k].setElement(ckrobj->species[j].elements[k].name.c_str());
+        bool flag = constList[k].setElement(ckrobj->species[j].elements[k].name.c_str());
+        assert(("Unable to set element",flag));
       }
       speciesList[j].setSpecies(j,ckrobj->species[j].name.c_str(),constCount,
 				constList);
@@ -220,25 +193,13 @@ void mechanism::initialize_ptrs(ckr::CKReader *ckrobj)
     coef[j*NUM_THERMO_POLY_D5R2+0]=ckrobj->species[j].tmid;
 
     nLoCoef=ckrobj->species[j].lowCoeffs.size();
-    if(nLoCoef != NUM_COEF_RANGE)
-    {
-      printf("ERROR: unexpected number of low temperature coeffients\n");
-      printf("       for species %d (%s) - %d coeffiecients in CKReader\n",
-             j+1,ckrobj->species[j].name.c_str(),nLoCoef);
-      exit(-1);
-    }
+    assert(nLoCoef == NUM_COEF_RANGE);
     for(k=0; k<NUM_COEF_RANGE; k++)
     {
       coef[j*NUM_THERMO_POLY_D5R2+k+1]= ckrobj->species[j].lowCoeffs[k];
     }
     nHiCoef=ckrobj->species[j].highCoeffs.size();
-    if(nHiCoef != NUM_COEF_RANGE)
-    {
-      printf("ERROR: unexpected number of low temperature coeffients\n");
-      printf("       for species %d (%s) - %d coeffiecients in CKReader\n",
-             j+1,ckrobj->species[j].name.c_str(),nHiCoef);
-      exit(-1);
-    }
+    assert(nHiCoef == NUM_COEF_RANGE);
     for(k=0; k<NUM_COEF_RANGE; k++)
     {
       coef[j*NUM_THERMO_POLY_D5R2+k+1+NUM_COEF_RANGE]=
@@ -259,14 +220,12 @@ void mechanism::initialize_ptrs(ckr::CKReader *ckrobj)
 int mechanism::getIdxFromName(const char *nm)
 {
   int idx;
-  for(idx=0; idx<nSpc; idx++)
-    {
-      if(strcmp(nm,speciesList[idx].getName_c_str())==0)
-	{return idx;}
+  for(idx=0; idx<nSpc; idx++) {
+    if(strcmp(nm,speciesList[idx].getName_c_str())==0) {
+      return idx;
     }
-  printf("ERROR: could not find species name %s in mechanism list\n",nm);
-  exit(-1);
-  return MIN_INT32;
+  }
+  return -1;
 }
 
 
@@ -1140,13 +1099,15 @@ void mechanism::initExternalFuncs()
   char * dl_error;
   char * ext_flags;
   unsigned char ext_active_flags = 0; //Make user turn on explicitly
+  externalFuncLibHandle = NULL;
+
   ext_flags = getenv("ZERORK_EXT_FLAGS");
   if (ext_flags!=NULL)
   {
      ext_active_flags = atoi(ext_flags);
   }
+  if( ext_active_flags <= 0 ) return;
 
-  externalFuncLibHandle = NULL;
   externalFuncLibPath = getenv("ZERORK_EXT_FUNC_LIB");
   if (externalFuncLibPath!=NULL)
   {
@@ -1155,8 +1116,10 @@ void mechanism::initExternalFuncs()
       if (!externalFuncLibHandle)
       {
          fprintf(stderr, "%s\n", dlerror());
-         exit(1);
+         return;
       }
+  } else {
+    return;
   }
 
   if( externalFuncLibHandle != NULL ) // Attempt to load from external library.
@@ -1165,61 +1128,54 @@ void mechanism::initExternalFuncs()
       if ((dl_error = dlerror()) != NULL)
       {
          fprintf(stderr, "%s\n", dl_error);
-         exit(1);
+         return;
+      }
+      if(!ex_func_check(nSpc,nStep)) {
+        return;
       }
 
       ex_func_calc_rates = (external_func_rates_t) dlsym(externalFuncLibHandle, "external_func_rates");
       if ((dl_error = dlerror()) != NULL)
       {
          fprintf(stderr, "%s\n", dl_error);
-         exit(1);
+         return;
       }
 
       ex_func_calc_arrh = (external_func_arrh_t) dlsym(externalFuncLibHandle, "external_func_arrh");
       if ((dl_error = dlerror()) != NULL)
       {
          fprintf(stderr, "%s\n", dl_error);
-         exit(1);
+         return;
       }
 
       ex_func_calc_keq = (external_func_keq_t) dlsym(externalFuncLibHandle, "external_func_keq");
       if ((dl_error = dlerror()) != NULL)
       {
          fprintf(stderr, "%s\n", dl_error);
-         exit(1);
+         return;
       }
-  }
-  else // Use funcs defined in current static lib.
-  {  // TODO: switch to load from local scope with dlsym(RTLD_DEFAULT,...) and -rdynamic
-      ex_func_check = external_func_check;
-      ex_func_calc_rates = external_func_rates;
-      ex_func_calc_arrh = external_func_arrh;
-      ex_func_calc_keq = external_func_keq;
-  }
-
-  if( ext_active_flags > 0 )
-  {
-      ex_func_check(nSpc,nStep); // Quits if check fails.
+  } else {
+    return;
   }
 
   if( ext_active_flags & 0x01 )
   {
       printf("ZERORK_MECHANISM: activating external rates.\n");
       perfNet->setUseExRates();
+      perfNet->setExRatesFunc(ex_func_calc_rates);
   }
   if( ext_active_flags & 0x02 )
   {
       printf("ZERORK_MECHANISM: activating external arrh.\n");
       Kconst->setUseExArrh();
+      Kconst->setExArrhFunc(ex_func_calc_arrh);
   }
   if( ext_active_flags & 0x04 )
   {
       printf("ZERORK_MECHANISM: activating external keq.\n");
       Kconst->setUseExKeq();
+      Kconst->setExKeqFunc(ex_func_calc_keq);
   }
-  perfNet->setExRatesFunc(ex_func_calc_rates);
-  Kconst->setExArrhFunc(ex_func_calc_arrh);
-  Kconst->setExKeqFunc(ex_func_calc_keq);
 #endif
 }
 
@@ -1228,18 +1184,9 @@ void mechanism::buildReactionString(const int idx,
 {
   int stepId,falloffFlag;
   string spcStr;
-  if(infoNet==NULL) {
-    printf("# ERROR: can not call mechanism::buildReactionString(...) before\n");
-    printf("#        informational network (type info_net) is constructed.\n");
-    fflush(stdout);
-    exit(-1);
-  }
-  if(speciesList==NULL) {
-    printf("# ERROR: can not call mechanism::buildReactionString(...) before\n");
-    printf("#        species list is constructed.\n");
-    fflush(stdout);
-    exit(-1);
-  }
+
+  assert(infoNet != NULL);
+  assert(speciesList != NULL);
 
   stepId = getStepIdxOfRxn(idx,1);
   str.clear();

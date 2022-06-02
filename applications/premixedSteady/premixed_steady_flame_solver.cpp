@@ -348,14 +348,14 @@ int main(int argc, char *argv[])
     // Pseudo-unsteady
   if(flame_params.pseudo_unsteady_) {
     flag = KINSetPrintLevel(kinsol_ptr, 0);
-    flag = KINSetNumMaxIters(kinsol_ptr, 50);
+    flag = KINSetNumMaxIters(kinsol_ptr, 80);
     if(my_pe==0) {
       printf("# begin pseudo time-stepping\n");
       printf("# time      timestep     SL     nfevals  cputime\n");
     }
     double pseudo_time = 0.0;
     double kinstart_time, kinend_time;
-    flame_params.dt_ = 1.0e-3; //seems to be a good starting guess
+    flame_params.dt_ = flame_params.parser_->pseudo_unsteady_dt()*0.5; //Half the timestep for first iteration
 
     while(pseudo_time < 0.05) {
       for(int j=0; j<num_local_states; j++) {
@@ -385,9 +385,11 @@ int main(int argc, char *argv[])
                              kinend_time-kinstart_time);}
 
         // Increase time step if it's converging quickly
-        if(nfevals < 6)
-          flame_params.dt_ *= 2.0;
-
+        if(nfevals <= 5 or pseudo_time == flame_params.dt_) {
+          flame_params.dt_ *= 3.0;
+        } else if (nfevals <= 10) {
+          flame_params.dt_ *= 1.3;
+        }
       } else {
         // Failure, reset state and decrease timestep
         for(int j=0; j<num_local_states; j++) {
@@ -729,6 +731,7 @@ static void WriteFieldParallel(double t,
 			       const FlameParams &params)
 {
   int num_grid_points = (int)params.z_.size();
+  int num_grid_points_ext = (int)params.z_.size() + 1; // left BC
   int num_local_points = (int)params.num_local_points_;
   int num_reactor_states = params.reactor_->GetNumStates();
   int my_pe, npes;
@@ -760,7 +763,7 @@ static void WriteFieldParallel(double t,
 
   // Write header
   if(my_pe == 0) {
-    MPI_File_write(output_file, &num_grid_points, 1, MPI_INT, MPI_STATUS_IGNORE);//num points
+    MPI_File_write(output_file, &num_grid_points_ext, 1, MPI_INT, MPI_STATUS_IGNORE);//num points
     MPI_File_write(output_file, &num_reactor_states, 1, MPI_INT, MPI_STATUS_IGNORE);//num variables
     MPI_File_write(output_file, &t, 1, MPI_DOUBLE, MPI_STATUS_IGNORE); //time
     for(int j=0; j<num_reactor_states; ++j) {
@@ -773,6 +776,20 @@ static void WriteFieldParallel(double t,
 
   // Write data for each variable
   for(int j=0; j<num_reactor_states; ++j) {
+    // Write left BC data
+    if(j==num_reactor_states-2) {
+      buffer[0] = params.inlet_relative_volume_;
+    } else if (j==num_reactor_states-1) {
+      buffer[0] = params.inlet_temperature_*params.ref_temperature_;
+    } else {
+      buffer[0] = params.inlet_mass_fractions_[j];
+    }
+    disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
+      + j*(npes*num_local_points+1)*sizeof(double);
+    MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
+    MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+    // Write interior data
     for (int k=0; k<num_local_points; ++k) {
       buffer[k] = state[k*num_reactor_states + j];
       if(j==num_reactor_states-2){
@@ -783,16 +800,27 @@ static void WriteFieldParallel(double t,
       }
     }
     disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
-      + j*npes*num_local_points*sizeof(double);
+      + sizeof(double)
+      + j*(npes*num_local_points+1)*sizeof(double);
     MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
     MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
   }
+
   // Write mass flux
+  // Left BC
+  buffer[0] = state[num_reactor_states-2]; //?
+  disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
+    + num_reactor_states*(npes*num_local_points+1)*sizeof(double);
+  MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
+  MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+  // Interior
   for (int k=0; k<num_local_points; ++k) {
     buffer[k] = state[k*num_reactor_states + num_reactor_states-2];
   }
   disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
-    + num_reactor_states*npes*num_local_points*sizeof(double);
+    + sizeof(double)
+    + num_reactor_states*(npes*num_local_points+1)*sizeof(double);
   MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
   MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
 

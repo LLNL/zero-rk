@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
 #Name your parser
@@ -15,7 +17,7 @@ spify_parser_params.append(
     'name':'mech_file',
     'type':'string',
     'shortDesc' : 'Chemkin format mechansim file',
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -49,7 +51,7 @@ spify_parser_params.append(
     'name' : 'change_file',
     'type' : 'string',
     'longDesc' : 'File with tables suitable for plotting the properties Cp/R, H/RT and S/R to inspect the repair changes',
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 

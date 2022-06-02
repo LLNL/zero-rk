@@ -41,12 +41,21 @@ int ZERORK_CFD_PLUGIN_EXPORTS zerork_reactor_set_double_option(const char* optio
                                      double option_value,
                                      zerork_handle handle);
 
+int ZERORK_CFD_PLUGIN_EXPORTS zerork_reactor_set_string_option(const char* option_name_chr,
+                                     const char* option_value,
+                                     zerork_handle handle);
+
 int ZERORK_CFD_PLUGIN_EXPORTS zerork_reactor_get_int_option(const char* option_name_chr,
                                   int* option_value,
                                   zerork_handle handle);
 
 int ZERORK_CFD_PLUGIN_EXPORTS zerork_reactor_get_double_option(const char* option_name_chr,
                                      double* option_value,
+                                     zerork_handle handle);
+
+int ZERORK_CFD_PLUGIN_EXPORTS zerork_reactor_get_string_option(const char* option_name_chr,
+                                     char** option_value,
+                                     int string_length,
                                      zerork_handle handle);
 
 int ZERORK_CFD_PLUGIN_EXPORTS zerork_reactor_set_callback_fn(zerork_callback_fn fn,

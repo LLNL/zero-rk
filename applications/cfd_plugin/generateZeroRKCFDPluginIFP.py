@@ -11,7 +11,7 @@ spify_parser_params.append(
     'name':'mechanism_parsing_log',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -20,7 +20,7 @@ spify_parser_params.append(
     'name':'reactor_timing_log',
     'type':'string',
     'shortDesc' : "Log file for reactor solutions timing statistics",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 

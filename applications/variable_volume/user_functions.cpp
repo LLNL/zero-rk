@@ -375,7 +375,7 @@ int UserData::BuildInitialState()
     std::vector<double> converted_comp;
     MechanismInfo info(parser_->mechFile().c_str(),
                        parser_->thermFile().c_str(),
-                       "/dev/null");
+                       "");
 
     converted_comp.assign(num_species, 0.0);
     info.ConvertMassToMoleFraction(&initial_state_[0],

@@ -20,7 +20,7 @@ if(EXISTS ${SYSTEM_SUNDIALS_ROOT})
     endif()
   endforeach()
 else()
-  set(sundials_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/sundials${SUNDIALS_VERSION})
+  set(sundials_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/sundials${SUNDIALS_VERSION}/${ZERORK_EXTERNALS_BUILD_TYPE})
 endif()
 
 if((NOT EXISTS ${sundials_prefix}) OR (NOT ${sundials_system_working}))
@@ -34,7 +34,7 @@ if((NOT EXISTS ${sundials_prefix}) OR (NOT ${sundials_system_working}))
   if(result)
     message(FATAL_ERROR "CMake step for Sundials-${SUNDIALS_VERSION} failed: ${result}")
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  execute_process(COMMAND ${CMAKE_COMMAND} --build . --config ${ZERORK_EXTERNALS_BUILD_TYPE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/sundials${SUNDIALS_VERSION}-build)
   if(result)

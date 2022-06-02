@@ -70,7 +70,7 @@ int CvodeSolver::Integrate(const double end_time) {
   check_cvode_flag(&flag, "CVodeSetMaxStep", 1);
 
   flag = CVodeSetNonlinConvCoef(cvode_mem, double_options_["nonlinear_convergence_coeff"]);
-  if (check_cvode_flag(&flag, "CVodeSetNonlinConvCoef", 1)) exit(-1);
+  check_cvode_flag(&flag, "CVodeSetNonlinConvCoef", 1);
 
   if(reactor_ref_.GetNumRootFunctions() > 0) {
       flag = CVodeRootInit(cvode_mem, reactor_ref_.GetNumRootFunctions(), ReactorRootFunction);

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
 #Name your parser
@@ -45,7 +47,7 @@ spify_parser_params.append(
     'name':'grid_file',
     'type':'string',
     'longDesc' : "Grid file [input] column 1 = position [m]",
-    'defaultValue': '/dev/null'
+    'defaultValue': os.devnull
 }
 )
 
@@ -53,8 +55,8 @@ spify_parser_params.append(
 {
     'name':'wall_temperature_file',
     'type':'string',
-    'longDesc' : "Wall temperature file [input] column 1 = position [m], column 2 = temperature [K].  Inlet position is at zero. If set to /dev/null then the Nusselt number is set to zero for an adiabatic case.",
-    'defaultValue': '/dev/null'
+    'longDesc' : "Wall temperature file [input] column 1 = position [m], column 2 = temperature [K].  Inlet position is at zero. If set to os.devnull then the Nusselt number is set to zero for an adiabatic case.",
+    'defaultValue': os.devnull
 }
 )
 
@@ -62,8 +64,8 @@ spify_parser_params.append(
 {
     'name':'initial_profile_file',
     'type':'string',
-    'longDesc' : "Initial species and temperature file [input] column 1 = position [m], column 2 = mass flow, column 3=temperature [K] column 4->num_species+3.  Inlet position is at zero. If set to /dev/null then the inlet composition is used.",
-    'defaultValue': '/dev/null'
+    'longDesc' : "Initial species and temperature file [input] column 1 = position [m], column 2 = mass flow, column 3=temperature [K] column 4->num_species+3.  Inlet position is at zero. If set to os.devnull then the inlet composition is used.",
+    'defaultValue': os.devnull
 }
 )
 
@@ -72,7 +74,7 @@ spify_parser_params.append(
     'name':'restart_file',
     'type':'string',
     'longDesc' : "Binary data file for restarts. Contains number of grid points, number of variables, time, and all species, relative volume, and temperature data.",
-    'defaultValue': '/dev/null'
+    'defaultValue': os.devnull
 }
 )
 
@@ -82,7 +84,7 @@ spify_parser_params.append(
     'name':'log_file',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File [output]",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -91,7 +93,7 @@ spify_parser_params.append(
     'name':'outlet_file',
     'type':'string',
     'shortDesc' : "File name to record the time history of the outlet state [output]",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -100,7 +102,7 @@ spify_parser_params.append(
     'name':'field_file',
     'type':'string',
     'shortDesc' : "File name to record the time history of the field data [output]",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -119,15 +121,6 @@ spify_parser_params.append(
     'type':'double',
     'shortDesc' : "diameter of the flame tube [m]",
     'defaultValue' : 1.0e-3
-}
-)
-
-spify_parser_params.append(
-{
-    'name':'inlet_velocity',
-    'type':'double',
-    'shortDesc' : "Inlet velocity of the flame tube [m/s]",
-    'defaultValue' : 1.0
 }
 )
 
@@ -310,6 +303,15 @@ spify_parser_params.append(
 }
 )
 
+spify_parser_params.append(
+{
+    'name':'pseudo_unsteady_dt',
+    'type':'double',
+    'longDesc' : "Initial pseudo-unsteady time step",
+    'defaultValue' : 1.0e-3
+}
+)
+
 
 spify_parser_params.append(
 {
@@ -380,6 +382,15 @@ spify_parser_params.append(
     'type':'double',
     'shortDesc' : "Initial temperature of mixture for steady flame cases",
     'defaultValue' : 1500.0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"anchor_temperature",
+    'type':'double',
+    'shortDesc' : "Temperature delta above the inlet temperature used to determine the anchoring location",
+    'defaultValue' : 250.0
 }
 )
 

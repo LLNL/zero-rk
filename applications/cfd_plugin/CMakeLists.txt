@@ -27,7 +27,7 @@ add_library(zerork_cfd_plugin SHARED ${COMMON_SRCS} zerork_cfd_plugin.cpp)
 add_executable(zerork_cfd_plugin_tester.x zerork_cfd_plugin_tester.cpp ZeroRKCFDPluginTesterIFP.cpp)
 endif()
 
-target_link_libraries(zerork_cfd_plugin zerork superlu spify sundials_cvode sundials_nvecserial)
+target_link_libraries(zerork_cfd_plugin zerork zerorkutilities superlu spify sundials_cvode sundials_nvecserial)
 if(NOT WIN32)
 target_link_options(zerork_cfd_plugin PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)
 endif()

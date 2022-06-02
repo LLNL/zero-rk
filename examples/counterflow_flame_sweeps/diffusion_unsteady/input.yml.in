@@ -50,7 +50,7 @@ pseudo_unsteady: y
 step_limiter : 1e+16
 
 #Grid file containing list of grid points positions
-#Optional with default value of /dev/null
+#Optional with default value of @DEVNUL@
 #If not provided, a uniform grid is used based
 #on num_points and length inputs below
 grid_file: grid_file
@@ -70,7 +70,7 @@ thickness : 0.001
 
 #Mechanism Parser Log File [output]
 #Type: string
-#Optional with default value of /dev/null
+#Optional with default value of @DEVNUL@
 #log_file: 'mech.log'
 
 #Pressure of the flame system [Pa]
