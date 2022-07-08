@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <vector>
 #include <string>
@@ -19,6 +18,7 @@
 #include <sunnonlinsol/sunnonlinsol_newton.h>
 #endif
 
+#include "utilities.h"
 #include <utilities/file_utilities.h>
 
 #include <mpi.h>
@@ -27,6 +27,8 @@
 #include "cvode_functions.h"
 #include "set_initial_conditions.h"
 
+using zerork::getHighResolutionTime;
+
 const bool RUN_DEBUG=false;
 const int NUM_STDOUT_PARAMS = 12; // number of non species parameters to write
                                   // to standard out
@@ -34,8 +36,6 @@ const int NUM_LOG_PARAMS = 10;    // number of non species parameters to write
                                   // LogGridPointState
 
 static int check_flag(void *flagvalue, const char *funcname, int opt);
-
-static double GetHighResolutionTime();
 
 static double FindMaximumParallel(const size_t num_points,
 				  const double x[],
@@ -78,7 +78,7 @@ static double Min(double a, double b)
 
 int main(int argc, char *argv[])
 {
-  double clock_time = GetHighResolutionTime();
+  double clock_time = getHighResolutionTime();
   double setup_time, loop_time;
 
   if(argc < 2) {
@@ -352,8 +352,8 @@ int main(int argc, char *argv[])
   next_time = Min(step_dt, max_time);
 
   // Save time for CPU time evaluation
-  setup_time = GetHighResolutionTime() - clock_time;
-  clock_time = GetHighResolutionTime();
+  setup_time = getHighResolutionTime() - clock_time;
+  clock_time = getHighResolutionTime();
 
   // While simulation loop
   while(current_time < max_time) {
@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
     }
 
   }
-  loop_time = GetHighResolutionTime() - clock_time;
+  loop_time = getHighResolutionTime() - clock_time;
 
   N_VDestroy_Parallel(flame_state);
   if(cvode_ptr != NULL) {
@@ -714,16 +714,6 @@ static int GetStateMaxima(const std::vector<int> &state_id,
   }
 
   return 0;
-}
-
-static double GetHighResolutionTime()
-{
-    struct timeval time_of_day;
-
-    gettimeofday(&time_of_day, NULL);
-    double time_seconds =
-      (double) time_of_day.tv_sec + ((double) time_of_day.tv_usec / 1000000.0);
-    return time_seconds;
 }
 
 static int GetFuelSpeciesId(const FlameParams &params,

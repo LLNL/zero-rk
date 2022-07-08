@@ -2,5 +2,5 @@
 app=variable_volume_batch.x
 inp=hydrogen.yml
 
-@CMAKE_INSTALL_PREFIX@/bin/$app $inp
+"@CMAKE_INSTALL_PREFIX@/bin/$app" $inp
 

@@ -12,7 +12,7 @@ namespace utilities
 {
 
 #ifdef WIN32
-const char* null_filename = "NUL";
+const char* null_filename = "nul";
 #else
 const char* null_filename = "/dev/null";
 #endif

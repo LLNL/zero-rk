@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <iostream>
 #include <fstream>
@@ -63,15 +62,7 @@ static void printConditions(const InitialConditions& ic);
 static void printTaskStatus(int n_completed, int n_total, double elapsed_time);
 
 
-static double GetHighResolutionTime(void)
-{
-    struct timeval tod;
-
-    gettimeofday(&tod, NULL);
-    double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
-    return time_seconds;
-}
-
+using zerork::getHighResolutionTime;
 
 
 int main(int argc, char *argv[])
@@ -156,7 +147,7 @@ int root(int argc, char* argv[]) {
     ic_vector.push_back(current_ic);
   }
 
-  double start_time = GetHighResolutionTime();
+  double start_time = getHighResolutionTime();
   int n_in_process = 0;
   int n_tasks = ic_vector.size();
   MPI_Status status;
@@ -169,7 +160,7 @@ int root(int argc, char* argv[]) {
     if (status.MPI_TAG == RESULT_TAG) {
       recieveResult(&result_vector[statusMsg],status.MPI_SOURCE);
       n_in_process -= 1;
-      printTaskStatus(i-n_in_process,n_tasks,GetHighResolutionTime()-start_time);
+      printTaskStatus(i-n_in_process,n_tasks,getHighResolutionTime()-start_time);
     }
     sendTask(i, ic_vector[i], status.MPI_SOURCE);
     n_in_process += 1;
@@ -184,7 +175,7 @@ int root(int argc, char* argv[]) {
     if (status.MPI_TAG == RESULT_TAG) {
       recieveResult(&result_vector[statusMsg],status.MPI_SOURCE);
       n_in_process -= 1;
-      printTaskStatus(n_tasks-n_in_process,n_tasks,GetHighResolutionTime()-start_time);
+      printTaskStatus(n_tasks-n_in_process,n_tasks,getHighResolutionTime()-start_time);
     }
     int done = -1;
     MPI_Send(&done, 1, MPI_INT, status.MPI_SOURCE, TASK_TAG, MPI_COMM_WORLD);

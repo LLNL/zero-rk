@@ -757,7 +757,7 @@ void FlameParams::SetMemory()
   jContBC_ = num_points / 4;
 
   if(parser_->finite_separation()) {
-    if(flame_type_ == 0 or flame_type_ == 2) {
+    if(flame_type_ == 0 || flame_type_ == 2) {
       mass_flux_fuel_ = parser_->mass_flux_fuel();
       mass_flux_oxidizer_ = -parser_->mass_flux_oxidizer();
     } else if (flame_type_ == 1) {

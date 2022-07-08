@@ -230,7 +230,7 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
   }
 
   // Set right/left T
-  if(flame_params.flame_type_ == 0 or flame_params.flame_type_ == 2) {
+  if(flame_params.flame_type_ == 0 || flame_params.flame_type_ == 2) {
     temperature_right = flame_params.oxidizer_temperature_;
     temperature_left = flame_params.fuel_temperature_;
   } else if (flame_params.flame_type_ == 1) {
@@ -252,7 +252,7 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
           y[j*num_states+k] = flame_params.inlet_mass_fractions_[k];
         }
       }
-    } else if (jglobal > jl1 and jglobal <= jl2) {
+    } else if (jglobal > jl1 && jglobal <= jl2) {
       ramp = ((double)jglobal-(double)jl1)/((double)jl2-(double)jl1);
       temperature = temperature_left + (temperature_eq-temperature_left)*ramp;
       for(int k=0; k<num_species; ++k) {
@@ -264,11 +264,11 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
             (eq_mass_fractions[k]-flame_params.inlet_mass_fractions_[k])*ramp;
         }
       }
-    } else if (jglobal > jl2 and jglobal <= jr1) {
+    } else if (jglobal > jl2 && jglobal <= jr1) {
       temperature = temperature_eq;
       for(int k=0; k<num_species; ++k) {
         y[j*num_states+k] = eq_mass_fractions[k];}
-    } else if (jglobal > jr1 and jglobal <= jr2) {
+    } else if (jglobal > jr1 && jglobal <= jr2) {
       ramp = ((double)jglobal-(double)jr1)/((double)jr2-(double)jr1);
       temperature = temperature_eq - (temperature_eq-temperature_right)*ramp;
       for(int k=0; k<num_species; ++k) {
@@ -365,7 +365,7 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
     if(my_pe == 0){
       // Mass flux
       int stag;
-      if(flame_params.flame_type_ == 0 or flame_params.flame_type_ == 2) {
+      if(flame_params.flame_type_ == 0 || flame_params.flame_type_ == 2) {
         stag = num_points/4;
       } else if (flame_params.flame_type_ == 1) {
         stag = num_points-1;
@@ -431,7 +431,7 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
     MPI_File_read_all(restart_file, &time_file, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
     *time = time_file;
 
-    string file_state_names[num_vars_file];
+    std::vector<string> file_state_names(num_vars_file);
     for(int j=0; j<num_vars_file; ++j) {
       char buf[64];
       MPI_File_read_all(restart_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE);
@@ -443,10 +443,11 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
       y[k] = 0.0;
 
     for(int j=0; j<num_states; ++j) {
-      string state_name = flame_params.reactor_->GetNameOfStateId(j);
+      string state_name = zerork::utilities::GetLowerCase(flame_params.reactor_->GetNameOfStateId(j));
       for(int i=0; i<num_vars_file; ++i) {
+        string file_state_name = zerork::utilities::GetLowerCase(file_state_names[i]);
         //if(state_name == file_state_names[i]) {
-        if(strcasecmp(state_name.c_str(),file_state_names[i].c_str()) == 0 ) {
+        if(state_name == file_state_name) {
           // Read restart_file
           disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
             + i*2*sizeof(double) // Left & right BCs from previous variables

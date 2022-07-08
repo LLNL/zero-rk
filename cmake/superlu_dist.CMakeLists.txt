@@ -10,11 +10,13 @@ ExternalProject_Add(
              -Denable_examples=OFF
              -Denable_complex16=OFF
              -Denable_openmp=OFF
+             -DBUILD_SHARED_LIBS=OFF
              -DTPL_ENABLE_PARMETISLIB=OFF
              -DXSDK_ENABLE_Fortran=OFF
              -DCMAKE_INSTALL_PREFIX=${superlu_dist_prefix}
              -DCMAKE_BUILD_TYPE=${ZERORK_EXTERNALS_BUILD_TYPE}
              -DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}
+             -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
              -DCMAKE_C_COMPILER=${MPI_C_COMPILER}
              -DCMAKE_CXX_COMPILER=${MPI_CXX_COMPILER}
              -DCMAKE_C_STANDARD=${CMAKE_C_STANDARD}

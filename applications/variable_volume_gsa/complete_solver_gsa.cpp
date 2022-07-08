@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <string>
 #include <vector>
@@ -30,6 +29,8 @@
 #include "user_functions_gsa.h"
 #include "complete_solver_gsa.h"
 
+using zerork::getHighResolutionTime;
+
 const int MAX_LINE_LENGTH = 8192;
 
 // FindMaximum assumes x is in increasing order
@@ -46,17 +47,6 @@ static double QuadraticMaximum(const double x[],
                                const double f[],
                                const size_t f_stride,
                                double *x_at_max);
-
-double GetHighResolutionTime(void)
-{
-  struct timeval tod;
-
-  gettimeofday(&tod, NULL);
-  double time_seconds = (double) tod.tv_sec +
-    ((double) tod.tv_usec / 1000000.0);
-  return time_seconds;
-}
-
 
 void SetupCompleteSolver(void *cvode_memory,
                      aux_cvode_structs_t &aux_cvode,
@@ -281,7 +271,7 @@ int SolveVariableVolume(void *cvode_memory,
   const int num_hrr_powers = static_cast<int>(user_data->num_quadratures_ - 1);
   const int num_results = NUM_FIXED_RESULTS + num_hrr_powers + num_burn_fractions;
 
-  double sim_start = GetHighResolutionTime();
+  double sim_start = getHighResolutionTime();
 
   double current_time;
   double final_time;
@@ -536,7 +526,7 @@ int SolveVariableVolume(void *cvode_memory,
       burn_fraction_time[j];
   }
 
-  (*simulation_time) = GetHighResolutionTime()-sim_start;
+  (*simulation_time) = getHighResolutionTime()-sim_start;
 
   // write up the final stats
   if(thist_params.echo_stdout) {

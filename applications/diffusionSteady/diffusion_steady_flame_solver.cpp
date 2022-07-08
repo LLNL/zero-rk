@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <vector>
 #include <string>
 #include <map>
 
+#include "utilities.h"
 #include <utilities/file_utilities.h>
+#include <utilities/string_utilities.h>
 
 #include <mpi.h>
 
@@ -28,6 +29,7 @@
 #include <sunnonlinsol/sunnonlinsol_newton.h>
 #endif
 
+using zerork::getHighResolutionTime;
 
 //#include <kinsol/kinsol_bbdpre.h>
 //#include <sundials/sundials_dense.h>
@@ -40,8 +42,6 @@ const int NUM_STDOUT_PARAMS = 8; // number of non species parameters to write
                                   // to standard out
 const int NUM_LOG_PARAMS = 10;    // number of non species parameters to write
                                   // LogGridPointState
-static double GetHighResolutionTime();
-
 static double FindMaximumParallel(const size_t num_points,
 				  const double x[],
 				  const size_t x_stride,
@@ -91,7 +91,7 @@ int compare_rxnSens_t(const void *A, const void *B);
 
 int main(int argc, char *argv[])
 {
-  double clock_time = GetHighResolutionTime();
+  double clock_time = getHighResolutionTime();
   double setup_time, loop_time, sensanal_time, uq_time;
 
   if(argc < 2) {
@@ -326,8 +326,8 @@ int main(int argc, char *argv[])
   }// if(my_pe==0)
 
   // Get time
-  setup_time = GetHighResolutionTime() - clock_time;
-  clock_time = GetHighResolutionTime();
+  setup_time = getHighResolutionTime() - clock_time;
+  clock_time = getHighResolutionTime();
 
   double fnorm, stepnorm;
   // Pseudo-unsteady
@@ -349,18 +349,18 @@ int main(int argc, char *argv[])
       }
 
       // Solve system
-      kinstart_time = GetHighResolutionTime();
+      kinstart_time = getHighResolutionTime();
       flag = KINSol(kinsol_ptr,
                     flame_state,
                     KIN_NONE,
                     scaler,
                     scaler);
-      kinend_time = GetHighResolutionTime();
+      kinend_time = getHighResolutionTime();
 
       KINGetNumFuncEvals(kinsol_ptr,&nfevals);
       KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-      if((flag==0 or flag==1) and fnorm != 0.0){
+      if((flag==0 || flag==1) && fnorm != 0.0){
         // Success
         // Compute T
         for(int j=0; j<num_local_points; ++j) {
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
                 scaler);
   KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-  if((flag==0 or flag==1) and fnorm != 0) {
+  if((flag==0 || flag==1) && fnorm != 0) {
     // Get KINSOL stats
     flag = KINGetNumFuncEvals(kinsol_ptr,&nfevals);
     flag = KINGetNumNonlinSolvIters(kinsol_ptr, &nsteps);
@@ -481,7 +481,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  loop_time = GetHighResolutionTime() - clock_time;
+  loop_time = getHighResolutionTime() - clock_time;
 
   // Clear before sens analysis?
   KINFree(&kinsol_ptr);
@@ -498,7 +498,7 @@ int main(int argc, char *argv[])
     // Perform sensitivity analysis
     if(my_pe==0) printf("Performing soot sensitivity analysis\n");
 
-    clock_time = GetHighResolutionTime();
+    clock_time = getHighResolutionTime();
     double multiplier = flame_params.parser_->sensitivity_multiplier();
     rxnSens_t *rxnSensList;
     rxnSensList = new rxnSens_t[num_reactions];
@@ -664,7 +664,7 @@ int main(int argc, char *argv[])
       }
       fclose(sensFile);
     }
-    sensanal_time = GetHighResolutionTime() - clock_time;
+    sensanal_time = getHighResolutionTime() - clock_time;
 
   } // if soot && sensanal
   /*------------------------------------------------------------------------*/
@@ -672,7 +672,7 @@ int main(int argc, char *argv[])
   if (flame_params.soot_ && flame_params.uncertainty_quantification_) {
     // Uncertainty quantification
     if(my_pe==0) printf("Performing uncertainty quantification\n");
-    clock_time = GetHighResolutionTime();
+    clock_time = getHighResolutionTime();
 
     double dimer_prod_rate_local[3];
 
@@ -907,7 +907,7 @@ int main(int argc, char *argv[])
       fclose(dimerFile);
 
     } //my_pe ==0
-    uq_time = GetHighResolutionTime() - clock_time;
+    uq_time = getHighResolutionTime() - clock_time;
 
   } // if uncertainty_quantification
   /*------------------------------------------------------------------------*/
@@ -1100,7 +1100,7 @@ static void ReadFieldParallel(double state[],
 
   MPI_File_read_all(restart_file, &time_file, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
-  string file_state_names[num_vars_file];
+  std::vector<string> file_state_names(num_vars_file);
   for(int j=0; j<num_vars_file; ++j) {
     char buf[64];
     MPI_File_read_all(restart_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE);
@@ -1113,9 +1113,10 @@ static void ReadFieldParallel(double state[],
   }
 
   for(int j=0; j<num_states; ++j) {
-    string state_name = params.reactor_->GetNameOfStateId(j);
+    string state_name = zerork::utilities::GetLowerCase(params.reactor_->GetNameOfStateId(j));
     for(int i=0; i<num_vars_file; ++i) {
-      if(strcasecmp(state_name.c_str(),file_state_names[i].c_str()) == 0 ) {
+      string file_state_name = zerork::utilities::GetLowerCase(file_state_names[i]);
+      if(state_name == file_state_name) {
         // Skip over BC data
         // Read interior data
         disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
@@ -1276,16 +1277,6 @@ static int GetStateMaxima(const std::vector<int> &state_id,
   }
 
   return 0;
-}
-
-static double GetHighResolutionTime()
-{
-    struct timeval time_of_day;
-
-    gettimeofday(&time_of_day, NULL);
-    double time_seconds =
-      (double) time_of_day.tv_sec + ((double) time_of_day.tv_usec / 1000000.0);
-    return time_seconds;
 }
 
 static int GetFuelSpeciesId(const FlameParams &params,

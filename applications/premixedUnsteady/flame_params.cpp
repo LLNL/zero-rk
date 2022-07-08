@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
+#ifdef WIN32
+#define _USE_MATH_DEFINES //for M_PI
+#endif
+#include <cmath>
 
 #include <fstream>
 #include <utilities/string_utilities.h>

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-zerork_exe=@CMAKE_INSTALL_PREFIX@/bin/zerork_cfd_plugin_tester.x
+zerork_exe="@CMAKE_INSTALL_PREFIX@/bin/zerork_cfd_plugin_tester.x"
 
 if [ ! -f $zerork_exe ]
 then
@@ -57,8 +57,8 @@ runSims() {
   setYMLScalar $zrkfile preconditioner_threshold $sparseThresh
   setYMLScalar $zrkfile mechanism_parsing_log ${outputs_dir}/${name}.cklog
 
-  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib
-  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib64
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:"@CMAKE_INSTALL_PREFIX@/lib"
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:"@CMAKE_INSTALL_PREFIX@/lib64"
 
   #Dense 
   if [ "x"$dodense == "xY" ]
@@ -87,24 +87,24 @@ runSims() {
 
 
 nm=h2
-mf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt
-tf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+mf="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt"
+tf="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt"
 st=3.20e-5
 idt=8.2565998e-07
 
 runSims $nm $mf $tf $st $idt Y
 
 nm=dme
-mf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/dme/dme_24_mech.txt
-tf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/dme/dme_24_therm.txt
+mf="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/dme/dme_24_mech.txt"
+tf="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/dme/dme_24_therm.txt"
 st=6.40e-5
 idt=1.1e-05
 
 runSims $nm $mf $tf $st $idt Y
 
 nm=nc7h16-skel
-mf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-heptane_reduced/heptanesymp159_mec.txt
-tf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+mf="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-heptane_reduced/heptanesymp159_mec.txt"
+tf="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt"
 st=1.28e-4
 idt=1.35e-05
 

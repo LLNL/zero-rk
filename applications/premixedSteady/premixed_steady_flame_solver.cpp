@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <vector>
 #include <string>
@@ -32,13 +31,13 @@
 //#include <sundials/sundials_types.h>
 //#include <sundials/sundials_math.h>
 
+using zerork::getHighResolutionTime;
+
 const bool RUN_DEBUG=false;
 const int NUM_STDOUT_PARAMS = 19; // number of non species parameters to write
                                   // to standard out
 
 static int check_flag(void *flagvalue, const char *funcname, int opt);
-
-static double GetHighResolutionTime();
 
 static double FindMaximumParallel(const size_t num_points,
 				  const double x[],
@@ -84,7 +83,7 @@ static int GetStateMaxima(const std::vector<int> &state_id,
 
 int main(int argc, char *argv[])
 {
-  double clock_time = GetHighResolutionTime();
+  double clock_time = getHighResolutionTime();
   double setup_time, loop_time, sensanal_time;
 
   if(argc < 2) {
@@ -97,7 +96,7 @@ int main(int argc, char *argv[])
   MPI_Comm comm;
   MPI_Init(&argc, &argv);
   comm = MPI_COMM_WORLD;
-
+  
   // KINSOL memory pointer and linear solver
   void *kinsol_ptr = NULL;
 #if defined SUNDIALS3 || defined SUNDIALS4
@@ -340,8 +339,8 @@ int main(int argc, char *argv[])
   }// if(my_pe==0)
 
   // Get time
-  setup_time = GetHighResolutionTime() - clock_time;
-  clock_time = GetHighResolutionTime();
+  setup_time = getHighResolutionTime() - clock_time;
+  clock_time = getHighResolutionTime();
 
   double fnorm, stepnorm;
 
@@ -363,18 +362,18 @@ int main(int argc, char *argv[])
       }
 
       // Solve system
-      kinstart_time = GetHighResolutionTime();
+      kinstart_time = getHighResolutionTime();
       flag = KINSol(kinsol_ptr,
                     flame_state,
                     KIN_NONE,
                     scaler,
                     scaler);
-      kinend_time = GetHighResolutionTime();
+      kinend_time = getHighResolutionTime();
 
       KINGetNumFuncEvals(kinsol_ptr,&nfevals);
       KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-      if((flag==0 or flag==1) and fnorm != 0.0){
+      if((flag==0 || flag==1) && fnorm != 0.0){
         // Success
         pseudo_time += flame_params.dt_;
         if(my_pe==0) {printf("%5.3e   %5.3e   %5.3e  %d   %5.3e\n",
@@ -417,7 +416,7 @@ int main(int argc, char *argv[])
 
   KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-  if((flag==0 or flag==1) and fnorm != 0.0){
+  if((flag==0 || flag==1) && fnorm != 0.0){
     // Get KINSOL stats
     flag = KINGetNumFuncEvals(kinsol_ptr,&nfevals);
     flag = KINGetNumNonlinSolvIters(kinsol_ptr, &nsteps);
@@ -514,7 +513,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  loop_time = GetHighResolutionTime() - clock_time;
+  loop_time = getHighResolutionTime() - clock_time;
 
   // Clear before sens analysis?
   KINFree(&kinsol_ptr);
@@ -526,7 +525,7 @@ int main(int argc, char *argv[])
     // Perform flame speed sensitivity analysis
     if(my_pe==0) printf("Performing flame speed sensitivity analysis\n");
 
-    clock_time = GetHighResolutionTime();
+    clock_time = getHighResolutionTime();
     double multiplier = 2.0; //read from input file?
     rxnSens_t *rxnSensList;
     rxnSensList = new rxnSens_t[num_reactions];
@@ -647,7 +646,7 @@ int main(int argc, char *argv[])
       }
       fclose(sensFile);
     }
-    sensanal_time = GetHighResolutionTime() - clock_time;
+    sensanal_time = getHighResolutionTime() - clock_time;
 
 
   } //if flame_speed_sensitivity
@@ -1023,16 +1022,6 @@ static int GetStateMaxima(const std::vector<int> &state_id,
   }
 
   return 0;
-}
-
-static double GetHighResolutionTime()
-{
-    struct timeval time_of_day;
-
-    gettimeofday(&time_of_day, NULL);
-    double time_seconds =
-      (double) time_of_day.tv_sec + ((double) time_of_day.tv_usec / 1000000.0);
-    return time_seconds;
 }
 
 static int GetFuelSpeciesId(const FlameParams &params,

@@ -1144,11 +1144,12 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
     int jlocal = j % params->num_states_per_proc_;
     int start_band = j*(num_local_points*5);
     int start_band2 = jlocal*(num_total_points*5);
+    double* dest = params->my_pe_ == nodeDest ? &params->banded_jacobian2_[start_band2] : nullptr;
 
     MPI_Gather(&params->banded_jacobian_[start_band],
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
-    	       &params->banded_jacobian2_[start_band2],
+               dest,
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
 	       nodeDest,
@@ -1269,11 +1270,12 @@ int AFSolve(double solution[],
     int jlocal = j % params->num_states_per_proc_;
     int start_id = j*num_local_points;
     int start_id2 = jlocal*num_total_points;
+    double* dest = params->my_pe_ == nodeDest ? &solution_allspecies[start_id2] : nullptr;
 
     MPI_Gather(&solution_species[start_id],
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
-    	       &solution_allspecies[start_id2],
+               dest,
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
 	       nodeDest,
@@ -1308,8 +1310,9 @@ int AFSolve(double solution[],
     int jlocal = j % params->num_states_per_proc_;
     int start_id = j*num_local_points;
     int start_id2 = jlocal*num_total_points;
+    double* source = params->my_pe_ == nodeFrom ? &solution_allspecies[start_id2] : nullptr;
 
-    MPI_Scatter(&solution_allspecies[start_id2],
+    MPI_Scatter(source,
     		dsize,
     		PVEC_REAL_MPI_TYPE,
     		&solution_species[start_id],
