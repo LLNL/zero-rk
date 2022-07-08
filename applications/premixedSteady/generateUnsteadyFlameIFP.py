@@ -448,6 +448,15 @@ spify_parser_params.append(
 }
 )
 
+spify_parser_params.append(
+{
+    'name':'use_ceq_for_init',
+    'type':'bool',
+    'longDesc' : "Flag that when set to true [y] uses CEQ code to set initial conditions",
+    'defaultValue' : 0
+}
+)
+
 #Generate parser code
 spg().generate(spify_parser_name,spify_parser_params)
 

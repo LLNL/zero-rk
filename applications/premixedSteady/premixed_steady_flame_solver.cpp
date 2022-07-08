@@ -384,7 +384,7 @@ int main(int argc, char *argv[])
                              kinend_time-kinstart_time);}
 
         // Increase time step if it's converging quickly
-        if(nfevals <= 5 or pseudo_time == flame_params.dt_) {
+        if(nfevals <= 5 || pseudo_time == flame_params.dt_) {
           flame_params.dt_ *= 3.0;
         } else if (nfevals <= 10) {
           flame_params.dt_ *= 1.3;
@@ -804,7 +804,6 @@ static void WriteFieldParallel(double t,
     MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
     MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
   }
-
   // Write mass flux
   // Left BC
   buffer[0] = state[num_reactor_states-2]; //?

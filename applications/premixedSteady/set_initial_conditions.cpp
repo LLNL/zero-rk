@@ -86,54 +86,53 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
   // For flame speed calculations
   if(flame_params.simulation_type_ == 1) {
 
-    /**/
-    // ------------ BEGIN Constrained Equibrium calc  -----------//
-    double equi_temperature;
-    std::vector<double> equi_mass_fractions;
-    equi_mass_fractions.assign(num_species, 0.0);
+    if(flame_params.parser_->use_ceq_for_init()) {
+      // ------------ BEGIN Constrained Equibrium calc  -----------//
+      double equi_temperature;
+      std::vector<double> equi_mass_fractions(num_species);
 
-    // Only on root
-    if(my_pe == 0) {
-      printf("# Using equilibrium composition to initialize Y and T\n");
-      int k,l;
-      std::vector<double> thermoCoeffs(num_species*16);
-      std::vector<double> thermoCoeffs_CEQ(num_species*15);
-      flame_params.mechanism_->getThermoCoeffs(&thermoCoeffs[0]);
-      for(k=0; k<num_species; k++)
-        for(l=0; l<15; l++) //transpose
-          thermoCoeffs_CEQ[l*num_species+k] = thermoCoeffs[k*16 + l];
+      // Only on root
+      if(my_pe == 0) {
+        printf("# Using equilibrium composition to initialize Y and T\n");
+        int k,l;
+        std::vector<double> thermoCoeffs(num_species*16);
+        std::vector<double> thermoCoeffs_CEQ(num_species*15);
+        flame_params.mechanism_->getThermoCoeffs(&thermoCoeffs[0]);
+        for(k=0; k<num_species; k++)
+          for(l=0; l<15; l++) //transpose
+            thermoCoeffs_CEQ[l*num_species+k] = thermoCoeffs[k*16 + l];
 
-      int ne;
-      ne = flame_params.mechanism_->getNumElements();
-      std::vector<int> Ein_int(num_species*ne);
-      std::vector<double> Ein_double(num_species*ne);
-      flame_params.mechanism_->getSpeciesOxygenCount(&Ein_int[0]);
-      flame_params.mechanism_->getSpeciesNitrogenCount(&Ein_int[2*num_species]);
-      flame_params.mechanism_->getSpeciesHydrogenCount(&Ein_int[num_species]);
-      if(ne>3) flame_params.mechanism_->getSpeciesCarbonCount(&Ein_int[3*num_species]);
-      if(ne>4) flame_params.mechanism_->getSpeciesArgonCount(&Ein_int[4*num_species]);
-      if(ne>5) flame_params.mechanism_->getSpeciesHeliumCount(&Ein_int[5*num_species]);
+        int ne;
+        ne = flame_params.mechanism_->getNumElements();
+        std::vector<int> Ein_int(num_species*ne);
+        std::vector<double> Ein_double(num_species*ne);
+        flame_params.mechanism_->getSpeciesOxygenCount(&Ein_int[0]);
+        flame_params.mechanism_->getSpeciesNitrogenCount(&Ein_int[2*num_species]);
+        flame_params.mechanism_->getSpeciesHydrogenCount(&Ein_int[num_species]);
+        if(ne>3) flame_params.mechanism_->getSpeciesCarbonCount(&Ein_int[3*num_species]);
+        if(ne>4) flame_params.mechanism_->getSpeciesArgonCount(&Ein_int[4*num_species]);
+        if(ne>5) flame_params.mechanism_->getSpeciesHeliumCount(&Ein_int[5*num_species]);
 
-      for(k=0; k<num_species*ne; k++)
-        Ein_double[k] = (double)Ein_int[k];
+        for(k=0; k<num_species*ne; k++)
+          Ein_double[k] = (double)Ein_int[k];
 
-      ofstream file1;
-      file1.open("CEQ-inputs");
-      file1 << num_species << "\n";
-      file1 << ne << "\n";
-      file1 << pressure << "\n";
-      file1 << flame_params.inlet_temperature_*ref_temperature << "\n";
-      for(k=0; k<num_species; k++)
-        file1 << 1.0/flame_params.inv_molecular_mass_[k] << " ";
-      file1 << "\n";
-      for(k=0; k<num_species*15; k++)
-        file1 << thermoCoeffs_CEQ[k] << " ";
-      file1 << "\n";
-      for(k=0; k<num_species*ne; k++)
-        file1 << Ein_double[k] << " ";
-      file1 << "\n";
-      for(k=0; k<num_species; k++)
-          file1 << flame_params.inlet_mass_fractions_[k] << " ";
+        ofstream file1;
+        file1.open("CEQ-inputs");
+        file1 << num_species << "\n";
+        file1 << ne << "\n";
+        file1 << pressure << "\n";
+        file1 << flame_params.inlet_temperature_*ref_temperature << "\n";
+        for(k=0; k<num_species; k++)
+          file1 << 1.0/flame_params.inv_molecular_mass_[k] << " ";
+        file1 << "\n";
+        for(k=0; k<num_species*15; k++)
+          file1 << thermoCoeffs_CEQ[k] << " ";
+        file1 << "\n";
+        for(k=0; k<num_species*ne; k++)
+          file1 << Ein_double[k] << " ";
+        file1 << "\n";
+        for(k=0; k<num_species; k++)
+            file1 << flame_params.inlet_mass_fractions_[k] << " ";
       file1 << "\n";
       file1.close();
 
@@ -177,7 +176,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
           y[j*num_states + k] = flame_params.inlet_mass_fractions_[k];
         }
         y[j*num_states + num_species + 1] = flame_params.inlet_temperature_;
-      } else if (flame_params.z_[jglobal] > ramp_start and flame_params.z_[jglobal] <= ramp_end) {
+      } else if (flame_params.z_[jglobal] > ramp_start && flame_params.z_[jglobal] <= ramp_end) {
         double frac = (flame_params.z_[jglobal]-ramp_start)/(ramp_end-ramp_start);
         for(int k=0; k<num_species; k++) {
           y[j*num_states + k] = frac*equi_mass_fractions[k] +
@@ -199,31 +198,29 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
       molecular_mass = 1.0/molecular_mass;
 
       y[j*num_states + num_species] = flame_params.reactor_->GetGasConstant()*ref_temperature*
-        y[j*num_states + num_species+1]/(pressure*molecular_mass);
+          y[j*num_states + num_species+1]/(pressure*molecular_mass);
     }
+  } else {
 
+    for(int j=0; j<num_local_points; ++j) {
+        int jglobal = j + my_pe*num_local_points;
+        temp_left = flame_params.parser_->inlet_temperature()/
+          flame_params.parser_->ref_temperature();
+        temp_right = flame_params.parser_->ignition_temperature()/
+          flame_params.parser_->ref_temperature();
+        delta_temp = temp_right - temp_left;
 
-    /*
-      for(int j=0; j<num_local_points; ++j) {
-      int jglobal = j + my_pe*num_local_points;
-      temp_left = flame_params.parser_->inlet_temperature()/
-      flame_params.parser_->ref_temperature();
-      temp_right = flame_params.parser_->ignition_temperature()/
-      flame_params.parser_->ref_temperature();
-      delta_temp = temp_right - temp_left;
+        y[j*num_states + num_species+1] = (temp_left+0.5*delta_temp) +
+          0.5*delta_temp*tanh(0.5*(flame_params.z_[jglobal]-flame_params.parser_->initial_inlet_extent())/flame_params.parser_->thickness());
 
-      y[j*num_states + num_species+1] = (temp_left+0.5*delta_temp) +
-      0.5*delta_temp*tanh(0.5*(flame_params.z_[jglobal]-flame_params.parser_->initial_inlet_extent())/flame_params.parser_->thickness());
+        y[j*num_states + num_species] = flame_params.reactor_->GetGasConstant()*ref_temperature*
+          y[j*num_states + num_species+1]/(pressure*inlet_molecular_mass);
 
-      y[j*num_states + num_species] = flame_params.reactor_->GetGasConstant()*ref_temperature*
-      y[j*num_states + num_species+1]/(pressure*inlet_molecular_mass);
-
-      for(int k=0; k<num_species; ++k) {
-      y[j*num_states+k] = flame_params.inlet_mass_fractions_[k];
+        for(int k=0; k<num_species; ++k) {
+          y[j*num_states+k] = flame_params.inlet_mass_fractions_[k];
+        }
       }
-
-      }
-    */
+    }
 
     // For flame in tube calculations
   } else {
