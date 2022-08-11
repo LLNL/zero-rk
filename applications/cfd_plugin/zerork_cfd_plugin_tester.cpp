@@ -32,7 +32,7 @@ static void setReactorMassFrac(int nReactors, const zerork::mechanism& mech,
 
 static void log_output(int step, double time, int n_print_reactors,
                        std::vector<double> reactorT, std::vector<double> reactorP,
-                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac, 
+                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac,
                        std::vector<double> reactorCost,
                        std::vector<int> log_species_indexes, std::vector<std::string> log_species_names,
                        int nsp, std::vector<std::shared_ptr<std::ofstream>> reactor_log_files);
@@ -56,36 +56,62 @@ static int callback(int reactor_id, int nsteps, double time, double dt, const do
 
 void zerork_reactor(int inp_argc, char **inp_argv)
 {
-
-  if(inp_argc != 2)
-    {
-      printf("ERROR: incorrect command line usage\n");
-      printf("       use instead %s <idt sweep input>\n",inp_argv[0]);
-      fflush(stdout); exit(-1);
-    }
+  if(inp_argc != 2) {
+    printf("ERROR: incorrect command line usage\n");
+    printf("       use instead %s <idt sweep input>\n",inp_argv[0]);
+    fflush(stdout); exit(-1);
+  }
 
 
   ZeroRKCFDPluginTesterIFP inputFileDB(inp_argv[1]);
 
+  const int constant_volume = inputFileDB.constant_volume() ? 1 : 0;
+  const int stop_after_ignition = inputFileDB.stop_after_ignition();
+  const double delta_temperature_ignition = inputFileDB.delta_temperature_ignition();
+
   const char* mechfilename = inputFileDB.mechanism_file().c_str();
   const char* thermfilename = inputFileDB.thermo_file().c_str();
-  
-  const char* zerorkfilename = nullptr;
-  if(inputFileDB.zerork_cfd_plugin_input().size() > 0) {
-    zerorkfilename = inputFileDB.zerork_cfd_plugin_input().c_str();
-  }
+  int error_state = 0;
+  zerork_status_t status_mech = ZERORK_STATUS_SUCCESS;
+  zerork_status_t status_options = ZERORK_STATUS_SUCCESS;
+  zerork_status_t status_other = ZERORK_STATUS_SUCCESS;
 #ifdef USE_OMP
   #pragma omp threadprivate(zrm_handle, ud)
-  #pragma omp parallel
+  #pragma omp parallel reduction(+:error_state)
   {
 #endif
-  zrm_handle = zerork_reactor_init(zerorkfilename, mechfilename, thermfilename);
+  zrm_handle = zerork_reactor_init();
   ud.nsteps = 0;
   ud.time = 0.0;
-  zerork_reactor_set_callback_fn(callback, &ud, zrm_handle);
+  if(inputFileDB.zerork_cfd_plugin_input().size() > 0) {
+    status_options = zerork_reactor_read_options_file(inputFileDB.zerork_cfd_plugin_input().c_str(), zrm_handle);
+  }
+  status_other = zerork_reactor_set_mechanism_files(mechfilename, thermfilename, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_mech = zerork_reactor_load_mechanism(zrm_handle);
+  status_other = zerork_reactor_set_callback_fn(callback, &ud, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_other = zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_other = zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_other = zerork_reactor_set_double_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
 #ifdef USE_OMP
   }
 #endif
+  if(status_mech != ZERORK_STATUS_SUCCESS) {
+    printf("ERROR: Failed to parse mechanism file.\n");
+    fflush(stdout); exit(-1);
+  }
+  if(status_options != ZERORK_STATUS_SUCCESS) {
+    printf("WARNING: Failed to parse options file, continuing with default options.\n");
+    fflush(stdout);
+  }
+  if(error_state>0) {
+    printf("WARNING: Failed to set some cfd-plugin option(s).\n");
+    fflush(stdout);
+  }
 
   const char* cklogfilename = zerork::utilities::null_filename; //We already parsed in reactor manager no need to have another log
   // TODO: Avoid parsing twice/having two mechanisms
@@ -104,7 +130,7 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   std::vector<double> reactorT(nReactors);
   std::vector<double> reactorP(nReactors);
   std::vector<double> reactorMassFrac(nReactors*nSpc);
-  std::vector<double> reactorDPDT(nReactors,0.0); //TODO: Using ZERO for now.
+  std::vector<double> reactorDPDT(nReactors,0.0);
   std::vector<double> reactorCost(nReactors);
   std::vector<double> reactorESRC(nReactors, inputFileDB.e_src());
   std::vector<double> reactorIDT(nReactors,0.0);
@@ -166,7 +192,7 @@ void zerork_reactor(int inp_argc, char **inp_argv)
           reactorT.resize(nReactorsAlloc);
           reactorP.resize(nReactorsAlloc);
           reactorMassFrac.resize(nReactorsAlloc*nSpc);
-          reactorDPDT.resize(nReactorsAlloc,0.0); //TODO: Using ZERO for now.
+          reactorDPDT.resize(nReactorsAlloc,0.0);
           reactorCost.resize(nReactorsAlloc,0);
           reactorESRC.resize(nReactorsAlloc, inputFileDB.e_src());
         }
@@ -279,29 +305,23 @@ void zerork_reactor(int inp_argc, char **inp_argv)
     }
   }
 
-  const int constant_volume = inputFileDB.constant_volume() ? 1 : 0;
-  const int stop_after_ignition = inputFileDB.stop_after_ignition();
-  const double delta_temperature_ignition = inputFileDB.delta_temperature_ignition();
-
   if(rank == 0 && nranks > 1 && !inputFileDB.batched()) {
     printf("WARNING: nranks > 1 can not be used with option \"batched\" disabled.\n");
     printf("         Running in batched mode.\n");
   }
 
-  int flag = 0;
+  zerork_status_t flag = ZERORK_STATUS_SUCCESS;
+  int num_solution_failures = 0;
   double t = 0;
   double dt= tend/n_steps;
   for(int i = 0; i < n_steps; ++i) {
       if(!inputFileDB.batched() && nranks == 1) {
 #ifdef USE_OMP
-        #pragma omp parallel for
+        #pragma omp parallel for reduction(+:num_solution_failures)
 #endif
         for(int k = 0; k < nReactors; ++k) {
             ud.nsteps = 0;
             ud.time = 0.0;
-            zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
-            zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
-            zerork_reactor_set_double_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
             if(delta_temperature_ignition > 0) {
                 zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_IGNITION_TIME, &reactorIDT[k], zrm_handle);
             }
@@ -314,11 +334,9 @@ void zerork_reactor(int inp_argc, char **inp_argv)
             }
             flag = zerork_reactor_solve(i, t, dt, 1, &reactorT[k], &reactorP[k],
                                         &reactorMassFrac[k*nSpc], zrm_handle);
+            if(flag != ZERORK_STATUS_SUCCESS) num_solution_failures+=1;
         }
       } else {
-        zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
-        zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
-        zerork_reactor_set_double_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
         if(delta_temperature_ignition > 0) {
             zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_IGNITION_TIME, &reactorIDT[0], zrm_handle);
         }
@@ -332,6 +350,7 @@ void zerork_reactor(int inp_argc, char **inp_argv)
         }
         flag = zerork_reactor_solve(i, t, dt, nReactors, &reactorT[0], &reactorP[0],
                                     &reactorMassFrac[0], zrm_handle);
+        if(flag != ZERORK_STATUS_SUCCESS) num_solution_failures+=1;
       }
       if(rank==0) {
           log_output(i, t+dt, n_print_reactors, reactorT, reactorP, reactorDPDT,
@@ -339,8 +358,8 @@ void zerork_reactor(int inp_argc, char **inp_argv)
                      log_species_indexes, log_species_names,
                      nSpc, reactor_log_files);
       }
-      if(flag != 0) {
-        printf("Zero-RK CFD Plugin returned error: %d\n",flag);
+      if(num_solution_failures != 0) {
+        printf("Zero-RK CFD Plugin failed to solve.\n");
         break;
       }
       t += dt;
@@ -373,7 +392,7 @@ int main(int argc, char **argv)
 #ifdef USE_MPI
   MPI_Finalize();
 #endif
-  return 0; 
+  return 0;
 }
 
 
@@ -491,7 +510,7 @@ static void setReactorMassFrac(int nReactors, const zerork::mechanism& mech,
 
 static void log_output(int step, double time, int n_print_reactors,
                        std::vector<double> reactorT, std::vector<double> reactorP,
-                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac, 
+                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac,
                        std::vector<double> reactorCost,
                        std::vector<int> log_species_indexes, std::vector<std::string> log_species_names,
                        int nsp, std::vector<std::shared_ptr<std::ofstream>> reactor_log_files)
@@ -505,7 +524,7 @@ static void log_output(int step, double time, int n_print_reactors,
               rlf << std::setw(17) <<  "time";
               rlf << std::setw(17) <<  "temperature";
               rlf << std::setw(17) <<  "pressure";
- 
+
               for(int j = 0; j < n_log_species; ++j) {
                   rlf << std::setw(17) << log_species_names[j];
               }
@@ -518,7 +537,7 @@ static void log_output(int step, double time, int n_print_reactors,
             rlf << std::setw(17) <<  reactorP[k];
 
             for(int j = 0; j < n_log_species; ++j) {
-                int spcIdx = log_species_indexes[j]; 
+                int spcIdx = log_species_indexes[j];
                 double mf = reactorMassFrac[k*nsp+spcIdx];
                 rlf << std::setw(17) << mf;
             }

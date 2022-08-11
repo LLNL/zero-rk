@@ -16,28 +16,29 @@
 class ZeroRKReactorManager : public ZeroRKReactorManagerBase
 {
  public:
-  ZeroRKReactorManager(const char *input_filename,
-                       const char* mech_filename,
-                       const char* therm_filename);
+  ZeroRKReactorManager();
   virtual ~ZeroRKReactorManager() {};
 
-  void SetInputVariables(int n_cycle,
+  zerork_status_t ReadOptionsFile(const std::string& options_filename);
+  zerork_status_t LoadMechanism();
+
+  zerork_status_t SetInputVariables(int n_cycle,
                          double time,
                          double dt,
-                         int n_reactors, 
+                         int n_reactors,
                          double* T,
                          double* P,
                          double* mass_fractions);
 
-  void SetAuxFieldPointer(zerork_field_type ft, double* field_pointer);
-  void SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data);
-  void SetReactorIDs(int* reactor_ids);
+  zerork_status_t SetAuxFieldPointer(zerork_field_t ft, double* field_pointer);
+  zerork_status_t SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data);
+  zerork_status_t SetReactorIDs(int* reactor_ids);
 
-  void FinishInit();
-  void LoadBalance();
-  void SolveReactors();
-  void RedistributeResults();
-  void PostSolve();
+  zerork_status_t FinishInit();
+  zerork_status_t LoadBalance();
+  zerork_status_t SolveReactors();
+  zerork_status_t RedistributeResults();
+  zerork_status_t PostSolve();
 
  private:
   std::shared_ptr<zerork::mechanism> mech_ptr_;
@@ -98,6 +99,7 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   std::vector<double> rg_default_;
   std::vector<double> root_times_default_;
 
+  bool tried_init_;
   int n_calls_;
   int n_cycle_;
   int n_solve_;

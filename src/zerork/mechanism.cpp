@@ -7,22 +7,17 @@
 
 #include <string>
 #include <algorithm> //for std::sort
+#include <exception>
 
 #include "mechanism.h"
 
 namespace zerork {
 
 
-#ifdef EXIT_THROWS_EXCEPTION
-  // create a local function to overide the system exit and throw an exception
-  // with the status integer.
-  static void exit(int status) {throw status;}
-#endif // EXIT_THROWS_EXCEPTION
-
 mechanism::mechanism(const char *mechFileName,
-			     const char *thermFileName,
-			     const char *convertFileName,
-           int verbosity_inp)
+                     const char *thermFileName,
+                     const char *convertFileName,
+                     int verbosity_inp)
     :
   mechFileStr(mechFileName),
   thermFileStr(thermFileName),
@@ -33,25 +28,19 @@ mechanism::mechanism(const char *mechFileName,
   //      unless an error happens.  Then we will print parser output
   //      only if verbosity > 0.
   //      This is our strategy for multiple parsers on MPI programs.
-  std::string ckFileStr = convertFileStr;
-  if (ckFileStr.length() == 0)
-  {
-      convertFileStr = mechFileStr + ".out";
-  }
-
   ckr::CKReader ckrobj;
-  if(!(ckrobj.read(mechFileStr,thermFileStr,ckFileStr)))
+  if(!(ckrobj.read(mechFileStr,thermFileStr,convertFileStr)))
   {
-    if(ckFileStr.length() == 0)
+    if(convertFileStr.length() != 0)
     {
-      //Don't print an error message if we don't have a log file.
       printf("ERROR: could not parse mech (%s) and thermo (%s) files,\n",
              mechFileStr.c_str(),thermFileStr.c_str());
-      printf("       check converter log file %s\n",ckFileStr.c_str());
+      printf("       check converter log file %s\n",convertFileStr.c_str());
     }
     else if(verbosity > 0)
     {
       //Retry parse with non-null output
+      convertFileStr = mechFileStr + ".out";
       ckr::CKReader ckrobj2;
       if(!(ckrobj2.read(mechFileStr,thermFileStr,convertFileStr)))
       {
@@ -61,11 +50,15 @@ mechanism::mechanism(const char *mechFileName,
       }
     }
     fflush(stdout);
-    exit(-1);
+#ifdef ZERORK_MECHANISM_EXIT_FAIL
+    exit(1);
+#else
+    throw std::runtime_error("zerork::mechanism::mechanism() failed to parse mechanism.");
+#endif
   }
 
   //This is our flag to not output parser warnings from rate_const
-  if(verbosity == 0 || ckFileStr.length() ==0)
+  if(verbosity == 0 || convertFileStr.length() == 0)
   {
     ckrobj.verbose = false;
   }
