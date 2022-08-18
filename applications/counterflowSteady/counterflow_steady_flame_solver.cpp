@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
     double kinstart_time, kinend_time;
     flame_params.dt_ = flame_params.parser_->pseudo_unsteady_dt()*0.5; //Half the timestep for first iteration
 
-    while(pseudo_time < 0.05) {
+    while(pseudo_time < 0.08) {
       for(int j=0; j<num_local_states; j++) {
         flame_params.y_old_[j] = flame_state_ptr[j];
       }
