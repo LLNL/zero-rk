@@ -17,9 +17,14 @@ class CvodeSolver : public SolverBase
   int Integrate(const double end_time);
   int Iterative();
 
+  void SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data);
+
  private:
   ReactorBase& reactor_ref_;
   void AdjustWeights(void* cvode_mem);
+
+  zerork_callback_fn cb_fn_;
+  void* cb_fn_data_;
 };
 
 #endif

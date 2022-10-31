@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <math.h>
 #include <time.h>
 
@@ -20,6 +19,10 @@
 #endif
 
 #include <reactor/const_pressure_reactor.h>
+#include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
+
+using zerork::utilities::null_filename;
 
 // TEST CONSTANTS
 const double PRESSURE        = 2.5e6;  // [Pa]
@@ -86,7 +89,7 @@ int main(int argc, char *argv[])
   if(seed == -1) {
     seed = time(0);
   }
-  srand48(seed);
+  zerork::utilities::random01seed(seed);
 
   for(int j=0; j<num_runs; ++j) {
     initial_temperature = (double)RandomInt((int)MIN_TEMPERATURE,
@@ -187,7 +190,7 @@ static double MarchToFinalTemperature(const double atomic_mass_fraction,
   }
   ConstPressureReactor user_data(load_mech.c_str(),
                                  load_therm.c_str(),
-                                 "/dev/null",
+                                 null_filename,
                                  COMPRESSED_COL_STORAGE,
                                  PRESSURE);
   *final_time  = 0.0;
@@ -281,7 +284,7 @@ static double MarchToFinalTemperature(const double atomic_mass_fraction,
 static int RandomInt(const int a, const int b)
 {
   double span = (double)(b-a);
-  double random_number = (double)a + drand48()*span;
+  double random_number = (double)a + zerork::utilities::random01()*span;
   return (int)random_number;
 }
 

@@ -2,7 +2,11 @@
 #define CVODE_FUNCTIONS_H_
 
 #include <cvode/cvode.h>            // prototypes for CVODE fcts. and consts.
+#ifdef ZERORK_MPI
 #include <nvector/nvector_parallel.h> // serial N_Vector types, fcts., and macros
+#else
+#include <nvector/nvector_serial.h>
+#endif
 
 int ConstPressureFlame(realtype t,
 		       N_Vector y,

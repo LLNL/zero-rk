@@ -15,7 +15,7 @@ if SCRIPT_LOCATION.endswith('.pyc') and os.path.exists(SCRIPT_LOCATION[:-1]):
 def read_grid(gridfile):
 
     grid = np.genfromtxt(gridfile, delimiter='')
-    num_points = len(grid)
+    num_points = len(grid)-1 #skip first point
     length = grid[num_points-1] #assumes grid[0]=0
     return num_points, length
 
@@ -68,33 +68,38 @@ def generate_grid_old(num_points, length):
 # Generate a grid of specified length and numpoints
 # The grid is uniform from zero to fine_end and stretched thereafter
 # Saved as "grid_file"
-def generate_grid(num_points, length):
+def generate_grid(num_points, length, fix_length):
 
-    num_points_fine= int(num_points*0.9)
-    fine_end_rel = 0.75
-    fine_end = length*fine_end_rel
+    num_points += 1
 
-    stretch_end = 1.1
-    dz_temp = fine_end/(num_points_fine-1)
+    z = np.linspace(0.0,length,num_points)
 
-    print('New grid. dx = ', dz_temp)
+    if fix_length is False:
+        num_points_fine= int(num_points*0.9)
+        fine_end_rel = 0.75
+        fine_end = length*fine_end_rel
 
-    num_points_end = num_points-num_points_fine
+        stretch_end = 1.1
+        dz_temp = fine_end/(num_points_fine-1)
 
-    for j in range(40):
-        stretch_end = pow( ( ( (length-fine_end)*(stretch_end-1)/dz_temp ) + 1.0 ),1.0/num_points_end)
+        print('New grid. dx = ', dz_temp)
 
-    z = np.zeros(num_points)
-    for j in range(1,num_points_fine):
-        z[j] = z[j-1] + dz_temp
+        num_points_end = num_points-num_points_fine
 
-    for j in range(num_points_fine, num_points):
-        z[j] = z[j-1] + dz_temp
-        dz_temp = dz_temp*stretch_end
+        for j in range(40):
+            stretch_end = pow( ( ( (length-fine_end)*(stretch_end-1)/dz_temp ) + 1.0 ),1.0/num_points_end)
+
+        z = np.zeros(num_points)
+        for j in range(1,num_points_fine):
+            z[j] = z[j-1] + dz_temp
+
+        for j in range(num_points_fine, num_points):
+            z[j] = z[j-1] + dz_temp
+            dz_temp = dz_temp*stretch_end
 
     fh = open("grid_file","w")
     for i in range(0,num_points):
-        fh.write(str(z[i]) + '\n')
+        fh.write("{:e}".format(z[i]) + '\n')
     fh.close()
 
 
@@ -231,43 +236,51 @@ def read_log_steady():
 
 
 # Check if need to generate a new grid
-def check_grid(length, num_points, lF_new, lF_old, flame_loc, min_pts_per_lF, add_points):
+def check_grid(length, num_points, lF_new, lF_old, flame_loc, min_pts_per_lF, add_points, fix_length):
 
     fine_begin_rel = 0.1
     fine_end_rel = 0.75
-    flame_loc_rel = 0.2
+    flame_loc_rel = 0.3 #0.2
     max_points = 1024
     shift = length*flame_loc_rel - flame_loc
     regrid = False
 
-    if (length < lF_new*15 ):
-        print('    Flame thickness changed by', lF_new/lF_old)
-        length = length*1.2
-        shift = length*flame_loc_rel - flame_loc
-        flame_loc = length*flame_loc_rel
-        print('    Increasing grid length by 20% and shifting by', shift)
-        regrid = True
-    if (length > lF_new*30 ):
-        print('    Flame thickness changed by', lF_new/lF_old)
-        length = length*0.8
-        shift = length*flame_loc_rel - flame_loc
-        flame_loc = length*flame_loc_rel
-        print('    Reducing grid length by 20% and shifting by', shift)
-        regrid = True
-    dx = (0.5*length)/(0.8*num_points)
-    if (dx > lF_new/min_pts_per_lF):
-        num_points = min(num_points+add_points,max_points)
-        shift = 0.0
-        print('   Increasing grid points to ', num_points)
-        regrid = True
-    if (flame_loc-lF_new < length*fine_begin_rel):
-        shift = length*flame_loc_rel - flame_loc
-        print('    Shifting flame downstream by',shift)
-        regrid = True
-    if (flame_loc+3*lF_new > length*fine_end_rel):
-        shift = length*flame_loc_rel - flame_loc
-        print('    Shifting flame upstream by',shift)
-        regrid = True
+    if fix_length is False:
+        if (length < lF_new*15 ):
+            print('    Flame thickness changed by', lF_new/lF_old)
+            length = length*1.2
+            shift = length*flame_loc_rel - flame_loc
+            flame_loc = length*flame_loc_rel
+            print('    Increasing grid length by 20% and shifting by', shift)
+            regrid = True
+        if (length > lF_new*30):
+            print('    Flame thickness changed by', lF_new/lF_old)
+            length = length*0.8
+            shift = length*flame_loc_rel - flame_loc
+            flame_loc = length*flame_loc_rel
+            print('    Reducing grid length by 20% and shifting by', shift)
+            regrid = True
+        if (flame_loc-lF_new < length*fine_begin_rel):
+            shift = length*flame_loc_rel - flame_loc
+            print('    Shifting flame downstream by',shift)
+            regrid = True
+        if (flame_loc+3*lF_new > length*fine_end_rel):
+            shift = length*flame_loc_rel - flame_loc
+            print('    Shifting flame upstream by',shift)
+            regrid = True
+        dx = (0.75*length)/(0.9*num_points)
+        if (dx > lF_new/min_pts_per_lF):
+            num_points = min(num_points+add_points,max_points)
+            shift = 0.0
+            print('   Increasing grid points to ', num_points)
+            regrid = True
+    else:
+        dx = length/num_points
+        if (dx > lF_new/min_pts_per_lF):
+            num_points = min(num_points+add_points,max_points)
+            shift = 0.0
+            print('   Increasing grid points to ', num_points)
+            regrid = True
 
     return regrid, num_points, length, shift
 
@@ -410,6 +423,7 @@ def compute_steady_flame_speeds(start_file,
                                 nprocs=1,
                                 nnodes=1,
                                 min_pts_per_lF=10,
+                                fix_length=False,
                                 flameSolv='@CMAKE_INSTALL_PREFIX@/bin/premixed_steady_flame_solver.x',
                                 lewisGen='@CMAKE_INSTALL_PREFIX@/bin/lewisGenerator.x',
                                 fix_Lewis=False,
@@ -478,11 +492,11 @@ def compute_steady_flame_speeds(start_file,
 
         newest = max(glob.iglob('data*'), key=os.path.getctime)
 
-        regrid, num_points, length, shift = check_grid(length, num_points, lF_new, lF_new, flame_loc, min_pts_per_lF, add_points)
+        regrid, num_points, length, shift = check_grid(length, num_points, lF_new, lF_new, flame_loc, min_pts_per_lF, add_points, fix_length)
 
         while(regrid):
             sp.call(['cp','grid_file','grid_old'])
-            generate_grid(num_points, length)
+            generate_grid(num_points, length, fix_length)
             interpolate_data(newest, shift)
             sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: data_new/g', input_file])
             f = open("log", "w")
@@ -528,6 +542,169 @@ def compute_steady_flame_speeds(start_file,
     print('Time elapsed: ', elapsed)
 
 
+def compute_pseudounsteady_flame_speeds(input_file,
+                                        phi,
+                                        T,
+                                        pressure,
+                                        egr=None,
+                                        nprocs=1,
+                                        nnodes=1,
+                                        min_pts_per_lF=12,
+                                        fix_length=False,
+                                        flameSolv='@CMAKE_INSTALL_PREFIX@/bin/premixed_steady_flame_solver.x',
+                                        lewisGen='@CMAKE_INSTALL_PREFIX@/bin/lewisGenerator.x',
+                                        fix_Lewis=False,
+                                        mpiexec='srun'):
+
+    if mpiexec not in KNOWN_MPIEXECS:
+            print( ("ERROR: mpiexec not in {}.\n  Please use one of the"
+            " known mpiexecs or modify\n {}\n to work"
+            " with your system mpiexec.").format(KNOWN_MPIEXECS, SCRIPT_LOCATION))
+            sys.exit()
+
+    nprocs_init = min(nprocs,16)
+    nnodes_init = 1
+
+    # Number of grid points
+    # minimum number of points for initial solution
+    min_points_init = max(nprocs_init*2,128) #16
+    # mininum number of points for "final" solution
+    min_points = max(nprocs*2,128)
+    # increment of points to add if grid is too coarse
+    add_points = max(nprocs,64)
+
+    # Second order
+    second_order = True
+
+    if egr is None:
+        egr = [0.0]
+
+    # Initial grid length [m]
+    # Default is an estimate based on pressure/temperature scaling
+    length = estimate_lF(pressure[0],T[0],phi[0],egr[0]) * 20.0 if fix_length is False else fix_length
+
+    # Relative tolerance for steady solver
+    rel_tol = 1.0e-2
+
+    t = time.time()
+
+    ## Setup input for Lewis number file
+    sp.call(['cp',input_file,'input_Le.yml'])
+    sp.call(["sed -i 's/num_points.*/num_points: 1/g' input_Le.yml"], shell=True)
+    sp.call(["sed -i 's/transport_model.*/transport_model: MixAvg/g' input_Le.yml"], shell=True)
+    sp.call(["sed -i 's/inlet_temperature.*/inlet_temperature: 1500/g' input_Le.yml"], shell=True)
+
+    fh = open("flame_speeds","a")
+    fh.write('# phi Tu pressure egr S_L l_F \n')
+    fh.close()
+
+    for iegr in egr:
+        for ipressure in pressure:
+            for iT in T:
+                for iphi in phi:
+
+                    # Set conditions
+                    set_conditions(ipressure, iT, iphi, iegr, input_file)
+
+                    # Estimate based scales based on conditions
+                    length = estimate_lF(ipressure,iT,iphi,iegr) * 20.0 if fix_length is False else fix_length
+
+                    if(fix_Lewis==0):
+                        # Compute non-unity Lewis numbers
+                        sp.call([lewisGen,'input_Le.yml'])
+
+                    # Generate initial grid file
+                    num_points = min_points_init
+                    fine_grid = False
+                    generate_grid(num_points, length, fix_length)
+                    sp.call(['sed', '-i', 's/.*grid_file.*/grid_file: grid_file/g', input_file])
+
+                    # Run first iteration
+                    sp.call(['sed', '-i', 's/rel_tol.*/rel_tol: %s/g' % (rel_tol,), input_file])
+                    sp.call(['sed', '-i', 's/integrator_type.*/integrator_type: 3/g', input_file])
+                    sp.call(['sed', '-i', 's/.*restart_file.*/##restart_file: data_new/g', input_file])
+                    sp.call(['sed', '-i', 's/convective_scheme_type.*/convective_scheme_type: 2/g', input_file])
+                    sp.call(['sed', '-i', 's/pseudo_unsteady:.*/pseudo_unsteady: y/g', input_file])
+                    sp.call(['sed', '-i', 's/pseudo_unsteady_dt:.*/pseudo_unsteady_dt: 1.0e-6/g', input_file])
+
+                    f = open("log", "w")
+                    runid = 1
+                    if(nprocs_init==1):
+                        sp.call([flameSolv, input_file], stdout=f)
+                    elif(mpiexec == 'srun'):
+                        sp.call(['srun', '-n', str(nprocs_init), '-N', str(nnodes_init), flameSolv, input_file], stdout=f)
+                    else: #mpirun, mpiexec
+                        sp.call([mpiexec, '-n', str(nprocs_init), flameSolv, input_file], stdout=f)
+
+                    # steady
+                    #sp.call(['sed', '-i', 's/pseudo_unsteady:.*/pseudo_unsteady: n/g', input_file])
+                    if(second_order):
+                        sp.call(['sed', '-i', 's/convective_scheme_type.*/convective_scheme_type: 2/g', input_file])
+                    sp.call(['sed', '-i', 's/pseudo_unsteady:.*/pseudo_unsteady: n/g', input_file])
+
+                    ## Get flame speed
+                    sl_new, lF_new, flame_loc = read_log_steady()
+                    lF_old = length/30 ##could be better
+                    print('  Flame speed:', sl_new, 'm/s')
+                    print('  Flame thickness:', lF_new, 'm')
+                    print('  Flame location:', flame_loc, 'm')
+
+                      # Set settings for fine grid and force regrid
+                    num_points = min_points
+                    regrid, num_points, length, shift = check_grid(length, num_points, lF_new, lF_old, flame_loc, min_pts_per_lF, add_points, fix_length)
+                    while regrid and runid < 10:
+                        # Get latest data file
+                        newest = max(glob.iglob('data*'), key=os.path.getctime)
+
+                        # Generate new grid if necessary
+                        sp.call(['cp','grid_file','grid_old'])
+                        generate_grid(num_points, length, fix_length)
+                        interpolate_data(newest, shift)
+                        sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: data_new/g', input_file])
+
+                        f = open("log", "w")
+                        runid += 1
+                        if(nprocs==1):
+                            sp.call([flameSolv, input_file], stdout=f)
+                        elif(mpiexec == 'srun'):
+                            sp.call(['srun', '-n', str(nprocs), '-N', str(nnodes), flameSolv, input_file], stdout=f)
+                        else: #mpirun, mpiexec
+                            sp.call([mpiexec, '-n', str(nprocs), flameSolv, input_file], stdout=f)
+                        #if(runid==2):
+                        #    sp.call(['sed', '-i', 's/pseudo_unsteady:.*/pseudo_unsteady: n/g', input_file])
+                        lF_old = lF_new
+                        sl_new, lF_new, flame_loc = read_log_steady()
+                        if(sl_new == 0):
+                            print('Simulation failed')
+                            sl_new, lF_new = np.nan, np.nan
+                            continue
+
+                        print('  Flame speed:', sl_new, 'm/s')
+                        print('  Flame thickness:', lF_new, 'm')
+                        print('  Flame location:', flame_loc)
+
+                        # Check if grid is OK
+                        regrid, num_points, length, shift = check_grid(length, num_points, lF_new, lF_old, flame_loc, min_pts_per_lF, add_points, fix_length)
+
+                    # Error while loop ended
+                    print(' While loop ended')
+                    newest = max(glob.iglob('data*'), key=os.path.getctime)
+                    filename = 'data'+'p'+str(ipressure)+'phi'+str(iphi)+'Tu'+str(iT)+'egr'+str(iegr)
+                    logname = 'log'+'p'+str(ipressure)+'phi'+str(iphi)+'Tu'+str(iT)+'egr'+str(iegr)
+                    gridname = 'grid'+'p'+str(ipressure)+'phi'+str(iphi)+'Tu'+str(iT)+'egr'+str(iegr)
+                    sp.call(['cp','%s' %(newest,), filename])
+                    sp.call(['rm data_*'], shell=True)
+                    sp.call(['mv','log', logname])
+                    sp.call(['cp','grid_file', gridname])
+
+                    fh = open("flame_speeds","a")
+                    fh.write(str(iphi) + ' ' + str(iT) + ' ' + str(ipressure) + ' ' + str(iegr) + ' ' + str(sl_new) + ' ' + str(lF_new) + '\n')
+                    fh.close()
+
+    elapsed = time.time() - t
+    print('Time elapsed: ', elapsed)
+
+
 def compute_unsteady_flame_speeds(input_file,
                                   phi,
                                   T,
@@ -538,6 +715,7 @@ def compute_unsteady_flame_speeds(input_file,
                                   min_pts_per_lF=12,
                                   steady=True,
                                   nprocs_steady=1,
+                                  fix_length=False,
                                   flameSolv='@CMAKE_INSTALL_PREFIX@/bin/premixed_unsteady_flame_solver.x',
                                   steadySolv='@CMAKE_INSTALL_PREFIX@/bin/premixed_steady_flame_solver.x',
                                   lewisGen='@CMAKE_INSTALL_PREFIX@/bin/lewisGenerator.x',
@@ -569,9 +747,10 @@ def compute_unsteady_flame_speeds(input_file,
 
     if egr is None:
         egr = [0.0]
+
     # Initial grid length [m]
     # Default is an estimate based on pressure/temperature scaling
-    length = estimate_lF(pressure[0],T[0],phi[0],egr[0]) * 20.0
+    length = estimate_lF(pressure[0],T[0],phi[0],egr[0]) * 20.0 if fix_length is False else fix_length
 
     # Tolerance on the flame speed
     # maximum relative change in flame speed over 'time_regrid'
@@ -590,7 +769,7 @@ def compute_unsteady_flame_speeds(input_file,
 
     # Initial ignition/flame location as a fraction of length (< 1)
     # (i.e. flame_loc = length*flame_loc_rel)
-    flame_loc_rel = 0.2
+    flame_loc_rel = 0.3
 
     # Output frequency in log file
     stats_dt = 2.0e-6 #5e-6
@@ -625,7 +804,7 @@ def compute_unsteady_flame_speeds(input_file,
                     set_conditions(ipressure, iT, iphi, iegr, input_file)
 
                     # Estimate based scales based on conditions
-                    length = estimate_lF(ipressure,iT,iphi,iegr) * 20.0
+                    length = estimate_lF(ipressure,iT,iphi,iegr) * 20.0 if fix_length is False else fix_length
                     end_time = estimate_end_time(ipressure,iT,iphi,iegr)
                     time_regrid = estimate_time_regrid(ipressure,iT,iphi,iegr)
                     u_inlet = estimate_SL(ipressure,iT,iphi,iegr)
@@ -637,7 +816,7 @@ def compute_unsteady_flame_speeds(input_file,
                     # Generate initial grid file
                     num_points = min_points_init
                     fine_grid = False
-                    generate_grid(num_points, length)
+                    generate_grid(num_points, length, fix_length)
                     sp.call(['sed', '-i', 's/.*grid_file.*/grid_file: grid_file/g', input_file])
 
                     # Run first iteration
@@ -675,8 +854,8 @@ def compute_unsteady_flame_speeds(input_file,
                     shift = 0.0 #length*flame_loc_rel - flame_loc
                     regrid = True
                     runs_since_regrid = 0
-
-                    while (error > sl_tol and runid < 20):
+                    steady_attempted = False if steady else True
+                    while ((error > sl_tol or steady_attempted==False) and runid < 20):
                         print('  Error: ', error, ' > ', sl_tol)
 
                         # Update inlet velocity
@@ -686,12 +865,12 @@ def compute_unsteady_flame_speeds(input_file,
 
                         # Check if grid is OK
                         if(fine_grid):
-                            regrid, num_points, length, shift = check_grid(length, num_points, lF_new, lF_old, flame_loc, min_pts_per_lF, add_points)
+                            regrid, num_points, length, shift = check_grid(length, num_points, lF_new, lF_old, flame_loc, min_pts_per_lF, add_points, fix_length)
 
                         # Generate new grid if necessary
                         if(regrid):
                             sp.call(['cp','grid_file','grid_old'])
-                            generate_grid(num_points, length)
+                            generate_grid(num_points, length, fix_length)
                             interpolate_data(newest, shift)
                             sp.call(['sed', '-i', 's/.*restart_file.*/restart_file: data_new/g', input_file])
                             regrid = False
@@ -715,8 +894,9 @@ def compute_unsteady_flame_speeds(input_file,
                         sp.call(['sed', '-i', 's/max_time.*/max_time: %s/g' % (new_end_time,), input_file])
 
                         f = open("log", "w")
-                        if(steady and runid >=5 and runs_since_regrid > 1):
+                        if(steady and runid >=5 and runs_since_regrid > 1): # >=5
                             print('Attempting steady solution')
+                            steady_attempted = True
                             sp.call(['sed', '-i', 's/rel_tol.*/rel_tol: %s/g' % (rel_tol_steady,), input_file])
                             sp.call(['sed', '-i', 's/integrator_type.*/integrator_type: 3/g', input_file])
                             if(mpiexec == 'srun'):

@@ -2,6 +2,8 @@
 #include "cv_param_sparse.h"
 #include "utility_funcs.h"
 
+using zerork::getHighResolutionTime;
+
 int const_vol_wsr(realtype t, N_Vector y, N_Vector ydot,
 			 void *user_data)
 {

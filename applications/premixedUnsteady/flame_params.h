@@ -6,7 +6,9 @@
 
 #include <file_utilities.h>
 
+#ifdef ZERORK_MPI
 #include <mpi.h>
+#endif
 
 #include <zerork/mechanism.h>
 #include <reactor/const_pressure_reactor.h>
@@ -19,14 +21,17 @@
 class FlameParams
 {
  public:
-  explicit FlameParams(const std::string &input_name, MPI_Comm &comm);
+  explicit FlameParams(const std::string &input_name);
   ~FlameParams();
 
   // MPI
+#ifdef ZERORK_MPI
   MPI_Comm comm_;
+#endif
   int my_pe_,npes_;
   int num_procs_;
   int num_local_points_;
+  int num_points_;
 
   zerork::mechanism *mechanism_; // TODO: avoid using a separate mechanism
 
@@ -69,6 +74,8 @@ class FlameParams
   double max_temperature_;
   double mass_change_;
   double continuity_error_;
+
+  double length_;
 
   std::vector<double> step_limiter_;
 

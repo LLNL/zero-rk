@@ -12,7 +12,8 @@ target_link_libraries(variable_volume_gsa.x mechanisminfo reactor zerork
                       zerorkutilities
                       sundials_nvecserial sundials_cvodes
                       superlu spify)
-install(TARGETS variable_volume_gsa.x)
+install(TARGETS variable_volume_gsa.x
+        RUNTIME DESTINATION bin)
 
 add_spifyIFP_target(VariableVolumeGSAIFP variable_volume_gsa.x)
 endif()

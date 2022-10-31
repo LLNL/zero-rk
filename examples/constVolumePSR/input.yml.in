@@ -8,7 +8,7 @@ thermFile: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/iso-octane/species874/
 
 #Mechanism Parser Log File
 #Type: string
-#Optional with default value of: /dev/null
+#Optional with default value of: @DEVNUL@
 logFile: mech_parsing.log
 
 #Ignition Delay Output File

@@ -12,8 +12,8 @@ trans_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hy
 
 #Mechanism parser log file
 #Type: string
-#Optional with default value '/dev/null'
-log_file: '/dev/null'
+#Optional with default value '@DEVNUL@'
+log_file: '@DEVNUL@'
 
 #Transport model
 #Only 'ConstantLewis' is supported with
@@ -67,7 +67,7 @@ soot: n
 
 #Grid file, if provided, grid_file overrules num_points entry
 #Type: string
-#Optional with default value '/dev/null'
+#Optional with default value '@DEVNUL@'
 #grid_file: grid_file
 
 #Lewis number file, only used with ConstantLewis transport model
@@ -76,7 +76,7 @@ Lewis_file: Lewis_file
 
 #Binary data file used for initialization
 #Type: string
-#Optional file with default value of '/dev/null'
+#Optional file with default value of '@DEVNUL@'
 #restart_file: "data_0.000582"
 
 #Convective scheme type (0: first order upwind, 1: second order upwind,

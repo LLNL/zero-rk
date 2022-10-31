@@ -29,7 +29,8 @@ class ReactorBase : public Optionable {
   virtual N_Vector& GetStateNVectorRef() = 0;
   virtual void SetBatchMaskNVector(int reactor_idx, N_Vector batch_mask) = 0;
 
-  virtual void GetState(double *T,
+  virtual void GetState(const double reactor_time,
+                        double *T,
                         double *P,
                         double *mf) = 0;
 
@@ -41,25 +42,33 @@ class ReactorBase : public Optionable {
                                 N_Vector state,
                                 N_Vector derivative) = 0;
 
+  int GetID();
+  void SetID(int id);
+
 #ifdef SUNDIALS2
   virtual int GetJacobianDense(long int N, double t, N_Vector y, N_Vector fy,
-                               DlsMat Jac, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3) = 0;
+                               DlsMat Jac) = 0;
 #elif defined SUNDIALS3 || defined SUNDIALS4
   virtual int GetJacobianDense(double t, N_Vector y, N_Vector fy,
-                               SUNMatrix Jac, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3) = 0;
+                               SUNMatrix Jac) = 0;
 #else
 #error "Unsupported SUNDIALS version"
 #endif
 
-  virtual int JacobianSetup(double t, N_Vector y, N_Vector fy,
-                            N_Vector tmp1, N_Vector tmp2, N_Vector tmp3) = 0;
+  virtual int GetJacobianDenseRaw(long int N, double t, N_Vector y, N_Vector fy,
+                                  double* Jac) = 0;
+
+  virtual int JacobianSetup(double t, N_Vector y, N_Vector fy) = 0;
 
   virtual int JacobianFactor(double gamma) = 0;
 
   virtual int JacobianSolve(double t, N_Vector y, N_Vector fy,
-                            N_Vector r, N_Vector z, N_Vector tmp) = 0;
+                            N_Vector r, N_Vector z) = 0;
 
   virtual int RootFunction(double t, N_Vector y, double *root_function) = 0;
+
+  virtual int SetRootTime(double t) = 0;
+  virtual double GetRootTime() = 0;
 
   virtual int GetNumStateVariables() = 0;
 
@@ -69,7 +78,13 @@ class ReactorBase : public Optionable {
   virtual int GetMinBatchReactors() = 0;
   virtual int GetMaxBatchReactors() = 0;
 
+  virtual void SetSolveTemperature(bool value) = 0;
+
+  virtual void Reset() {};
+
  protected:
+  int id_;
+
   int num_variables_;
   int num_reactors_;
 
@@ -84,7 +99,8 @@ int ReactorGetTimeDerivative(const double reactor_time,
 
 #ifdef SUNDIALS2
 int ReactorGetJacobianDense(long int N, double t, N_Vector y, N_Vector fy,
-                     DlsMat Jac, void* user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                     DlsMat Jac, void* user_data,
+                     N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 #elif defined SUNDIALS3 || defined SUNDIALS4
 int ReactorGetJacobianDense(double t, N_Vector y, N_Vector fy, SUNMatrix Jac,
                             void* user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
@@ -92,15 +108,18 @@ int ReactorGetJacobianDense(double t, N_Vector y, N_Vector fy, SUNMatrix Jac,
 #error "Unsupported SUNDIALS version"
 #endif
 
-int ReactorJacobianSetup(double t, N_Vector y, N_Vector fy, void* user_data,
-                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+int ReactorGetJacobianDenseRaw(long int N, double t, N_Vector y, N_Vector fy,
+                     double* Jac, void* user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+
+int ReactorJacobianSetup(double t, N_Vector y, N_Vector fy, void* user_data);
 
 int ReactorJacobianFactor(realtype gamma, void* user_data);
 
 #ifdef SUNDIALS2
 int ReactorJacobianSetupAndFactor(double t, N_Vector y, N_Vector fy,
                                   booleantype jok, booleantype *jcurPtr,
-                                  double gamma, void* user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                                  double gamma, void* user_data,
+                                  N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 #elif defined SUNDIALS3 || defined SUNDIALS4
 int ReactorJacobianSetupAndFactor(double t, N_Vector y, N_Vector fy,
                                   booleantype jok, booleantype *jcurPtr,
@@ -123,7 +142,7 @@ int ReactorJacobianSolveCVODE(double t, N_Vector y, N_Vector fy,
 #endif
 
 int ReactorJacobianSolve(double t, N_Vector y, N_Vector fy,
-                         N_Vector r, N_Vector z, void *user_data, N_Vector tmp);
+                         N_Vector r, N_Vector z, void *user_data);
 
 int ReactorGetNumRootFunctions(void *user_data);
 

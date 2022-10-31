@@ -2,9 +2,6 @@
 
 #include <algorithm>
 
-//TODO: NR format
-//TODO: Save memory+copies/?
-
 superlu_manager::superlu_manager() :
   m_last_factor_nnz(-1),
   m_factored(false)
@@ -79,7 +76,7 @@ int superlu_manager::factor(int n,
                             matrix_t type)
 {
   if(nnz != m_last_factor_nnz || n != m_last_factor_n) {
-    setup_memory(n,nnz, indexes, sums, values);
+    setup_memory(n, nnz, indexes, sums, values);
   }
 
   if(m_factored) {
@@ -376,4 +373,9 @@ void superlu_manager::SetTranspose(const bool transpose)
   } else {
     m_options.Trans = NOTRANS;
   }
+}
+
+void superlu_manager::reset()
+{
+  m_last_factor_nnz = -1;
 }

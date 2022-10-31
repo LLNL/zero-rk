@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
 #Name your parser
@@ -31,7 +33,7 @@ spify_parser_params.append(
     'name':'mechLogFile',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 

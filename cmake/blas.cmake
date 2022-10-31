@@ -5,6 +5,11 @@ if(NOT DEFINED ZERORK_HAVE_MKL)
     mark_as_advanced(ZERORK_HAVE_MKL)
     set(ZERORK_MKLROOT "$ENV{MKLROOT}" CACHE FILEPATH "" FORCE)
     mark_as_advanced(ZERORK_MKLROOT)
+  elseif(DEFINED ENV{ONEAPI_ROOT})
+    set(ZERORK_HAVE_MKL ON CACHE BOOL "" FORCE)
+    mark_as_advanced(ZERORK_HAVE_MKL)
+    set(ZERORK_MKLROOT "$ENV{ONEAPI_ROOT}/mkl/latest" CACHE FILEPATH "" FORCE)
+    mark_as_advanced(ZERORK_MKLROOT)
   else()
     set(ZERORK_HAVE_MKL OFF CACHE BOOL "" FORCE)
     mark_as_advanced(ZERORK_HAVE_MKL)
@@ -19,12 +24,26 @@ if(${ZERORK_HAVE_MKL})
   #are used depending on environment state (independent of configuration variables)
   #which can cause the build to fail if the user forgets to `module load mkl` when
   #(re-)building the code.
-  list(REMOVE_ITEM CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "${ZERORK_MKLROOT}/include")
-  list(REMOVE_ITEM CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "${ZERORK_MKLROOT}/include")
-  list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_DIRECTORIES "${ZERORK_MKLROOT}/lib/intel64")
-  list(REMOVE_ITEM CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "${ZERORK_MKLROOT}/lib/intel64")
+  if(DEFINED CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES)
+    list(REMOVE_ITEM CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "${ZERORK_MKLROOT}/include")
+  endif()
+  if(DEFINED CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
+    list(REMOVE_ITEM CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "${ZERORK_MKLROOT}/include")
+  endif()
+  if(DEFINED CMAKE_C_IMPLICIT_LINK_DIRECTORIES)
+    list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_DIRECTORIES "${ZERORK_MKLROOT}/lib/intel64")
+  endif()
+  if(DEFINED CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES)
+    list(REMOVE_ITEM CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "${ZERORK_MKLROOT}/lib/intel64")
+  endif()
   target_include_directories(mkl INTERFACE "${ZERORK_MKLROOT}/include")
   #Below pulled from MKL Link Advisor 2018.0.
+ if(WIN32)
+  target_link_libraries(mkl INTERFACE
+    "${ZERORK_MKLROOT}/lib/intel64/mkl_intel_lp64.lib"
+    "${ZERORK_MKLROOT}/lib/intel64/mkl_sequential.lib"
+    "${ZERORK_MKLROOT}/lib/intel64/mkl_core.lib")
+ else()
   target_link_libraries(mkl INTERFACE
     -Wl,--start-group
     "${ZERORK_MKLROOT}/lib/intel64/libmkl_intel_lp64.a"
@@ -32,6 +51,7 @@ if(${ZERORK_HAVE_MKL})
     "${ZERORK_MKLROOT}/lib/intel64/libmkl_core.a"
     -Wl,--end-group
     pthread m dl)
+endif()
    add_library(blas ALIAS mkl)
 else()
   find_package(BLAS REQUIRED)

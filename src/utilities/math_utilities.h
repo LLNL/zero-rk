@@ -75,6 +75,10 @@ class InterpolationTable
 template<typename T>
 T erfc_inv(T q);
 
+double random01();
+
+void random01seed(int seed);
+
 } // namespace utilities
 } // namespace advcomb
 

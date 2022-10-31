@@ -2,7 +2,11 @@
 #define KINSOL_FUNCTIONS_H_
 
 #include <kinsol/kinsol.h>            // prototypes for KINSOL fcts. and consts.
+#ifdef ZERORK_MPI
 #include <nvector/nvector_parallel.h> // serial N_Vector types, fcts., and macros
+#else
+#include <nvector/nvector_serial.h>
+#endif
 
 int ConstPressureFlame(N_Vector y,
 		       N_Vector ydot,

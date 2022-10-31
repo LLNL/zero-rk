@@ -9,38 +9,40 @@
 
 ReactorNVectorSerial::ReactorNVectorSerial(std::shared_ptr<zerork::mechanism> mech_ptr) : 
   ReactorBase(),
-  mech_ptr_(mech_ptr)
+  mech_ptr_(mech_ptr),
+  solve_temperature_(true),
+  jacobian_row_indexes_ptr_(&jacobian_row_indexes_temperature_),
+  jacobian_column_sums_ptr_(&jacobian_column_sums_temperature_),  
+  noninteger_sparse_id_ptr_(&noninteger_sparse_id_temperature_),
+  destruction_sparse_indexes_ptr_(&destruction_terms_.sparse_indexes_temperature),
+  creation_sparse_indexes_ptr_(&creation_terms_.sparse_indexes_temperature)
 {
   num_species_ = mech_ptr_->getNumSpecies();
   num_variables_ = num_species_ + 1;
   num_steps_ = mech_ptr_->getNumSteps();
 
   sqrt_unit_round_ = sqrt(UNIT_ROUNDOFF);
+  root_time_ = 0.0;
 
-  state_ = N_VNew_Serial(num_variables_);
-  batch_mask_ = N_VNew_Serial(num_variables_);
-  double* batch_mask_ptr = NV_DATA_S(batch_mask_);
-  for(int k = 0; k < num_variables_; ++k) {
-    batch_mask_ptr[k] = 1.0;
-  }
+  state_data_.assign(num_variables_,0);
+  tmp1_data_.assign(num_variables_,0);
+  tmp2_data_.assign(num_variables_,0);
+  tmp3_data_.assign(num_variables_,0);
 
-  mol_wt_.resize(num_species_);
-  inv_mol_wt_.resize(num_species_);
-  net_production_rates_.resize(num_species_);
-  energy_.resize(num_species_);
-  cx_mass_.resize(num_species_);
-  forward_rates_of_production_.resize(num_steps_);
-  creation_rates_.resize(num_species_);
-  destruction_rates_.resize(num_species_);
-  concentrations_.resize(num_species_);
+  state_ = N_VMake_Serial(num_variables_, &state_data_[0]);
+  tmp1_ = N_VMake_Serial(num_variables_, &tmp1_data_[0]);
+  tmp2_ = N_VMake_Serial(num_variables_, &tmp2_data_[0]);
+  tmp3_ = N_VMake_Serial(num_variables_, &tmp3_data_[0]);
 
-  jacobian_column_sums_.resize(num_variables_+1);
-  jacobian_data_.clear();
-  jacobian_row_indexes_.clear();
-
-  preconditioner_column_sums_.resize(num_variables_+1);
-  preconditioner_data_.clear();
-  preconditioner_row_indexes_.clear();
+  mol_wt_.assign(num_species_,0.0);
+  inv_mol_wt_.assign(num_species_,0.0);
+  net_production_rates_.assign(num_species_,0.0);
+  energy_.assign(num_species_,0.0);
+  cx_mass_.assign(num_species_,0.0);
+  forward_rates_of_production_.assign(num_steps_,0.0);
+  creation_rates_.assign(num_species_,0.0);
+  destruction_rates_.assign(num_species_,0.0);
+  concentrations_.assign(num_species_,0.0);
 
   // set constant parameters
   mech_ptr_->getMolWtSpc(&mol_wt_[0]);
@@ -56,18 +58,49 @@ ReactorNVectorSerial::ReactorNVectorSerial(std::shared_ptr<zerork::mechanism> me
 ReactorNVectorSerial::~ReactorNVectorSerial()
 {
   N_VDestroy(state_);
-  N_VDestroy(batch_mask_);
+  N_VDestroy(tmp1_);
+  N_VDestroy(tmp2_);
+  N_VDestroy(tmp3_);
 }
 
 N_Vector& ReactorNVectorSerial::GetStateNVectorRef() {
   return state_;
 }
 
+void ReactorNVectorSerial::SetSolveTemperature(bool value) {
+  if(solve_temperature_ != value) {
+    solve_temperature_ = value;
+    if(solve_temperature_) {
+      num_variables_ = num_species_ + 1;
+      nnz_ = nnz_temperature_;
+      jacobian_row_indexes_ptr_ = &jacobian_row_indexes_temperature_;  
+      jacobian_column_sums_ptr_ = &jacobian_column_sums_temperature_;  
+      noninteger_sparse_id_ptr_ = &noninteger_sparse_id_temperature_;
+      destruction_sparse_indexes_ptr_ = &(destruction_terms_.sparse_indexes_temperature);
+      creation_sparse_indexes_ptr_ = &(creation_terms_.sparse_indexes_temperature);
+    } else {
+      num_variables_ = num_species_;
+      nnz_ = nnz_no_temperature_;
+      jacobian_row_indexes_ptr_ = &jacobian_row_indexes_no_temperature_;  
+      jacobian_column_sums_ptr_ = &jacobian_column_sums_no_temperature_;  
+      noninteger_sparse_id_ptr_ = &noninteger_sparse_id_no_temperature_;
+      destruction_sparse_indexes_ptr_ = &(destruction_terms_.sparse_indexes_no_temperature);
+      creation_sparse_indexes_ptr_ = &(creation_terms_.sparse_indexes_no_temperature);
+    }
+    N_VDestroy(state_);
+    N_VDestroy(tmp1_);
+    N_VDestroy(tmp2_);
+    N_VDestroy(tmp3_);
+    state_ = N_VMake_Serial(num_variables_, &state_data_[0]);
+    tmp1_ = N_VMake_Serial(num_variables_, &tmp1_data_[0]);
+    tmp2_ = N_VMake_Serial(num_variables_, &tmp2_data_[0]);
+    tmp3_ = N_VMake_Serial(num_variables_, &tmp3_data_[0]);
+  }
+}
+
 void ReactorNVectorSerial::SetBatchMaskNVector(int reactor_idx, N_Vector batch_mask) {
   assert(reactor_idx == 0);
-  double* batch_mask_self_ptr = NV_DATA_S(batch_mask_);
-  double* batch_mask_ptr = NV_DATA_S(batch_mask);
-  memcpy(batch_mask_ptr, batch_mask_self_ptr, sizeof(double)*num_variables_);
+  N_VConst(1.0, batch_mask);
 }
 
 void ReactorNVectorSerial::GetAbsoluteToleranceCorrection(N_Vector correction) {
@@ -77,42 +110,36 @@ void ReactorNVectorSerial::GetAbsoluteToleranceCorrection(N_Vector correction) {
       double molar_density = reactor_density*inv_mol_wt_[j]*1.0e-3; //mks->cgs
       NV_Ith_S(correction,j) = 1.0/molar_density;
     }
-    NV_Ith_S(correction,num_species_) = 1.0;
-  } else {
-    for(int j=0; j < num_variables_; ++j) {
-      NV_Ith_S(correction,j) = 1.0;
+    if(solve_temperature_) {
+      NV_Ith_S(correction,num_species_) = 1.0;
     }
+  } else {
+    N_VConst(1.0,correction);
   }
 }
 
 void ReactorNVectorSerial::SetupSparseJacobianArrays() {
+  assert(num_variables_ == num_species_+1);
   const int dense_matrix_size = num_variables_*num_variables_;
-  const int num_steps_=mech_ptr_->getNumSteps();
-  std::vector<int> isNonZero(dense_matrix_size);
-
-  jacobian_data_.assign(num_variables_+1,0);
-  jacobian_diagonal_indexes_.assign(num_variables_,0);
-  jacobian_last_row_indexes_.assign(num_variables_,0);
-
-  num_noninteger_jacobian_nonzeros_ =
-    mech_ptr_->getNonIntegerReactionNetwork()->GetNumJacobianNonzeros();
-
-  noninteger_jacobian_.assign(num_noninteger_jacobian_nonzeros_,0.0);
-  noninteger_sparse_id_.assign(num_noninteger_jacobian_nonzeros_,0);
-  std::vector<int> noninteger_row_id;
-  std::vector<int> noninteger_column_id;
+  std::vector<int> isNonZero(dense_matrix_size, 0);
 
   // initialize the dense nonzero flags
   for(int j=0; j<num_species_; ++j) {
       isNonZero[j*num_variables_+j]=1;    // mark the diagonal
-      isNonZero[j*num_variables_+num_species_]=1; // mark the last row
+      isNonZero[j*num_variables_+num_species_]=1; // mark the last row (temperature)
   }
-  for(int k=0; k<num_variables_; ++k) { // mark nSize rows in the last column
+  for(int k=0; k<num_variables_; ++k) { // mark the last column (temperature)
     isNonZero[num_species_*num_variables_+k]=1;
   }
 
-  destruction_terms_.clear();
-  creation_terms_.clear();
+  destruction_terms_.concentration_indexes.clear();
+  destruction_terms_.reaction_indexes.clear();
+  destruction_terms_.sparse_indexes_temperature.clear();
+  destruction_terms_.sparse_indexes_no_temperature.clear();
+  creation_terms_.concentration_indexes.clear();
+  creation_terms_.reaction_indexes.clear();
+  creation_terms_.sparse_indexes_temperature.clear();
+  creation_terms_.sparse_indexes_no_temperature.clear();
   // parse the system, filling in the Jacobian term data
   // Jacobian = d ydot(k)/ dy(j)
   for(int j=0; j<num_steps_; ++j) {
@@ -123,30 +150,37 @@ void ReactorNVectorSerial::SetupSparseJacobianArrays() {
       // forward destruction
       for(int m=0; m < num_reactants; ++m) {
         int row_idx=mech_ptr_->getSpecIdxOfStepReactant(j,m); // species being destroyed
-        isNonZero[column_idx*num_variables_+row_idx]=1; // mark location in densei
+        isNonZero[column_idx*num_variables_+row_idx]=1; // mark location in dense
 
-        reaction_indexes ri;
-        ri.concentration_index = column_idx;
-        ri.reaction_index = j;
-        ri.sparse_index = row_idx;
-        destruction_terms_.push_back(ri);
+        destruction_terms_.concentration_indexes.push_back(column_idx);
+        destruction_terms_.reaction_indexes.push_back(j);
+        destruction_terms_.sparse_indexes_temperature.push_back(row_idx);
+        destruction_terms_.sparse_indexes_no_temperature.push_back(row_idx);
       }
       // forward creation
       for(int m=0; m < num_products; ++m) {
         int row_idx=mech_ptr_->getSpecIdxOfStepProduct(j,m); // species being created
         isNonZero[column_idx*num_variables_+row_idx]=1; // mark location in dense
 
-        reaction_indexes ri;
-        ri.concentration_index = column_idx;
-        ri.reaction_index = j;
-        ri.sparse_index = row_idx;
-        creation_terms_.push_back(ri);
+        creation_terms_.concentration_indexes.push_back(column_idx);
+        creation_terms_.reaction_indexes.push_back(j);
+        creation_terms_.sparse_indexes_temperature.push_back(row_idx);
+        creation_terms_.sparse_indexes_no_temperature.push_back(row_idx);
       }
     }
   }
 
+  num_noninteger_jacobian_nonzeros_ =
+    mech_ptr_->getNonIntegerReactionNetwork()->GetNumJacobianNonzeros();
+
+  std::vector<int> noninteger_row_id;
+  std::vector<int> noninteger_column_id;
+
   // non-integer reaction network
   if(num_noninteger_jacobian_nonzeros_ > 0) {
+    noninteger_jacobian_.assign(num_noninteger_jacobian_nonzeros_,0.0);
+    noninteger_sparse_id_temperature_.assign(num_noninteger_jacobian_nonzeros_,0);
+    noninteger_sparse_id_no_temperature_.assign(num_noninteger_jacobian_nonzeros_,0);
 
     noninteger_row_id.assign(num_noninteger_jacobian_nonzeros_, 0);
     noninteger_column_id.assign(num_noninteger_jacobian_nonzeros_, 0);
@@ -163,28 +197,33 @@ void ReactorNVectorSerial::SetupSparseJacobianArrays() {
   } // end if(num_noninteger_jacobian_nonzeros_ > 0)
 
   // count the number of nonzero terms in the dense matrix
-  nnz_=1; // start the count at one so it can still serve as a flag
-  jacobian_column_sums_[0]=0;
+  nnz_temperature_=1; // start the count at one so it can still serve as a flag
+  jacobian_column_sums_temperature_.assign(num_variables_+1,0);
+  jacobian_column_sums_no_temperature_.assign(num_species_+1,0);
   for(int j=0; j<num_variables_; j++) {
     for(int k=0; k<num_variables_; k++) {
       if(isNonZero[j*num_variables_+k]==1) {
-        isNonZero[j*num_variables_+k]=nnz_;
-        nnz_ += 1;
+        isNonZero[j*num_variables_+k]=nnz_temperature_;
+        nnz_temperature_ += 1;
       }
     }
     // after counting column j store the running total in column j+1
     // of the column sum
-    jacobian_column_sums_[j+1]=nnz_-1;
+    jacobian_column_sums_temperature_[j+1]=nnz_temperature_-1;
+    if(j < num_species_) {
+      jacobian_column_sums_no_temperature_[j+1]=nnz_temperature_-1-(j+1);
+    }
   }
   // now at each nonzero term, isNonZero is storing the (address+1) in the
   // actual compressed column storage data array
 
-  nnz_--; // decrement the count
+  nnz_temperature_--; // decrement the count
+  nnz_no_temperature_ = nnz_temperature_ - (num_species_+num_variables_);
+  nnz_ = nnz_temperature_;
 
   // allocate matrix data
-  jacobian_data_.assign(nnz_,0.0);
-  jacobian_row_indexes_.assign(nnz_,0);
-  diagonal_indexes_.assign(num_variables_,0);
+  jacobian_row_indexes_temperature_.assign(nnz_temperature_,0);
+  jacobian_row_indexes_no_temperature_.assign(nnz_no_temperature_,0);
   last_row_indexes_.assign(num_variables_,0);
 
   // scan the the isNonZero array to determine the row indexes
@@ -193,50 +232,58 @@ void ReactorNVectorSerial::SetupSparseJacobianArrays() {
     for(int k=0; k<num_variables_; ++k) {
       int nzAddr=isNonZero[j*num_variables_+k];
       if(nzAddr>0) {
-        jacobian_row_indexes_[nzAddr-1]=k;
+        jacobian_row_indexes_temperature_[nzAddr-1]=k;
+        if(j < num_species_ && k < num_species_) {
+          int nzAddrNoTemp = nzAddr - j; //minus 1 for each temperature elem
+          jacobian_row_indexes_no_temperature_[nzAddrNoTemp-1]=k;
+        }
       }
     }
-    // record the diagonal address
-    diagonal_indexes_[j] = isNonZero[j*num_variables_+j]-1;
     last_row_indexes_[j] = isNonZero[(j+1)*num_variables_-1]-1;
   }
 
   // use the isNonZero array as a lookup to store the proper compressed
   // column data storage
-  for(int j=0; j<destruction_terms_.size(); ++j) {
-    int row_idx=destruction_terms_[j].sparse_index;
-    int column_idx=destruction_terms_[j].concentration_index;
+  for(int j=0; j<destruction_terms_.concentration_indexes.size(); ++j) {
+    int row_idx=destruction_terms_.sparse_indexes_temperature[j];
+    int column_idx=destruction_terms_.concentration_indexes[j];
     int nzAddr=isNonZero[column_idx*num_variables_+row_idx];
-    destruction_terms_[j].sparse_index=nzAddr-1; // reset to sparse addr
+    int sparse_idx = nzAddr-1;
+    destruction_terms_.sparse_indexes_temperature[j]=sparse_idx; // reset to sparse addr
+    destruction_terms_.sparse_indexes_no_temperature[j]=sparse_idx-column_idx; // reset to sparse addr
   }
-  for(int j=0; j<creation_terms_.size(); ++j) {
-    int row_idx=creation_terms_[j].sparse_index;
-    int column_idx=creation_terms_[j].concentration_index;
+
+  for(int j=0; j<creation_terms_.concentration_indexes.size(); ++j) {
+    int row_idx=creation_terms_.sparse_indexes_temperature[j];
+    int column_idx=creation_terms_.concentration_indexes[j];
     int nzAddr=isNonZero[column_idx*num_variables_+row_idx];
-    creation_terms_[j].sparse_index=nzAddr-1; // reset to sparse addr
+    int sparse_idx = nzAddr-1;
+    creation_terms_.sparse_indexes_temperature[j]=sparse_idx; // reset to sparse addr
+    creation_terms_.sparse_indexes_no_temperature[j]=sparse_idx-column_idx; // reset to sparse addr
   }
 
   for(int j=0; j<num_noninteger_jacobian_nonzeros_; ++j) {
     int dense_id = noninteger_row_id[j]+noninteger_column_id[j]*num_variables_;
     int nzAddr=isNonZero[dense_id];
-    noninteger_sparse_id_[j] = nzAddr-1;
+    noninteger_sparse_id_temperature_[j] = nzAddr-1;
+    noninteger_sparse_id_no_temperature_[j] = nzAddr-1 - noninteger_column_id[j];
   }
-} 
+}
 
 
 #ifdef SUNDIALS2
 int ReactorNVectorSerial::GetJacobianDense(long int N, double t, N_Vector y, N_Vector fy,
-                                               DlsMat Jac, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
+                                               DlsMat Jac)
 {
-  SetupJacobianSparse(t,y,fy,tmp1,tmp2,tmp3);
+  SetupJacobianSparse(t,y,fy);
   int flag = SparseToDense(Jac);
   return flag;
 }
 #elif defined SUNDIALS3 || defined SUNDIALS4
 int ReactorNVectorSerial::GetJacobianDense(double t, N_Vector y, N_Vector fy,
-                                               SUNMatrix Jac, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
+                                               SUNMatrix Jac)
 {
-  SetupJacobianSparse(t,y,fy,tmp1,tmp2,tmp3);
+  SetupJacobianSparse(t,y,fy);
   int flag = SparseToDense(Jac);
   return flag;
 }
@@ -245,13 +292,21 @@ int ReactorNVectorSerial::GetJacobianDense(double t, N_Vector y, N_Vector fy,
 #endif
 
 
+int ReactorNVectorSerial::GetJacobianDenseRaw(long int N, double t, N_Vector y, N_Vector fy,
+                                                  double* Jac)
+{
+  ASSERT(false,"Not implemented.");
+  //Used for GPU
+  return 0;
+}
+
 #ifdef SUNDIALS2
 int ReactorNVectorSerial::SparseToDense(DlsMat Jac) {
   const int num_vars = GetNumStateVariables();
   for(int j=0; j < num_vars; ++j) {
     realtype* col = DENSE_COL(Jac,j);
-    for(int k = jacobian_column_sums_[j]; k < jacobian_column_sums_[j+1]; ++k) {
-      col[jacobian_row_indexes_[k]] = jacobian_data_[k];
+    for(int k = (*jacobian_column_sums_ptr_)[j]; k < (*jacobian_column_sums_ptr_)[j+1]; ++k) {
+      col[(*jacobian_row_indexes_ptr_)[k]] = jacobian_data_[k];
     }
   }
   return 0;
@@ -261,8 +316,8 @@ int ReactorNVectorSerial::SparseToDense(SUNMatrix Jac) {
   const int num_vars = GetNumStateVariables();
   for(int j=0; j < num_vars; ++j) {
     realtype* col = SUNDenseMatrix_Column(Jac,j);
-    for(int k = jacobian_column_sums_[j]; k < jacobian_column_sums_[j+1]; ++k) {
-      col[jacobian_row_indexes_[k]] = jacobian_data_[k];
+    for(int k = (*jacobian_column_sums_ptr_)[j]; k < (*jacobian_column_sums_ptr_)[j+1]; ++k) {
+      col[(*jacobian_row_indexes_ptr_)[k]] = jacobian_data_[k];
     }
   }
   return 0;
@@ -272,8 +327,8 @@ int ReactorNVectorSerial::SparseToDense(SUNMatrix Jac) {
 #endif
 
 
-int ReactorNVectorSerial::SparseToDense(const std::vector<int> sums, const std::vector<int> idxs,
-                                            const std::vector<double> vals, std::vector<double>* dense) {
+int ReactorNVectorSerial::SparseToDense(const std::vector<int>& sums, const std::vector<int>& idxs,
+                                        const std::vector<double>& vals, std::vector<double>* dense) {
   const int num_vars = GetNumStateVariables();
   dense->assign(num_vars*num_vars, 0.0);
   for(int j=0; j < num_vars; ++j) {
@@ -284,13 +339,12 @@ int ReactorNVectorSerial::SparseToDense(const std::vector<int> sums, const std::
   return 0;
 }
 
-int ReactorNVectorSerial::JacobianSetup(double t, N_Vector y, N_Vector fy,
-                                            N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
+int ReactorNVectorSerial::JacobianSetup(double t, N_Vector y, N_Vector fy)
 {
  if(int_options_["analytic"] == 1) {
-   SetupJacobianSparse(t,y,fy,tmp1,tmp2,tmp3);
+   SetupJacobianSparse(t,y,fy);
  } else {
-   this->DividedDifferenceJacobian(t, y, fy, tmp1, tmp2, tmp3, &dense_jacobian_);
+   this->DividedDifferenceJacobian(t, y, fy, &dense_jacobian_);
  }
  return 0;
 }
@@ -347,8 +401,8 @@ int ReactorNVectorSerial::FormPreconditioner(double gamma)
   std::vector<int> prev_preconditioner_column_sums = preconditioner_column_sums_;
   std::vector<int> prev_preconditioner_row_indexes = preconditioner_row_indexes_;
 
-  preconditioner_data_.assign(nnz_,0.0);
   preconditioner_column_sums_.assign(num_variables_+1,0);
+  preconditioner_data_.assign(nnz_,0.0);
   preconditioner_row_indexes_.assign(nnz_,0);
   preconditioner_column_sums_[0] = 0;
   const int num_vars = num_variables_;
@@ -356,8 +410,8 @@ int ReactorNVectorSerial::FormPreconditioner(double gamma)
   if(int_options_["analytic"] == 0) {
     for(int j=0; j<num_vars; ++j) {
       preconditioner_column_sums_[j+1] = preconditioner_column_sums_[j];
-      for(int k=jacobian_column_sums_[j]; k<jacobian_column_sums_[j+1]; ++k) {
-        int row = jacobian_row_indexes_[k];
+      for(int k=(*jacobian_column_sums_ptr_)[j]; k<(*jacobian_column_sums_ptr_)[j+1]; ++k) {
+        int row = (*jacobian_row_indexes_ptr_)[k];
         bool diag = row == j;
         double element_value = -gamma*dense_jacobian_[j*num_variables_ + row];
         if(diag) {
@@ -376,8 +430,8 @@ int ReactorNVectorSerial::FormPreconditioner(double gamma)
   } else {
     for(int j=0; j<num_vars; ++j) {
       preconditioner_column_sums_[j+1] = preconditioner_column_sums_[j];
-      for(int k=jacobian_column_sums_[j]; k<jacobian_column_sums_[j+1]; ++k) {
-        int row = jacobian_row_indexes_[k];
+      for(int k=(*jacobian_column_sums_ptr_)[j]; k<(*jacobian_column_sums_ptr_)[j+1]; ++k) {
+        int row = (*jacobian_row_indexes_ptr_)[k];
         bool diag = row == j;
         double element_value = -gamma*jacobian_data_[k];
         if(diag) {
@@ -394,8 +448,16 @@ int ReactorNVectorSerial::FormPreconditioner(double gamma)
       }
     }
   }
+  preconditioner_data_.resize(preconditioner_nnz);
+  preconditioner_row_indexes_.resize(preconditioner_nnz,0);
 
   //Check for mismatch
+  if(prev_preconditioner_column_sums.size() != preconditioner_column_sums_.size()) {
+    return 1;
+  }
+  if(prev_preconditioner_row_indexes.size() != preconditioner_row_indexes_.size()) {
+    return 1;
+  }
   for(int j=1; j<=num_vars; ++j) {
     if(prev_preconditioner_column_sums[j] != preconditioner_column_sums_[j]) {
       return 1;
@@ -410,7 +472,7 @@ int ReactorNVectorSerial::FormPreconditioner(double gamma)
 }
 
 int ReactorNVectorSerial::JacobianSolve(double t, N_Vector y, N_Vector fy,
-                                            N_Vector r, N_Vector z, N_Vector tmp)
+                                            N_Vector r, N_Vector z)
 {
   double * r_ptr = NV_DATA_S(r);
   double * z_ptr = NV_DATA_S(z);
@@ -424,26 +486,24 @@ int ReactorNVectorSerial::JacobianSolve(double t, N_Vector y, N_Vector fy,
 }
 
 
-int ReactorNVectorSerial::SetupJacobianSparse(realtype t, N_Vector y,N_Vector fy,
-                                                  N_Vector tmp1,N_Vector tmp2,N_Vector tmp3)
+int ReactorNVectorSerial::SetupJacobianSparse(realtype t, N_Vector y,N_Vector fy)
 {
   double *y_ptr = NV_DATA_S(y);
   double *fy_ptr = NV_DATA_S(fy);
-  double *tmp1_ptr = NV_DATA_S(tmp1);
-  double *tmp2_ptr = NV_DATA_S(tmp2);
-  double *tmp3_ptr = NV_DATA_S(tmp3);
+  double *tmp1_ptr = NV_DATA_S(tmp1_);
+  double *tmp2_ptr = NV_DATA_S(tmp2_);
+  double *tmp3_ptr = NV_DATA_S(tmp3_);
 
   //double startTime = getHighResolutionTime();
 
   const int num_vars = num_variables_;
   const int num_spec = num_species_;
-  const int num_destruction_terms = destruction_terms_.size();
-  const int num_creation_terms = creation_terms_.size();
-  const double RuTemp= mech_ptr_->getGasConstant() * y_ptr[num_spec];
+  const int num_destruction_terms = destruction_terms_.concentration_indexes.size();
+  const int num_creation_terms = creation_terms_.concentration_indexes.size();
   const double min_mass_frac = double_options_["min_mass_fraction"];
 
-  // set tmp1 to the strictly positive mass fraction array
-  // set tmp2 to 1/C where C is the concentration for the strictly positive
+  // set tmp1_ to the strictly positive mass fraction array
+  // set tmp2_ to 1/C where C is the concentration for the strictly positive
   // mass fraction array
   for(int j=0; j < num_spec; j++) {
     tmp1_ptr[j]=y_ptr[j];
@@ -457,11 +517,13 @@ int ReactorNVectorSerial::SetupJacobianSparse(realtype t, N_Vector y,N_Vector fy
     tmp2_ptr[j]=mol_wt_[j]/tmp1_ptr[j]*inverse_density_;
   }
 
-  tmp1_ptr[num_spec]=y_ptr[num_spec];
+  if(solve_temperature_) {
+    tmp1_ptr[num_spec]=y_ptr[num_spec];
+  }
 
   // calculate the reaction info for the strictly positive case
   //double start_time_deriv = getHighResolutionTime();
-  GetTimeDerivative(t,tmp1,tmp3);
+  GetTimeDerivative(t,tmp1_,tmp3_);
   //double deriv_time = getHighResolutionTime() - start_time_deriv;
 
   // set the full sparse array
@@ -469,113 +531,119 @@ int ReactorNVectorSerial::SetupJacobianSparse(realtype t, N_Vector y,N_Vector fy
 
   // process the forward destruction terms
   for(int j=0; j < num_destruction_terms; ++j) {
-      int conc_idx = destruction_terms_[j].concentration_index;
-      int rxn_idx    = destruction_terms_[j].reaction_index;
-      int sparse_idx = destruction_terms_[j].sparse_index;
+      int conc_idx = destruction_terms_.concentration_indexes[j];
+      int rxn_idx    = destruction_terms_.reaction_indexes[j];
+      int sparse_idx = (*destruction_sparse_indexes_ptr_)[j];
       jacobian_data_[sparse_idx]-=forward_rates_of_production_[rxn_idx]*tmp2_ptr[conc_idx];
   }
 
   // process the forward creation terms
   for(int j=0; j < num_creation_terms; ++j) {
-      int conc_idx = creation_terms_[j].concentration_index;
-      int rxn_idx    = creation_terms_[j].reaction_index;
-      int sparse_idx = creation_terms_[j].sparse_index;
+      int conc_idx = creation_terms_.concentration_indexes[j];
+      int rxn_idx    = creation_terms_.reaction_indexes[j];
+      int sparse_idx = (*creation_sparse_indexes_ptr_)[j];
       jacobian_data_[sparse_idx]+=forward_rates_of_production_[rxn_idx]*tmp2_ptr[conc_idx];
   }
 
   // process the non-integer Jacobian information
-  const int num_noninteger_jacobian_nonzeros =
-    num_noninteger_jacobian_nonzeros_;
+  if(num_noninteger_jacobian_nonzeros_ > 0) {
+    const int num_noninteger_jacobian_nonzeros =
+      num_noninteger_jacobian_nonzeros_;
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    noninteger_jacobian_[j] = 0.0;
-  }
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      noninteger_jacobian_[j] = 0.0;
+    }
 
-  mech_ptr_->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-    tmp2_ptr,
-    &forward_rates_of_production_[0],
-    &noninteger_jacobian_[0]);
+    mech_ptr_->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+      tmp2_ptr,
+      &forward_rates_of_production_[0],
+      &noninteger_jacobian_[0]);
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-    jacobian_data_[noninteger_sparse_id_[j]] += noninteger_jacobian_[j];
+    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+      jacobian_data_[(*noninteger_sparse_id_ptr_)[j]] += noninteger_jacobian_[j];
+    }
   }
 
   // At this point sMptr stores d(wdot[k])/dC[j] ignoring the contribution
   // of perturbations in the third body species
 
-  // ---------------------------------------------------------------------
-  // compute d(Tdot)/dy[j]
+  if(solve_temperature_) {
+    // ---------------------------------------------------------------------
+    // compute d(Tdot)/dy[j]
+    const double RuTemp= mech_ptr_->getGasConstant() * y_ptr[num_spec];
 
-  // SPARSE:
-  // step 1: compute matrix vector product (d(wdot[k])/dC[j])*E[k]
-  for(int j=0; j<num_spec; j++) { // column number
-    int last_row_idx = last_row_indexes_[j];
+    // SPARSE:
+    // step 1: compute matrix vector product (d(wdot[k])/dC[j])*E[k]
+    for(int j=0; j<num_spec; j++) { // column number
+      int last_row_idx = last_row_indexes_[j];
 
-    jacobian_data_[last_row_idx]=0.0;
-    //N.B. skip last row in this loop
-    for(int k=jacobian_column_sums_[j]; k<jacobian_column_sums_[j+1]-1; k++) {
-      int row=jacobian_row_indexes_[k];
-      jacobian_data_[last_row_idx]+=jacobian_data_[k]*energy_[row];
+      jacobian_data_[last_row_idx]=0.0;
+      //N.B. skip last row in this loop
+      for(int k=(*jacobian_column_sums_ptr_)[j]; k<(*jacobian_column_sums_ptr_)[j+1]-1; k++) {
+        int row=(*jacobian_row_indexes_ptr_)[k];
+        jacobian_data_[last_row_idx]+=jacobian_data_[k]*energy_[row];
+      }
+      jacobian_data_[last_row_idx] *= RuTemp;
     }
-    jacobian_data_[last_row_idx] *= RuTemp;
-  }
 
-  // step 2: add the Tdot*Cv[j] term to d(Tdot)/dy[j]
-  for(int j=0; j<num_spec; j++) {
-    int last_row_idx = last_row_indexes_[j];
-    //TODO: Tdot! (with non-zero concentrations) (CHECK THIS)
-    jacobian_data_[last_row_idx]+=tmp3_ptr[num_spec]*cx_mass_[j]*mol_wt_[j];
-  }
+    // step 2: add the Tdot*Cv[j] term to d(Tdot)/dy[j]
+    for(int j=0; j<num_spec; j++) {
+      int last_row_idx = last_row_indexes_[j];
+      jacobian_data_[last_row_idx]+=tmp3_ptr[num_spec]*cx_mass_[j]*mol_wt_[j];
+    }
 
-  // step 3: divide by -1/(molWt[j]*meanCvMass)
-  double multFact = -1.0/(mean_cx_mass_);
-  for(int j=0; j<num_spec; j++) {
-    int last_row_idx = last_row_indexes_[j];
-    jacobian_data_[last_row_idx] *= inv_mol_wt_[j]*multFact;
-  }
+    // step 3: divide by -1/(molWt[j]*meanCvMass)
+    double multFact = -1.0/(mean_cx_mass_);
+    for(int j=0; j<num_spec; j++) {
+      int last_row_idx = last_row_indexes_[j];
+      jacobian_data_[last_row_idx] *= inv_mol_wt_[j]*multFact;
+    }
+
+    // At this point Mtx stores d(Tdot[k])/dy[j] ignoring the contribution
+    // of perturbations in the third body species
+
+    // --------------------------------------------------------------------- 
+    // calculate d(ydot[k])/dT
+
+    // step 1: perturb the temperature
+    double delta_temp=y_ptr[num_spec]*sqrt_unit_round_;
+    tmp1_ptr[num_spec]+=delta_temp;
+    delta_temp=tmp1_ptr[num_spec]-y_ptr[num_spec];
+    double multiplier = 1.0/delta_temp;
+
+    for(int j=0; j<num_spec; ++j) {
+      tmp1_ptr[j]=y_ptr[j];
+    }
+
+    // step 2: calculate ydot at Temp+dTemp
+    //start_time_deriv = getHighResolutionTime();
+    GetTimeDerivative(t,tmp1_,tmp3_);
+    //deriv_time += getHighResolutionTime() - start_time_deriv;
+
+    // step 3: approximate d(ydot[k])/dT with finite difference
+    for(int k=(*jacobian_column_sums_ptr_)[num_spec]; k<(*jacobian_column_sums_ptr_)[num_vars]; ++k) {
+      int row=(*jacobian_row_indexes_ptr_)[k];
+      jacobian_data_[k]=(tmp3_ptr[row]-fy_ptr[row])*multiplier;
+    }
+  } //if(solve_temperature_)
 
   //Convert concentration to mass fraction
   for(int j=0; j<num_spec; j++) { // jth column
-    for(int k=jacobian_column_sums_[j]; k<jacobian_column_sums_[j+1]-1; k++) {
-      int row=jacobian_row_indexes_[k];
-      jacobian_data_[k] *= mol_wt_[row]*inv_mol_wt_[j];
+    for(int k=(*jacobian_column_sums_ptr_)[j]; k<(*jacobian_column_sums_ptr_)[j+1]; k++) {
+      const int row=(*jacobian_row_indexes_ptr_)[k];
+      if(row < num_spec) {
+        jacobian_data_[k] *= mol_wt_[row]*inv_mol_wt_[j];
+      }
     }
-  }
-
-  // At this point Mtx stores d(Tdot[k])/dy[j] ignoring the contribution
-  // of perturbations in the third body species
-
-  // --------------------------------------------------------------------- 
-  // calculate d(ydot[k])/dT
-
-  // step 1: perturb the temperature
-  double delta_temp=y_ptr[num_spec]*sqrt_unit_round_;
-  tmp1_ptr[num_spec]+=delta_temp;
-  delta_temp=tmp1_ptr[num_spec]-y_ptr[num_spec];
-  double multiplier = 1.0/delta_temp;
-
-  for(int j=0; j<num_spec; ++j) {
-    tmp1_ptr[j]=y_ptr[j];
-  }
-
-  // step 2: calculate ydot at Temp+dTemp
-  //start_time_deriv = getHighResolutionTime();
-  GetTimeDerivative(t,tmp1,tmp3);
-  //deriv_time += getHighResolutionTime() - start_time_deriv;
-
-  // step 3: approximate d(ydot[k])/dT with finite difference
-  for(int k=jacobian_column_sums_[num_spec]; k<jacobian_column_sums_[num_vars]; ++k) {
-    int row=jacobian_row_indexes_[k];
-    jacobian_data_[k]=(tmp3_ptr[row]-fy_ptr[row])*multiplier;
   }
 
   //jacobian_setup_time += getHighResolutionTime() - start_time - deriv_time;
   //jacobian_setups += 1;
   //bool print_jacobian = false;
   //if(print_jacobian) {
-  //  print_sp_matrix(num_variables_, num_variables_, &jacobian_column_sums_[0], &jacobian_row_indexes_[0], &jacobian_data_[0]);
+  //  print_sp_matrix(num_variables_, num_variables_, &(*jacobian_column_sums_ptr_)[0], &(*jacobian_row_indexes_ptr_)[0], &jacobian_data_[0]);
   //  std::vector<double> dense;
-  //  SparseToDense(jacobian_column_sums_, jacobian_row_indexes_, jacobian_data_, &dense);
+  //  SparseToDense(*jacobian_column_sums_ptr_, *jacobian_row_indexes_ptr_, jacobian_data_, &dense);
   //  printf("\n");
   //}
   return 0;
@@ -584,12 +652,26 @@ int ReactorNVectorSerial::SetupJacobianSparse(realtype t, N_Vector y,N_Vector fy
 
 int ReactorNVectorSerial::RootFunction(double t, N_Vector y, double *root_function)
 {
-  double ignition_temperature = initial_temperature_ + double_options_["delta_temperature_ignition"];
-  double current_temperature = NV_Ith_S(y,num_species_)*double_options_["reference_temperature"];
-  root_function[0] = ignition_temperature - current_temperature;
+  if(solve_temperature_) {
+    double ignition_temperature = initial_temperature_ + double_options_["delta_temperature_ignition"];
+    double current_temperature = NV_Ith_S(y,num_species_)*double_options_["reference_temperature"];
+    root_function[0] = ignition_temperature - current_temperature;
+  } else {
+    root_function[0] = -1;
+  }
   return 0;
 }
 
+int ReactorNVectorSerial::SetRootTime(double t)
+{
+  root_time_ = t;
+  return 0;
+}
+
+double ReactorNVectorSerial::GetRootTime()
+{
+  return root_time_;
+}
 
 int ReactorNVectorSerial::GetNumStateVariables()
 {
@@ -599,26 +681,29 @@ int ReactorNVectorSerial::GetNumStateVariables()
 
 int ReactorNVectorSerial::GetNumRootFunctions()
 {
-  return 1;
+  if(double_options_["delta_temperature_ignition"] > 0) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 
 void ReactorNVectorSerial::DividedDifferenceJacobian(double t, N_Vector y, N_Vector fy,
-                                                     N_Vector tmp1, N_Vector tmp2, N_Vector tmp3,
                                                      std::vector<double>* dense_jacobian) {
   static const int n = num_variables_;
   static const double uround = 1.0e-16;
   double* yd = NV_DATA_S(y);
-  double* dy0d = NV_DATA_S(tmp1);
-  double* dy1d = NV_DATA_S(tmp2);
+  double* dy0d = NV_DATA_S(tmp1_);
+  double* dy1d = NV_DATA_S(tmp2_);
 
-  this->GetTimeDerivative(t,y,tmp1);
+  this->GetTimeDerivative(t,y,tmp1_);
   dense_jacobian->assign(num_variables_*num_variables_,0.0);
   for(int i = 0; i < n; ++i) {
      double ysafe=yd[i];
      double delta=sqrt(uround*std::max(1.0e-5,fabs(ysafe)));
      yd[i]=ysafe+delta;
-     this->GetTimeDerivative(t,y,tmp2);
+     this->GetTimeDerivative(t,y,tmp2_);
      for(int j = 0; j < n; ++j) {
        (*dense_jacobian)[i*n + j] = (dy1d[j] - dy0d[j])/delta;
      }
@@ -626,4 +711,7 @@ void ReactorNVectorSerial::DividedDifferenceJacobian(double t, N_Vector y, N_Vec
   }
 }
 
+void ReactorNVectorSerial::Reset() {
+  slum_.reset();
+}
 

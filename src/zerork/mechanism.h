@@ -13,6 +13,7 @@
 #include "atomicMassDB.h"
 #include "external_funcs.h"
 #include "non_integer_reaction_network.h"
+#include "utilities.h"
 
 namespace zerork {
 
@@ -243,6 +244,7 @@ class mechanism
   rate_const *Kconst;
   perf_net *perfNet;
   info_net *infoNet;
+  NonIntegerReactionNetwork non_integer_network_;
   string *rxnDefinition;
 
   //File name for mechanism, thermo, parser output
@@ -261,7 +263,6 @@ class mechanism
   double Ru;   // [J/kmol-K] universal gas constant
 
   // informational, organizational data
-  element *elementList;
   species *speciesList;
 
   // reaction rate workspace
@@ -276,8 +277,6 @@ class mechanism
   external_func_rates_t ex_func_calc_rates;
   external_func_arrh_t ex_func_calc_arrh;
   external_func_keq_t ex_func_calc_keq;
-
-  NonIntegerReactionNetwork non_integer_network_;
 };
 
 } // namespace zerork

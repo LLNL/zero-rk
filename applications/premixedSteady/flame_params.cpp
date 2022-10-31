@@ -5,18 +5,22 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "flame_params.h"
 
 static double NormalizeComposition(const size_t num_elements,
                                    double composition[]);
 
-FlameParams::FlameParams(const std::string &input_name, MPI_Comm &comm)
+FlameParams::FlameParams(const std::string &input_name)
 {
-
-  comm_ = comm; // not nice
+  npes_ = 1;
+  my_pe_ = 0;
+#ifdef ZERORK_MPI
+  comm_ = MPI_COMM_WORLD; // not nice
   MPI_Comm_size(comm_, &npes_);
   MPI_Comm_rank(comm_, &my_pe_);
+#endif
   nover_ = 2;
 
   int error_code;
@@ -26,7 +30,9 @@ FlameParams::FlameParams(const std::string &input_name, MPI_Comm &comm)
   trans_   = NULL;
   logger_  = NULL;
   sparse_matrix_ = NULL;
+#ifdef ZERORK_MPI
   sparse_matrix_dist_ = NULL;
+#endif
   sparse_matrix_chem_.clear();
   valid_jacobian_structure_ = true;
 
@@ -140,10 +146,12 @@ FlameParams::~FlameParams()
       if (sparse_matrix_ != NULL) {
 	delete sparse_matrix_;
       }
+#ifdef ZERORK_MPI
     } else {
       if (sparse_matrix_dist_ != NULL) {
 	delete sparse_matrix_dist_;
       }
+#endif
     }
   }
   if(integrator_type_ == 3) {
@@ -462,7 +470,7 @@ void FlameParams::SetInlet()
   inlet_relative_volume_ =
     reactor_->GetGasConstant()*parser_->inlet_temperature()/
     (parser_->pressure()*inlet_molecular_mass_);
-  deltaTfix_ = 500.0;
+  deltaTfix_ = parser_->anchor_temperature();
 
 } // void FlameParams::SetInlet()
 
@@ -538,7 +546,11 @@ void FlameParams::SetInitialComposition()
 // Set the grid
 void FlameParams::SetGrid()
 {
-  if(parser_->grid_file() == std::string("/dev/null")) {
+
+  length_ = parser_->length();
+  int num_points = parser_->num_points();
+
+  if(parser_->grid_file() == std::string(zerork::utilities::null_filename)) {
     // if no grid provided -> uniform grid from input file parameters
     if(parser_->num_points() < 2) {
       printf("# ERROR: number of grid points must be two or greater than two\n"
@@ -552,10 +564,12 @@ void FlameParams::SetGrid()
       exit(-1);
     }
 
-    const int num_points = parser_->num_points();
+    const double delta_z = length_/(double)(num_points+1-1);
+    num_points_ = num_points;
     z_.assign(num_points, 0.0);
     for(int j=0; j<num_points; ++j) {
-      z_[j] = (double)j*parser_->length()/(double)(num_points-1);
+      //z_[j] = (double)j*parser_->length()/(double)(num_points-1);
+      z_[j] = delta_z + (double)j*delta_z;
     }
 
   } else {
@@ -593,16 +607,21 @@ void FlameParams::SetGrid()
       exit(-1);
     } // if z.size
 
+    length_ = z_[z_.size()-1];
+    // Remove first point (BC)
+    z_.erase(z_.begin());
   }
 
   const int num_states   = reactor_->GetNumStates();
-  const int num_points = z_.size();
+  num_points = z_.size();
   num_points_ = num_points; //stupid
   num_local_points_ = num_points/npes_;
 
   if(num_points % npes_ != 0 ) {
     printf("Number of grid points not divisible by number of processors \n");
+#ifdef ZERORK_MPI
     MPI_Finalize();
+#endif
     exit(-1);
   }
 
@@ -613,11 +632,15 @@ void FlameParams::SetGrid()
 
   if(num_local_points_ < nover_ ) {
     printf("Need at least two grid points per processor for second order discretization \n");
+#ifdef ZERORK_MPI
     MPI_Finalize();
+#endif
     exit(-1);
   }
 
+#ifdef ZERORK_MPI
   MPI_Status status;
+#endif
   dz_local_.assign( num_local_points_+(2*nover_), 0.0);
   dzm_local_.assign( num_local_points_+(2*nover_), 0.0);
   inv_dz_local_.assign( num_local_points_+(2*nover_), 0.0);
@@ -642,7 +665,7 @@ void FlameParams::SetGrid()
     inv_dz_local_[nover_+j] = 1.0/dz_[jglobal];
     inv_dzm_local_[nover_+j] = 1.0/dzm_[jglobal];
   }
-
+#ifdef ZERORK_MPI
   // Send left and right
   if (my_pe_ !=0) {
     MPI_Send(&dz_local_[nover_], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_);
@@ -669,7 +692,7 @@ void FlameParams::SetGrid()
     MPI_Recv(&inv_dz_local_[num_local_points_+nover_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
     MPI_Recv(&inv_dzm_local_[num_local_points_+nover_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
   }
-
+#endif
   if(my_pe_ == 0) {
 
     for(int j=0; j<nover_; ++j) {
@@ -718,7 +741,7 @@ void FlameParams::SetWallProperties()
                            parser_->inlet_temperature()/
                            parser_->ref_temperature());
 
-  if(parser_->wall_temperature_file() == std::string("/dev/null")) {
+  if(parser_->wall_temperature_file() == std::string(zerork::utilities::null_filename)) {
     // if no wall temperature file is specified, then wall temperature
     // remains equal to the inlet_temperature and the nusselt number is
     // set to zero for an adiabatic calculation
@@ -796,7 +819,7 @@ void FlameParams::SetWallProperties()
       wall_temperature_[j] /= parser_->ref_temperature();
     }
 
-  } // if(parser_->wall_temperature_file() == std::string("/dev/null")) else
+  } // if(parser_->wall_temperature_file() == std::string(zerork::utilities::null_filename)) else
 
 }
 
@@ -1052,6 +1075,7 @@ void FlameParams::SetMemory()
 	logger_->PrintF("# ERROR: failed to allocate new SparseMatrix object\n");
 	exit(-1); // TODO: add recoverable failure
       }
+#ifdef ZERORK_MPI
     } else {
       sparse_matrix_dist_ = new SparseMatrix_dist(num_local_points*num_states, num_nonzeros_loc_, comm_);
       if(sparse_matrix_dist_ == NULL) {
@@ -1059,6 +1083,7 @@ void FlameParams::SetMemory()
 	logger_->PrintF("# ERROR: failed to allocate new SparseMatrix object\n");
 	exit(-1); // TODO: add recoverable failure
       }
+#endif
     }
 
     if(store_jacobian_) {

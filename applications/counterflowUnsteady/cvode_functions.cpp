@@ -152,7 +152,7 @@ int ConstPressureFlameLocal(long int nlocal,
           params->y_ext_[j*num_states + k] = params->fuel_mass_fractions_[k];
         }
         params->y_ext_[j*num_states+num_species]   = params->fuel_relative_volume_;
-      } else if (params->flame_type_ == 1 or params->flame_type_ == 2) {
+      } else if (params->flame_type_ == 1 || params->flame_type_ == 2) {
         for(int k=0; k<num_species; ++k) {
           params->y_ext_[j*num_states + k] = params->inlet_mass_fractions_[k];
         }
@@ -191,7 +191,7 @@ int ConstPressureFlameLocal(long int nlocal,
       params->y_ext_[j*num_states+num_species] = params->oxidizer_relative_volume_;
       params->y_ext_[j*num_states+num_species+1] = params->oxidizer_temperature_;
       if(finite_separation) {
-        if(params->flame_type_ == 0 or params->flame_type_ == 2) {
+        if(params->flame_type_ == 0 || params->flame_type_ == 2) {
           params->y_ext_[j*num_states+num_species+2] = 0.0;
         } else if (params->flame_type_ == 1) {
           params->G_right_ = params->y_ext_[(num_local_points+nover-1)*num_states+num_species+2];
@@ -248,7 +248,7 @@ int ConstPressureFlameLocal(long int nlocal,
 
   if(my_pe == 0) {
     int jContBC = 0;
-    if(params->flame_type_ == 0 or params->flame_type_ == 2) {
+    if(params->flame_type_ == 0 || params->flame_type_ == 2) {
       // Find grid point closest to old stagnation point location
       int jStart = 0;
       for(int j=0; j<num_total_points; j++) {
@@ -689,7 +689,7 @@ int ConstPressureFlameLocal(long int nlocal,
   }
   MPI_Allreduce(&local_sum,&sum_omega_F,1,PVEC_REAL_MPI_TYPE,MPI_SUM,comm);
   double sum_inlet_fuel_mass_fractions = 0.0;
-  if(params->flame_type_ == 1 or params->flame_type_ == 2) {
+  if(params->flame_type_ == 1 || params->flame_type_ == 2) {
     // premixed flame
     for(int k=0; k<num_fuel_species; ++k) {
       sum_inlet_fuel_mass_fractions += params->inlet_mass_fractions_[params->fuel_species_id_[k]];

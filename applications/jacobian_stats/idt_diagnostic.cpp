@@ -1,8 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <unistd.h>
 #include <fenv.h>
+#ifdef WIN32
+#include <io.h>
+#define F_OK 00
+#define R_OK 04
+#define access _access
+#else
+#include "unistd.h"
+#endif
 
 #include <cvode/cvode.h>            // prototypes for CVODE fcts. and consts.
 #ifdef SUNDIALS2
@@ -616,6 +623,10 @@ void getInitialActiveSpecies(BasicReactorIFP *parser,
       ++iter) {
 
     species_id = mech->getIdxFromName(iter->first.c_str());
+    if(species_id == -1) { 
+       printf("ERROR: fuel species %s: not found in mechanism.\n", iter->first.c_str());
+       exit(1);
+    }
     if(iter->second > 0.0) {
       active_species[species_id]=1;
     }
@@ -625,6 +636,10 @@ void getInitialActiveSpecies(BasicReactorIFP *parser,
       ++iter) {
 
     species_id = mech->getIdxFromName(iter->first.c_str());
+    if(species_id == -1) { 
+       printf("ERROR: oxid species %s: not found in mechanism.\n", iter->first.c_str());
+       exit(1);
+    }
     if(iter->second > 0.0) {
       active_species[species_id]=1;
     }

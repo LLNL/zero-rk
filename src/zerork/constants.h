@@ -33,7 +33,7 @@ const int LDA_THERMO_POLY_D5R2 = 16; // minimum is 15 w/o (Tmin,Tmax) storage
 const int NUM_THERMO_POLY_D5R2 = 15; // minimum is 15 w/o (Tmin,Tmax) storage
 const int NUM_COEF_RANGE = 7; // number of coefficients per range
 
-const int MIN_INT32 = -2147483648; // minimum 32-bit integer
+const int MIN_INT32 = (-2147483647-1); // minimum 32-bit integer
 
 const double STOICH_TOL = 1.0e-14; // threshold below which any stoichiometric
                                    // coefficient will be rounded to the nearest

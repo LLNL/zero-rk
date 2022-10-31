@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <utilities/math_utilities.h>
 
 int main(int argc, char *argv[])
 {
@@ -36,7 +37,7 @@ int main(int argc, char *argv[])
   seed=atoi(argv[1]);
   if(seed==-1)
     {seed=time(0);}
-  srand48(seed);
+  zerork::utilities::random01seed(seed);
 
   nSpc=atoi(argv[2]);
   molFrac=(double *)malloc(sizeof(double)*nSpc);
@@ -60,19 +61,19 @@ int main(int argc, char *argv[])
     {Tmax=-Tmax; isLogT=1;}
 
   if(isLogP)
-    {Pstate=Pmin*exp(log(Pmax/Pmin)*drand48());}
+    {Pstate=Pmin*exp(log(Pmax/Pmin)*zerork::utilities::random01());}
   else
-    {Pstate=Pmin+(Pmax-Pmin)*drand48();}
+    {Pstate=Pmin+(Pmax-Pmin)*zerork::utilities::random01();}
       
   if(isLogT)
-    {Tstate=Tmin*exp(log(Tmax/Tmin)*drand48());}
+    {Tstate=Tmin*exp(log(Tmax/Tmin)*zerork::utilities::random01());}
   else
-    {Tstate=Tmin+(Tmax-Tmin)*drand48();}
+    {Tstate=Tmin+(Tmax-Tmin)*zerork::utilities::random01();}
       
   molFracSum=0.0;
   for(j=0; j<nSpc; j++)
     {
-      molFrac[j]=drand48();
+      molFrac[j]=zerork::utilities::random01();
       molFracSum+=molFrac[j];
     }
   molFracSum=1.0/molFracSum;

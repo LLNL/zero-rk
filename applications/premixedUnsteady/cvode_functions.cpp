@@ -27,8 +27,13 @@ int ConstPressureFlameLocal(int nlocal,
 			    void *user_data)
 {
   FlameParams *params = (FlameParams *)user_data;
+#ifdef ZERORK_MPI
   double *y_ptr    = NV_DATA_P(y);   // caution: assumes realtype == double
   double *ydot_ptr = NV_DATA_P(ydot); // caution: assumes realtype == double
+#else
+  double *y_ptr    = NV_DATA_S(y);
+  double *ydot_ptr = NV_DATA_S(ydot);
+#endif
 
   const int num_local_points = params->num_local_points_;
   const int num_states  = params->reactor_->GetNumStates();
@@ -88,8 +93,10 @@ int ConstPressureFlameLocal(int nlocal,
 
   //--------------------------------------------------------------------------
   // Perform parallel communications
+#ifdef ZERORK_MPI
   MPI_Comm comm = params->comm_;
   MPI_Status status;
+#endif
   int nover = 2;
   long int dsize = num_states*nover;
 
@@ -115,6 +122,7 @@ int ConstPressureFlameLocal(int nlocal,
   }
 
   // Update ghost cells with send/receive
+#ifdef ZERORK_MPI
   int nodeDest = my_pe-1;
   if (nodeDest < 0) nodeDest = npes-1;
   int nodeFrom = my_pe+1;
@@ -128,6 +136,7 @@ int ConstPressureFlameLocal(int nlocal,
   if (nodeFrom < 0) nodeFrom = npes-1;
   MPI_Sendrecv(&params->y_ext_[num_states*num_local_points], dsize, PVEC_REAL_MPI_TYPE, nodeDest, 0,
 	   &params->y_ext_[0], dsize, PVEC_REAL_MPI_TYPE, nodeFrom, 0, comm, &status);
+#endif
 
   // Apply boundary conditions
   // First proc: inlet conditions in ghost cells
@@ -259,7 +268,9 @@ int ConstPressureFlameLocal(int nlocal,
       e = 0;
     } else {
       cerr << "Undefined convective scheme \n";
+#ifdef ZERORK_MPI
       MPI_Finalize();
+#endif
       exit(0);
     }
 
@@ -336,6 +347,7 @@ int ConstPressureFlameLocal(int nlocal,
   // Duplicate the continuity integration for parallel simulations
   for(int l=0; l<npes; ++l) {
 
+#ifdef ZERORK_MPI
     // Send/receive only if necessary
     if (my_pe != npes-1 && my_pe >= l-1) {
       MPI_Send(&params->mass_flux_ext_[num_local_points], nover, PVEC_REAL_MPI_TYPE, my_pe+1, 0, comm);
@@ -343,6 +355,7 @@ int ConstPressureFlameLocal(int nlocal,
     if (my_pe !=0 && my_pe >=l) {
       MPI_Recv(&params->mass_flux_ext_[0], nover, PVEC_REAL_MPI_TYPE, my_pe-1, 0, comm, &status);
     }
+#endif
 
     // Compute mass flux if necessary
     if(my_pe >= l) {
@@ -388,7 +401,6 @@ int ConstPressureFlameLocal(int nlocal,
   //  Copy into params
   for(int j=0; j<num_local_points; ++j) {
     int jext = j + nover;
-
     mass_flux[j] = params->mass_flux_ext_[jext];
     params->mass_flux_[j] = params->mass_flux_ext_[jext];
   }
@@ -438,13 +450,22 @@ int ConstPressureFlameLocal(int nlocal,
     local_sum -= ydot_ptr[j*num_states+num_species]*dzm[jext]/
       y_ptr[j*num_states + num_species]/y_ptr[j*num_states + num_species];
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_sum,&sum_drhodt,1,PVEC_REAL_MPI_TYPE,MPI_SUM,comm);
+#else
+  sum_drhodt = local_sum;
+#endif
+
   double mass_flux_outlet;
   double tmp = 0;
   if (my_pe == npes-1) {
     tmp = mass_flux[num_local_points-1];
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&tmp,&mass_flux_outlet,1,PVEC_REAL_MPI_TYPE,MPI_SUM,comm);
+#else
+  mass_flux_outlet = tmp;
+#endif
   params->mass_change_ = (params->mass_flux_inlet_ - mass_flux_outlet - sum_drhodt)/params->mass_flux_inlet_;
 
   // Compute laminar flame speed = int(omega_F)/rho_u/YF_u
@@ -458,7 +479,12 @@ int ConstPressureFlameLocal(int nlocal,
 	dzm[jext]/y_ptr[j*num_states + num_species];
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_sum,&sum_omega_F,1,PVEC_REAL_MPI_TYPE,MPI_SUM,comm);
+#else
+  sum_omega_F = local_sum;
+#endif
+
   double sum_inlet_fuel_mass_fractions = 0.0;
   for(int k=0; k<num_fuel_species; ++k) {
     sum_inlet_fuel_mass_fractions += params->inlet_mass_fractions_[params->fuel_species_id_[k]];
@@ -476,7 +502,11 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = velocity;
     }
   }
+#ifdef ZERORKM_MPI
   MPI_Allreduce(&local_max,&params->max_velocity_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
+#else
+  params->max_velocity_ = local_max;
+#endif
 
   double local_temperature;
   local_max = 0.0;
@@ -487,7 +517,11 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = local_temperature;
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&params->max_temperature_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
+#else
+  params->max_temperature_;
+#endif
 
   double gradT;
   local_max = 0.0;
@@ -499,7 +533,12 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = gradT;
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&params->flame_thickness_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
+#else
+  params->flame_thickness_ = local_max;
+#endif
+
   params->flame_thickness_ = (params->max_temperature_-params->inlet_temperature_)/
     params->flame_thickness_;
 
@@ -509,8 +548,9 @@ int ConstPressureFlameLocal(int nlocal,
     params->flame_thickness_alpha_ = params->thermal_conductivity_[0]/
       params->inlet_relative_volume_/params->mixture_specific_heat_[0]/params->flame_speed_;
   }
+#ifdef ZERORK_MPI
   MPI_Bcast(&params->flame_thickness_alpha_, 1, MPI_DOUBLE, 0, comm);
-
+#endif
 
   // compute the max thermal diffusivity using the average value of the
   // conductivity and the up and downstream interfaces
@@ -524,8 +564,11 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = thermal_diffusivity;
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&params->max_thermal_diffusivity_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
-
+#else
+  params->max_thermal_diffusivity_ = local_max;
+#endif
   return 0;
 }
 
@@ -555,7 +598,11 @@ int ReactorPreconditionerChemistrySetup(realtype t,      // [in] ODE system time
   const int num_local_points   = params->num_local_points_;
   const int num_states   = params->reactor_->GetNumStates();
   const int num_nonzeros = params->reactor_->GetJacobianSize();
+#ifdef ZERORK_MPI
   double *y_ptr          = NV_DATA_P(y); //_S // caution: assumes realtype == double
+#else
+  double *y_ptr          = NV_DATA_S(y);
+#endif
   int error_flag = 0;
 
   if(params->store_jacobian_) {
@@ -680,8 +727,13 @@ int ReactorPreconditionerChemistrySolve(realtype t,      // [in] ODE system time
   FlameParams *params = (FlameParams *)user_data;
   const int num_local_points  = params->num_local_points_;
   const int num_states  = params->reactor_->GetNumStates();
+#ifdef ZERORK_MPI
   double *rhs         = NV_DATA_P(r);  // pointers to data array for N_Vector
   double *solution    = NV_DATA_P(z);  // pointers to data array for N_Vector
+#else
+  double *rhs         = NV_DATA_S(r);  // pointers to data array for N_Vector
+  double *solution    = NV_DATA_S(z);  // pointers to data array for N_Vector
+#endif
   int error_flag = 0;
   int start_id=0;
 

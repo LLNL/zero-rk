@@ -11,7 +11,7 @@ if(EXISTS ${SYSTEM_SUPERLU_DIST_ROOT})
     set(superlu_dist_system_working OFF)
   endif()
 else()
-  set(superlu_dist_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/superlu_dist)
+  set(superlu_dist_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/superlu_dist/${ZERORK_EXTERNALS_BUILD_TYPE})
 endif()
 
 if((NOT EXISTS ${superlu_dist_prefix}) OR (NOT ${superlu_dist_system_working}))
@@ -25,7 +25,12 @@ if((NOT EXISTS ${superlu_dist_prefix}) OR (NOT ${superlu_dist_system_working}))
   if(result)
     message(FATAL_ERROR "CMake step for SuperLU_DIST failed: ${result}")
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  if(WIN32)
+    #superlu_dist/SRC/util.c includes unistd.h for no reason.  This is so we don't have to patch the code
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/external/superlu_dist-build/superlu_dist-prefix/src/superlu_dist-build/SRC)
+    file(TOUCH ${CMAKE_BINARY_DIR}/external/superlu_dist-build/superlu_dist-prefix/src/superlu_dist-build/SRC/unistd.h)
+  endif()
+  execute_process(COMMAND ${CMAKE_COMMAND} --build . --config ${ZERORK_EXTERNALS_BUILD_TYPE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/superlu_dist-build)
   if(result)
@@ -46,13 +51,5 @@ set_target_properties(superlu_dist PROPERTIES
   IMPORTED_LOCATION ${superlu_dist_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu_dist${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${superlu_dist_prefix}/include)
 
-target_link_libraries(superlu_dist INTERFACE lapack blas pthread)
-
-#TODO: This is clunky and possibly brittle
-find_package(OpenMP)
-if(OPENMP_FOUND)
-  set_target_properties(superlu_dist PROPERTIES 
-                        INTERFACE_COMPILE_OPTIONS "${OpenMP_C_FLAGS}"
-                        INTERFACE_LINK_OPTIONS "${OpenMP_C_FLAGS}")
-endif()
+target_link_libraries(superlu_dist INTERFACE lapack blas)
 

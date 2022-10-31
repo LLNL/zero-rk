@@ -1,5 +1,13 @@
 #include <cstdio>
 #include <string>
+
+#ifdef WIN32
+#include <windows.h>
+#include <profileapi.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include "utilities.h"
 
 namespace zerork {
@@ -37,6 +45,28 @@ void upperToLower(char *s)
           j++;
       }
   }
+}
+
+double getHighResolutionTime(void)
+{
+#ifndef WIN32
+    struct timeval tod;
+
+    gettimeofday(&tod, NULL);
+    double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
+#else
+    static LARGE_INTEGER Frequency;
+    Frequency.QuadPart = 0;
+    if(Frequency.QuadPart == 0) {
+        QueryPerformanceFrequency(&Frequency);
+    }
+
+    LARGE_INTEGER Counts;
+    QueryPerformanceCounter(&Counts);
+
+    double time_seconds = ((double)Counts.QuadPart) / Frequency.QuadPart;
+#endif
+    return time_seconds;
 }
 
 } // namespace zerork

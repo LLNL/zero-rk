@@ -9,28 +9,45 @@
 #include <nvector/nvector_serial.h>
 #ifdef SUNDIALS2
 #include <cvode/cvode_dense.h>
-#include <cvode/cvode_spgmr.h>
+#include <cvode/cvode_spgmr.h>      // prototypes & constants for CVSPGMR
 #elif SUNDIALS3
 #include <cvode/cvode_direct.h>
 #include <cvode/cvode_spils.h>
 #include <sunmatrix/sunmatrix_dense.h>
 #include <sunlinsol/sunlinsol_spgmr.h>
-#include <sunlinsol/sunlinsol_dense.h>
+#include <sunlinsol/sunlinsol_lapackdense.h>
 #elif SUNDIALS4
 #include <sunmatrix/sunmatrix_dense.h>
-#include <sunlinsol/sunlinsol_dense.h>
+#include <sunlinsol/sunlinsol_lapackdense.h>
 #include <sunlinsol/sunlinsol_spgmr.h>
 #include <sunnonlinsol/sunnonlinsol_newton.h>
+#define ZERORK_USE_LAPACK_DENSE_MATRIX
+#ifdef ZERORK_USE_LAPACK_DENSE_MATRIX
+#include "interfaces/zrkmatrix/zrkmatrix_lapackdense.h"
+#endif
+#endif
+
+#ifdef ZERORK_GPU
+  #ifdef ZERORK_HAVE_MAGMA
+    #include <sunmatrix/sunmatrix_magmadense.h>
+    #include <sunlinsol/sunlinsol_magmadense.h>
+    #include <sunmemory/sunmemory_cuda.h>
+    #include "interfaces/zrklinsol/zrklinsol_magmadense.h"
+  #endif
 #endif
 
 CvodeSolver::CvodeSolver(ReactorBase& reactor)
   :
       SolverBase(reactor),
-      reactor_ref_(reactor)
+      reactor_ref_(reactor),
+      cb_fn_(nullptr),
+      cb_fn_data_(nullptr)
 {}
 
 int CvodeSolver::Integrate(const double end_time) {
   N_Vector& state = reactor_ref_.GetStateNVectorRef();
+  N_Vector derivative = N_VClone(state);
+  int reactor_id = reactor_ref_.GetID();
 
 #if defined SUNDIALS3 || defined SUNDIALS4
   SUNMatrix A;
@@ -66,8 +83,7 @@ int CvodeSolver::Integrate(const double end_time) {
   check_cvode_flag(&flag, "CVodeSetMaxStep", 1);
 
   flag = CVodeSetNonlinConvCoef(cvode_mem, double_options_["nonlinear_convergence_coeff"]);
-  if (check_cvode_flag(&flag, "CVodeSetNonlinConvCoef", 1)) exit(-1);
-
+  check_cvode_flag(&flag, "CVodeSetNonlinConvCoef", 1);
 
   if(reactor_ref_.GetNumRootFunctions() > 0) {
       flag = CVodeRootInit(cvode_mem, reactor_ref_.GetNumRootFunctions(), ReactorRootFunction);
@@ -79,45 +95,68 @@ int CvodeSolver::Integrate(const double end_time) {
 
   bool dense_direct = (int_options_["dense"]==1 && int_options_["iterative"]==0);
   if(dense_direct) {
+#ifdef ZERORK_GPU
+  #ifdef ZERORK_HAVE_MAGMA
+    //Check for GPU
+    if(num_batches > 1) {
+        int NEQ = reactor_ref_.GetNumStateVariables();
+        cudaStream_t queue = (cudaStream_t) 0; //TODO: Non-default stream?
+        SUNMemoryHelper memhelper = SUNMemoryHelper_Cuda();
+        A = SUNMatrix_MagmaDenseBlock(num_batches, NEQ, NEQ, SUNMEMTYPE_DEVICE, memhelper, queue);
+        LS = ZRKLinSol_MagmaDense(state, A);
+        ZRKLinSol_MagmaDense_SetAsync(LS, 0);
+        flag = CVodeSetLinearSolver(cvode_mem, LS, A);
+        check_cvode_flag(&flag, "CVodeSetLinearSolver", 1);
+        flag = CVodeSetJacFn(cvode_mem, ReactorGetJacobianDense);
+        check_cvode_flag(&flag, "CVodeSetJacFn", 1);
+    } else
+  #endif
+#endif
+    {
 #ifdef SUNDIALS2
-    flag = CVDense(cvode_mem, reactor_ref_.GetNumStateVariables());
-    check_cvode_flag(&flag, "CVLapackDense", 1);
-    if(int_options_["analytic"]) {
-      flag = CVDlsSetDenseJacFn(cvode_mem, ReactorGetJacobianDense);
-      check_cvode_flag(&flag, "CVDlsDenseJacFn", 1);
-    } else {
-      flag = CVDlsSetDenseJacFn(cvode_mem, NULL);
-      check_cvode_flag(&flag, "CVDlsDenseJacFn", 1);
-    }
+      flag = CVDense(cvode_mem, reactor_ref_.GetNumStateVariables());
+      check_cvode_flag(&flag, "CVLapackDense", 1);
+      if(int_options_["analytic"]) {
+        flag = CVDlsSetDenseJacFn(cvode_mem, ReactorGetJacobianDense);
+        check_cvode_flag(&flag, "CVDlsDenseJacFn", 1);
+      } else {
+        flag = CVDlsSetDenseJacFn(cvode_mem, NULL);
+        check_cvode_flag(&flag, "CVDlsDenseJacFn", 1);
+      }
 #elif defined SUNDIALS3
-    int NEQ = reactor_ref_.GetNumStateVariables();
-    A = SUNDenseMatrix(NEQ, NEQ);
-    LS = SUNDenseLinearSolver(state, A);
-    flag = CVDlsSetLinearSolver(cvode_mem, LS, A);
-    check_cvode_flag(&flag, "CVDlsSetLinearSolver", 1);
-    if(int_options_["analytic"]) {
-      flag = CVDlsSetJacFn(cvode_mem, ReactorGetJacobianDense);
-      check_cvode_flag(&flag, "CVDlsSetJacFn", 1);
-    } else {
-      flag = CVDlsSetJacFn(cvode_mem, NULL);
-      check_cvode_flag(&flag, "CVDlsSetJacFn", 1);
-    }
+      int NEQ = reactor_ref_.GetNumStateVariables();
+      A = SUNDenseMatrix(NEQ, NEQ);
+      LS = SUNLinSol_LapackDense(state, A);
+      flag = CVDlsSetLinearSolver(cvode_mem, LS, A);
+      check_cvode_flag(&flag, "CVDlsSetLinearSolver", 1);
+      if(int_options_["analytic"]) {
+        flag = CVDlsSetJacFn(cvode_mem, ReactorGetJacobianDense);
+        check_cvode_flag(&flag, "CVDlsSetJacFn", 1);
+      } else {
+        flag = CVDlsSetJacFn(cvode_mem, NULL);
+        check_cvode_flag(&flag, "CVDlsSetJacFn", 1);
+      }
 #elif defined SUNDIALS4
-    int NEQ = reactor_ref_.GetNumStateVariables();
-    A = SUNDenseMatrix(NEQ, NEQ);
-    LS = SUNDenseLinearSolver(state, A);
-    flag = CVodeSetLinearSolver(cvode_mem, LS, A);
-    check_cvode_flag(&flag, "CVodeSetLinearSolver", 1);
-    if(int_options_["analytic"]) {
-      flag = CVodeSetJacFn(cvode_mem, ReactorGetJacobianDense);
-      check_cvode_flag(&flag, "CVodeSetJacFn", 1);
-    } else {
-      flag = CVodeSetJacFn(cvode_mem, NULL);
-      check_cvode_flag(&flag, "CVodeSetJacFn", 1);
-    }
+      int NEQ = reactor_ref_.GetNumStateVariables();
+#ifdef ZERORK_USE_LAPACK_DENSE_MATRIX
+      A = ZRKDenseLapackMatrix(NEQ, NEQ);
+#else
+      A = SUNDenseMatrix(NEQ, NEQ);
+#endif
+      LS = SUNLinSol_LapackDense(state, A);
+      flag = CVodeSetLinearSolver(cvode_mem, LS, A);
+      check_cvode_flag(&flag, "CVodeSetLinearSolver", 1);
+      if(int_options_["analytic"]) {
+        flag = CVodeSetJacFn(cvode_mem, ReactorGetJacobianDense);
+        check_cvode_flag(&flag, "CVodeSetJacFn", 1);
+      } else {
+        flag = CVodeSetJacFn(cvode_mem, NULL);
+        check_cvode_flag(&flag, "CVodeSetJacFn", 1);
+      }
 #else
 #error "Unknown SUNDIALS version"
 #endif
+    }
   } else {
 #ifdef SUNDIALS2
     flag = CVSpgmr(cvode_mem, PREC_LEFT, 0);
@@ -173,14 +212,12 @@ int CvodeSolver::Integrate(const double end_time) {
   const int max_tries = 3;
   int num_tries = 0;
   double tcurr = 0.0;
+  double tprev = 0.0;
+  int cb_flag = 0;
   int cv_mode = CV_ONE_STEP;
   while(tcurr < end_time) {
       flag = CVode(cvode_mem, end_time, state, &tcurr, cv_mode);
-      if(flag == CV_ROOT_RETURN) {
-        CVodeGetNumSteps(cvode_mem,&nsteps);
-        //printf("Found root at time %g (%ld steps)\n", tcurr, nsteps);
-        flag = CV_SUCCESS;
-      } else if(check_cvode_flag(&flag, "CVode", 1)) {
+      if(check_cvode_flag(&flag, "CVode", 1)) {
         num_tries += 1;
         if(num_tries == max_tries) {
           break;
@@ -190,10 +227,28 @@ int CvodeSolver::Integrate(const double end_time) {
       long int last_nlss = num_linear_solve_setups;
       CVodeGetNumLinSolvSetups(cvode_mem, &num_linear_solve_setups);
       CVodeGetNumSteps(cvode_mem,&nsteps);
+      if( (flag == CV_SUCCESS || flag == CV_ROOT_RETURN) && cb_fn_ != nullptr ) {
+        if(N_VGetVectorID(state) == SUNDIALS_NVEC_SERIAL) {
+          flag = CVodeGetDky(cvode_mem, tcurr, 1, derivative);
+          double dt = tcurr - tprev;
+          cb_flag = cb_fn_(reactor_id, nsteps, tcurr, dt, NV_DATA_S(state), NV_DATA_S(derivative), cb_fn_data_);
+          if(cb_flag != 0) {
+            break;
+          }
+        }
+      }
+      if(flag == CV_ROOT_RETURN) {
+        flag = CV_SUCCESS;
+        reactor_ref_.SetRootTime(tcurr);
+        if(int_options_["stop_after_ignition"]) {
+          break;
+        }
+      }
+      tprev = tcurr;
   }
   CVodeGetNumSteps(cvode_mem,&nsteps);
   if(cv_mode == CV_ONE_STEP && flag == CV_SUCCESS) {
-    flag = CVodeGetDky(cvode_mem, end_time, 0, state);
+    flag = CVodeGetDky(cvode_mem, std::min(tcurr,end_time), 0, state);
   }
 
   if(flag < 0) {
@@ -217,6 +272,7 @@ int CvodeSolver::Integrate(const double end_time) {
     SUNNonlinSolFree(NLS);
   }
 #endif
+  N_VDestroy(derivative);
 
   CVodeFree(&cvode_mem);
 
@@ -224,9 +280,8 @@ int CvodeSolver::Integrate(const double end_time) {
 }
 
 int CvodeSolver::Iterative() {
-  //TODO: Better handling of these options
   if(int_options_["dense"] == 1) {
-    return 0;
+    return int_options_["iterative"];
   } else {
     return 1;
   }
@@ -282,5 +337,10 @@ void CvodeSolver::AdjustWeights(void* cvode_mem) {
   N_VDestroy(ele);
   N_VDestroy(error);
   N_VDestroy(error_batch);
+}
+
+void CvodeSolver::SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data) {
+  cb_fn_ = fn;
+  cb_fn_data_ = cb_fn_data;
 }
 

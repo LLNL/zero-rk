@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
 #Name your parser
@@ -45,7 +47,7 @@ spify_parser_params.append(
     'name':'grid_file',
     'type':'string',
     'longDesc' : "Grid file [input] column 1 = position [m]",
-    'defaultValue': '/dev/null'
+    'defaultValue': os.devnull
 }
 )
 
@@ -53,8 +55,8 @@ spify_parser_params.append(
 {
     'name':'wall_temperature_file',
     'type':'string',
-    'longDesc' : "Wall temperature file [input] column 1 = position [m], column 2 = temperature [K].  Inlet position is at zero. If set to /dev/null then the Nusselt number is set to zero for an adiabatic case.",
-    'defaultValue': '/dev/null'
+    'longDesc' : "Wall temperature file [input] column 1 = position [m], column 2 = temperature [K].  Inlet position is at zero. If set to os.devnull then the Nusselt number is set to zero for an adiabatic case.",
+    'defaultValue': os.devnull
 }
 )
 
@@ -62,8 +64,8 @@ spify_parser_params.append(
 {
     'name':'initial_profile_file',
     'type':'string',
-    'longDesc' : "Initial species and temperature file [input] column 1 = position [m], column 2 = mass flow, column 3=temperature [K] column 4->num_species+3.  Inlet position is at zero. If set to /dev/null then the inlet composition is used.",
-    'defaultValue': '/dev/null'
+    'longDesc' : "Initial species and temperature file [input] column 1 = position [m], column 2 = mass flow, column 3=temperature [K] column 4->num_species+3.  Inlet position is at zero. If set to os.devnull then the inlet composition is used.",
+    'defaultValue': os.devnull
 }
 )
 
@@ -72,7 +74,7 @@ spify_parser_params.append(
     'name':'restart_file',
     'type':'string',
     'longDesc' : "Binary data file for restarts. Contains number of grid points, number of variables, time, and all species, relative volume, and temperature data.",
-    'defaultValue': '/dev/null'
+    'defaultValue': os.devnull
 }
 )
 
@@ -82,7 +84,7 @@ spify_parser_params.append(
     'name':'log_file',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File [output]",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -457,6 +459,35 @@ spify_parser_params.append(
     'defaultValue': 1.0e-3
 }
 )
+
+spify_parser_params.append(
+{
+    'name':'sensitivity_analysis',
+    'type':'bool',
+    'longDesc' : "Flag that when set to true [y] computes sensitivity analysis of the soot volume fraction",
+    'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'sensitivity_multiplier',
+    'type':'double',
+    'shortDesc' : "A-factor multiplier used for sensitivity analysis",
+    'defaultValue' : 1.5
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"sensitive_reactions",
+    'type':'v_int',
+    'shortDesc' : "Vector of sensitive reactions for sensitivity analysis",
+    'defaultValue' : []
+}
+)
+
+
 
 #Generate parser code
 spg().generate(spify_parser_name,spify_parser_params)

@@ -120,6 +120,8 @@ class FlameParams
 
   double min_velocity_;          // [m/s]
 
+  double max_svf_;
+
   // data structures setup by SetMemory()
   transport::MassTransportInput transport_input_;
   std::vector<double> inv_molecular_mass_;     // size = num_species

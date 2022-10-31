@@ -8,7 +8,7 @@ thermFile: "@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm
 
 #Mechanism Parser Log File
 #Type: string
-#Optional with default value of /dev/null
+#Optional with default value of @DEVNUL@
 mechLogFile: "h2_v1b_mech.clog"
 
 #Mechanism Statistics File [output]

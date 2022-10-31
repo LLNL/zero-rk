@@ -2,7 +2,7 @@ mechFile: chem.inp
 thermFile: therm.dat
 logFile: chem.cklog
 idtFile: idt.dat
-thistFile: /dev/null
+thistFile: thist.dat
 fuel_mole_fracs: { "O2": 1.0 }
 oxidizer_mole_fracs: { N2: 0.79, O2: 0.21, }
 delta_T_ignition: 400.0

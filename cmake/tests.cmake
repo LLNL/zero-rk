@@ -9,16 +9,17 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        release-1.8.0
+  GIT_TAG        release-1.11.0
 )
 
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_GetProperties(googletest)
 if(NOT googletest_POPULATED)
   FetchContent_Populate(googletest)
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-add_custom_target(tests_build ${CMAKE_CTEST_COMMAND})
+add_custom_target(tests_build ${CMAKE_CTEST_COMMAND} -C $<CONFIG>)
 
 function(zerork_add_gtests TESTNAME)
     #message(STATUS "Adding new gtest target ${TESTNAME}")
@@ -45,6 +46,7 @@ function(zerork_add_gtests TESTNAME)
     # see https://cmake.org/cmake/help/v3.10/module/GoogleTest.html for more options to pass to it
     gtest_discover_tests(${TESTNAME}
                          EXTRA_ARGS ${ZERORK_ADD_GTESTS_ARGUMENTS}
+			 WORKING_DIRECTORY $<TARGET_FILE_DIR:${TESTNAME}>
                          PROPERTIES ENVIRONMENT "ZERORK_DATA_DIR=${ZERORK_DATA_DIR}")
 
     add_dependencies(tests_build ${TESTNAME})
@@ -71,7 +73,7 @@ function(zerork_add_test TESTNAME)
     add_test(NAME ${TESTNAME} COMMAND ${TESTNAME} ${ZERORK_ADD_TEST_ARGUMENTS})
 
     set_tests_properties(${TESTNAME} PROPERTIES 
-                        ENVIRONMENT ZERORK_DATA_DIR=${ZERORK_DATA_DIR})
+                        ENVIRONMENT "ZERORK_DATA_DIR=${ZERORK_DATA_DIR}")
 
     add_dependencies(tests_build ${TESTNAME})
 endfunction()

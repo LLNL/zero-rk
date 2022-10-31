@@ -7,8 +7,9 @@
 #include <superlu_dist_config.h>
 #include "superlu_ddefs.h"
 
+#ifdef ZERORK_MPI
 #include <mpi.h>
-
+#endif
 // Wrapper class to simplify the SuperLU interface
 
 class SparseMatrix_dist

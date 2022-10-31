@@ -12,7 +12,9 @@ ExternalProject_Add(
              -Denable_complex=ON
              -Denable_complex16=ON
              -DCMAKE_INSTALL_PREFIX=${superlu_prefix}
-             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+             -DCMAKE_BUILD_TYPE=${ZERORK_EXTERNALS_BUILD_TYPE}
+             -DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}
+             -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
              -DCMAKE_C_COMPILER=${MPI_C_COMPILER}
              -DCMAKE_POSITION_INDEPENDENT_CODE=ON
              -DTPL_BLAS_LIBRARIES=dummy #not used for lib build

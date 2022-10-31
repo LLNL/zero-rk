@@ -205,7 +205,7 @@ UserData::UserData(const char filename[], const bool write_parser_log)
   } else {
     reactor_ = new VariableVolumeReactor(parser_->mechFile().c_str(),
                                          parser_->thermFile().c_str(),
-                                         "/dev/null",
+                                         "",
                                          //DENSE_COL_MAJOR,
                                          COMPRESSED_COL_STORAGE,
                                          volume_,
@@ -372,7 +372,7 @@ int UserData::BuildInitialState()
     std::vector<double> converted_comp;
     MechanismInfo info(parser_->mechFile().c_str(),
                        parser_->thermFile().c_str(),
-                       "/dev/null");
+                       "");
 
     converted_comp.assign(num_species, 0.0);
     info.ConvertMassToMoleFraction(&initial_state_[0],

@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "flame_params.h"
 
@@ -378,7 +379,7 @@ void FlameParams::SetInlet()
 
 void FlameParams::SetGrid()
 {
-  if(parser_->grid_file() == std::string("/dev/null")) {
+  if(parser_->grid_file() == std::string(zerork::utilities::null_filename)) {
     // if no grid provided -> uniform grid from input file parameters
     if(parser_->num_points() < 2) {
       printf("# ERROR: number of grid points must be two or greater than two\n"
@@ -540,7 +541,7 @@ void FlameParams::SetFixedTProperties()
                            parser_->fuel_temperature()/
                            parser_->ref_temperature());
 
-  if(parser_->fixed_temperature_file() == std::string("/dev/null")) {
+  if(parser_->fixed_temperature_file() == std::string(zerork::utilities::null_filename)) {
     // if no temperature file is specified, the temperature equation
     // is used to compute the temperature
     fix_temperature_ = false;
@@ -616,7 +617,7 @@ void FlameParams::SetFixedTProperties()
       fixed_temperature_[j] /= parser_->ref_temperature();
     }
 
-  } // if(parser_->fixed_temperature_file() == std::string("/dev/null")) else
+  } // if(parser_->fixed_temperature_file() == std::string(zerork::utilities::null_filename)) else
 
 }
 

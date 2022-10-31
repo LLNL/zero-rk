@@ -5,16 +5,17 @@
 #include <vector>
 
 #include <file_utilities.h>
-
+#ifdef ZERORK_MPI
 #include <mpi.h>
-
+#endif
 #include <zerork/mechanism.h>
 #include <reactor/const_pressure_reactor.h>
 #include <transport/mass_transport_factory.h>
 
 #include "sparse_matrix.h"
+#ifdef ZERORK_MPI
 #include "sparse_matrix_dist.h"
-
+#endif
 #include "UnsteadyFlameIFP.h"
 
 #include <kinsol/kinsol.h>
@@ -28,11 +29,13 @@
 class FlameParams
 {
  public:
-  explicit FlameParams(const std::string &input_name, MPI_Comm &comm);
+  explicit FlameParams(const std::string &input_name);
   ~FlameParams();
 
   //MPI
+#ifdef ZERORK_MPI
   MPI_Comm comm_;
+#endif
   int my_pe_,npes_;
   int num_procs_;
   int num_local_points_;
@@ -90,6 +93,8 @@ class FlameParams
   int j_fix_;
   double deltaTfix_;
 
+  double length_;
+
   // data to evaluate explicit time step limits, evaluated by the CVode
   // right hand side function
   double max_velocity_;          // [m/s]
@@ -139,7 +144,9 @@ class FlameParams
   SparseMatrix *sparse_matrix_;
 
   // For SuperLU_DIST
+#ifdef ZERORK_MPI
   SparseMatrix_dist *sparse_matrix_dist_;
+#endif
   std::vector<double> reactor_jacobian_dist_;
   std::vector<double> saved_jacobian_dist_;
   std::vector<int>    col_id_;

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <algorithm> //std::min
 
 #include "sequential_file_matrix.h"
 

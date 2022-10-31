@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <vector>
 #include <string>
@@ -8,7 +7,7 @@
 
 #include <nvector/nvector_serial.h>
 
-//#include <utilities/file_utilities.h>
+#include "utilities.h"
 
 #include "flame_params.h"
 #include "compute_lewis.h"

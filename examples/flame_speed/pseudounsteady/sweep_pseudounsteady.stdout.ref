@@ -1,0 +1,56 @@
+phi= 0.8 Tu= 400.0 p= 100000.0 egr= 0.0
+New grid. dx =  6.87938206082e-05
+  Flame speed: 0.50284774 m/s
+  Flame thickness: 0.00049363463 m
+  Flame location: 0.003577279 m
+   Increasing grid points to  192
+New grid. dx =  4.59958684299e-05
+  Flame speed: 0.50073806 m/s
+  Flame thickness: 0.00048443342 m
+  Flame location: 0.003587678
+   Increasing grid points to  256
+New grid. dx =  3.43969103041e-05
+  Flame speed: 0.4996317 m/s
+  Flame thickness: 0.00048516681 m
+  Flame location: 0.003611676
+ While loop ended
+phi= 1.0 Tu= 400.0 p= 100000.0 egr= 0.0
+New grid. dx =  4.92669813093e-05
+  Flame speed: 0.62109606 m/s
+  Flame thickness: 0.00041034527 m
+  Flame location: 0.002561883 m
+   Increasing grid points to  192
+New grid. dx =  3.29401328522e-05
+  Flame speed: 0.61842499 m/s
+  Flame thickness: 0.00041353694 m
+  Flame location: 0.00253639
+ While loop ended
+phi= 0.8 Tu= 400.0 p= 2500000.0 egr= 0.0
+New grid. dx =  5.2383851024e-06
+  Flame speed: 0.17590371 m/s
+  Flame thickness: 4.5645581e-05 m
+  Flame location: 0.0002776344 m
+   Increasing grid points to  192
+New grid. dx =  3.50240864405e-06
+  Flame speed: 0.17443559 m/s
+  Flame thickness: 4.6080264e-05 m
+  Flame location: 0.0002801927
+ While loop ended
+phi= 1.0 Tu= 400.0 p= 2500000.0 egr= 0.0
+New grid. dx =  3.75149132073e-06
+  Flame speed: 0.22897937 m/s
+  Flame thickness: 3.8135096e-05 m
+  Flame location: 0.000198829 m
+   Increasing grid points to  192
+New grid. dx =  2.50826454583e-06
+  Flame speed: 0.22829776 m/s
+  Flame thickness: 3.8380006e-05 m
+  Flame location: 0.0001981529
+    Flame thickness changed by 1.0064221681781003
+    Increasing grid length by 20% and shifting by 8.92942090408e-06
+New grid. dx =  3.009917455e-06
+  Flame speed: 0.22809045 m/s
+  Flame thickness: 3.8374373e-05 m
+  Flame location: 0.0002076843
+ While loop ended
+Time elapsed:  49.057891607284546

@@ -22,6 +22,8 @@ class superlu_manager
 
   bool factored() { return this->m_factored; };
 
+  void reset();
+
   void SetTranspose(const bool transpose);
 
   int GetLU(int* L_nnz,

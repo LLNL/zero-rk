@@ -17,8 +17,8 @@ transport_model: 'ConstantLewis'
 
 #Mechanism parser log file
 #Type: string
-#Optional with default value '/dev/null'
-log_file: '/dev/null'
+#Optional with default value '@DEVNUL@'
+log_file: '@DEVNUL@'
 
 #Fuel composition mole fraction map for inlet
 #Type: string:floating-point map
@@ -41,7 +41,7 @@ inlet_full_comp: {}
 
 #Grid file, if provided, grid_file overrules num_points and length entries
 #Type: string
-#Optional with default value '/dev/null'
+#Optional with default value '@DEVNUL@'
 #grid_file: grid_file
 
 #Lewis number file, only used with ConstantLewis transport model
@@ -50,7 +50,7 @@ Lewis_file: Lewis_file
 
 #Binary data file used for initialization
 #Type: string
-#Optional file with default value of '/dev/null'
+#Optional file with default value of '@DEVNUL@'
 #restart_file: "data_0.000582"
 
 #Convective scheme type (0: first order upwind, 1: second order upwind,

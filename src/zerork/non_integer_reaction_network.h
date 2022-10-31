@@ -118,8 +118,8 @@ class NonIntegerReactionNetwork
                                  // to be updated
   int num_jacobian_nonzeros_;
   // jacobian structure information
-  std::vector<int> jacobian_row_id_;   // TODO: could be avoided
-  std::vector<int> jacobian_column_id_;// for memory savings
+  std::vector<int> jacobian_row_id_;
+  std::vector<int> jacobian_column_id_;
 
   // jacobian processing information
   std::vector<int> process_step_id_;

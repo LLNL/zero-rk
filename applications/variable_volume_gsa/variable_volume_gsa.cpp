@@ -1,7 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h> //access
-//#include <mpi/mpi.h> // ubuntu 12.0.4 mpich2 install location
 #include <mpi.h>
 
 #include <string>
@@ -23,11 +21,14 @@
 
 #include <mechanism_info/mechanism_info.h>
 
+#include "utilities/file_utilities.h"
 #include "utilities/sequential_file_matrix.h"
 #include "gsa_stats.h"
 
 #include "user_functions_gsa.h"
 #include "complete_solver_gsa.h"
+
+using zerork::getHighResolutionTime;
 
 const int MASTER_RANK=0;
 const int WORK_TAG=1;
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
 }
 int MasterTasks(int inp_argc, char *inp_argv[])
 {
-  double start_time = GetHighResolutionTime();
+  double start_time = getHighResolutionTime();
   double elapsed_time, sum_worker_time;
   int num_threads;
   int num_workers;
@@ -130,7 +131,7 @@ int MasterTasks(int inp_argc, char *inp_argv[])
     SendWorkersKillTag();
     return -1;
   }
-  if(access(inp_argv[1],R_OK) != 0) {
+  if(!zerork::utilities::FileIsReadable(inp_argv[1])) {
     printf("ERROR: Could not open input file %s for read operation\n",
            inp_argv[1]);
     printf("       Exiting application in %6.2f seconds.\n",SHUT_DOWN_TIME);
@@ -554,7 +555,7 @@ int MasterTasks(int inp_argc, char *inp_argv[])
   // of normal parameters for log(afactor_mult)
   MechanismInfo mech_info(user_data->GetParser()->mechFile().c_str(),
 			  user_data->GetParser()->thermFile().c_str(),
-                          "/dev/null");
+                          "");
   fprintf(gsa_check_fptr,
           "# Basic distribution statistics for each reaction's perturbation multiplier.\n");
   fprintf(gsa_check_fptr,
@@ -579,7 +580,7 @@ int MasterTasks(int inp_argc, char *inp_argv[])
   }
 
 
-  elapsed_time = GetHighResolutionTime() - start_time;
+  elapsed_time = getHighResolutionTime() - start_time;
   printf("# Elapsed wall clock time  [s]: %14.7e (%d worker threads)\n",
          elapsed_time,num_workers);
   printf("# Total CPU time of solver [s]: %14.7e\n",sum_worker_time);
@@ -784,7 +785,7 @@ void PrintEstimateEndTime(const int num_done,
                           const double start_time)
 {
   double frac = (double)num_done/(double)num_total;
-  double elapse = GetHighResolutionTime()-start_time;
+  double elapse = getHighResolutionTime()-start_time;
 
   printf("# [%5.1f%% complete] estimated remaining time is %10.2e seconds ...\n",
          frac*100.,elapse*(1.0-frac)/frac);
@@ -803,10 +804,10 @@ void SendWorkersKillTag(void)
       MPI_Ssend(0, 0, MPI_INT, j, KILL_TAG, MPI_COMM_WORLD);
     }
   }
-  double start_time   = GetHighResolutionTime();
+  double start_time   = getHighResolutionTime();
   double current_time = start_time;
   while(current_time - start_time < SHUT_DOWN_TIME) {
-    current_time = GetHighResolutionTime();
+    current_time = getHighResolutionTime();
   }
 }
 

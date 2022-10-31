@@ -17,8 +17,8 @@ transport_model: 'ConstantLewis'
 
 #Mechanism parser log file
 #Type: string
-#Optional with default value '/dev/null'
-log_file: '/dev/null'
+#Optional with default value '@DEVNUL@'
+log_file: '@DEVNUL@'
 
 #Fuel composition mole fraction map for inlet
 #Type: string:floating-point map
@@ -55,7 +55,7 @@ fuel_temperature: 300.0
 #Temperature of the oxdizer/products stream
 #Unused in reactant-to-reactant flame
 #Type: floating-point
-fuel_temperature: 300.0
+oxidizer_temperature: 300.0
 
 #Finite burner separation flag [y/n]. Finite separation is the
 #Chemkin/Cantera/FlameMaster setup. Infinite is the potential flow
@@ -72,7 +72,7 @@ flame_type: 1
 
 #Grid file, if provided, grid_file overrules num_points and length entries
 #Type: string
-#Optional with default value '/dev/null'
+#Optional with default value '@DEVNUL@'
 #grid_file: grid_file
 
 #Lewis number file, only used with ConstantLewis transport model
@@ -81,7 +81,7 @@ Lewis_file: Lewis_file
 
 #Binary data file used for initialization
 #Type: string
-#Optional file with default value of '/dev/null'
+#Optional file with default value of '@DEVNUL@'
 restart_file: data_steady
 
 #Convective scheme type (0: first order upwind, 1: second order upwind,

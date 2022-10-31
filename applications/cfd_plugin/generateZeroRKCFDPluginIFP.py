@@ -11,7 +11,7 @@ spify_parser_params.append(
     'name':'mechanism_parsing_log',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -20,6 +20,7 @@ spify_parser_params.append(
     'name':'reactor_timing_log',
     'type':'string',
     'shortDesc' : "Log file for reactor solutions timing statistics",
+    'defaultValue' : os.devnull
 }
 )
 
@@ -95,7 +96,7 @@ spify_parser_params.append(
     'name':"reference_temperature",
     'type':'double',
     'shortDesc' : "Ignition Delat Metric: Maximum species concentration",
-    'defaultValue' : 1000.0
+    'defaultValue' : 1.0
 }
 )
 
@@ -167,11 +168,51 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"gpu",
+    'type':'int',
+    'shortDesc' : "GPU Option",
+    'defaultValue' : 0,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"initial_gpu_multiplier",
+    'type':'double',
+    'shortDesc' : "Initial value for how much more work to give GPU",
+    'defaultValue' : 20.0,
+    'boundMin': 1.0
+}
+)
+
+spify_parser_params.append(
+{
     'name':"load_balance",
     'type':'int',
-    'shortDesc' : "Do internal load balance",
+    'shortDesc' : "Which load balance method.",
     'defaultValue' : 1,
-    'discreteValues': [0,1]
+    'discreteValues': [0,1,2]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"load_balance_noise",
+    'type':'int',
+    'shortDesc' : "Parameter to improve load balance",
+    'defaultValue' : 0,
+    'boundMin': 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"reactor_weight_mult",
+    'type':'int',
+    'shortDesc' : "Another parameter to improve load balance",
+    'defaultValue' : 1,
+    'boundMin': 1
 }
 )
 
@@ -181,6 +222,76 @@ spify_parser_params.append(
     'type':'int',
     'shortDesc' : "Sort reactors by cost",
     'defaultValue' : 1,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"verbosity",
+    'type':'int',
+    'shortDesc' : "Output verbosity",
+    'defaultValue' : 4,
+    'discreteValues': [0,1,2,3,4]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"constant_volume",
+    'type':'int',
+    'shortDesc' : "Constant volume or constant pressure",
+    'defaultValue' : 1,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"delta_temperature_ignition",
+    'type':'double',
+    'shortDesc' : "",
+    'defaultValue' : 0.0,
+    'boundMin': 0.0,
+    'boundMax': 100000.0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"min_mass_fraction",
+    'type':'double',
+    'shortDesc' : "",
+    'defaultValue' : 1.0e-30
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"always_solve_temperature",
+    'type':'int',
+    'shortDesc' : "Whether to enable/disable constant temperature reactor type",
+    'defaultValue' : 1,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"solve_temperature_threshold",
+    'type':'double',
+    'shortDesc' : "Temperature delta from previous step which disables constant-temperature solve (if enabled).",
+    'defaultValue' : 2.0,
+    'boundMin': 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"dump_reactors",
+    'type':'int',
+    'shortDesc' : "Dump all reactors to files",
+    'defaultValue' : 0,
     'discreteValues': [0,1]
 }
 )

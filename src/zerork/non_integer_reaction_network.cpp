@@ -1,5 +1,5 @@
 #include <limits.h>
-#include <stdlib.h>
+#include <assert.h>
 
 #include <utility> // std::pair and std::make_pair
 
@@ -601,16 +601,15 @@ void NonIntegerReactionNetwork::BuildJacobian()
 
       column_row_pair = std::make_pair(perturbed_species_id, row_index);
       iter = matrix_element_count.find(column_row_pair);
-      if(iter == matrix_element_count.end()) {
-        printf("# ERROR: In NonIntegerReactionNetwork::BuildJacobian(),\n"
-               "#        can not find Jacobian sparse index for\n"
-               "#        element (row id = %d, column id =%d)\n",
-               row_index,
-               perturbed_species_id);
-        exit(-1); // TODO: add more robust error handling
-      } else {
-        process_jacobian_id_[j] = iter->second; // set sparse index
-      }
+//      if(iter == matrix_element_count.end()) {
+//        printf("# ERROR: In NonIntegerReactionNetwork::BuildJacobian(),\n"
+//               "#        can not find Jacobian sparse index for\n"
+//               "#        element (row id = %d, column id =%d)\n",
+//               row_index,
+//               perturbed_species_id);
+//      }
+      assert(iter != matrix_element_count.end());
+      process_jacobian_id_[j] = iter->second; // set sparse index
     }
 
 

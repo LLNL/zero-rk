@@ -1,12 +1,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <algorithm> // for std::max
 
 #include "rate_const.h"
 #include "constants.h"
 #include "fast_exps.h"
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 //C11 aligned alloc not available in Mac OS X as of July 2020
 static inline void* aligned_alloc(size_t alignment, size_t size)
 {
@@ -14,18 +15,26 @@ static inline void* aligned_alloc(size_t alignment, size_t size)
         int flag = posix_memalign(&p, alignment, size);
         return (flag == 0) ? p : 0;
 }
+#define _aligned_free free
+#elif defined(WIN32)
+static inline void* aligned_alloc(size_t alignment, size_t size)
+{
+        void* p = _aligned_malloc(size, alignment);
+        return (p == nullptr) ? 0 : p;
+}
+#else
+#define _aligned_free free
 #endif
 
+#ifndef WIN32
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
 #define likely(expr) __builtin_expect(!!(expr), 1)
+#else
+#define unlikely(expr) expr
+#define likely(expr) expr
+#endif
 
 namespace zerork {
-
-#ifdef EXIT_THROWS_EXCEPTION
-  // create a local function to overide the system exit and throw an exception
-  // with the status integer.
-  static void exit(int status) {throw status;}
-#endif // EXIT_THROWS_EXCEPTION
 
 static void UnsupportedFeature(const char filename[], const int line_num)
 {
@@ -40,19 +49,17 @@ static void UnsupportedFeature(const char filename[], const int line_num)
 rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
 			       nasa_poly_group *tobj)
 {
-  if(ckrobj == NULL)
-    {
-      printf("ERROR: in rate_const() CKReader object not allocated\n");
-      exit(-1);
-    }
-  if(netobj == NULL)
-    {
-      printf("ERROR: in rate_const() info_net object not allocated\n");
-      exit(-1);
-    }
+  assert(ckrobj != NULL);
+  assert(netobj != NULL);
+  //N.B. all checks for validity should be done in CKReader/CKParser.
+  //  asserts are used here to make sure that rate_const is kept up
+  //  with CKReader, but they should not be catching issues with input
+  //  files, such that if we get here we have parsed the inputs and
+  //  know that they are OK.
 
   // determine the multiplier to convert the activation energy units in the
   // prescribed mech into kelvin
+  convertE = 0;
   if(ckrobj->units.ActEnergy == ckr::Cal_per_Mole)
     {convertE = CAL_PER_MOL_TACT;}
   else if(ckrobj->units.ActEnergy == ckr::Kcal_per_Mole)
@@ -63,27 +70,15 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
     {convertE = KJOULES_PER_MOL_TACT;}
   else if(ckrobj->units.ActEnergy == ckr::Joules_per_Mole)
     {convertE = JOULES_PER_MOL_TACT;}
-  else
-    {
-      printf("ERROR: mechanism Activation Energy units type %d not recognized\n",
-	     ckrobj->units.ActEnergy);
-      exit(-1);
-    }
+  assert(convertE!=0); //This is to make sure we handled parsing correctly in ckr
 
-  // determine the multiplier to convert the concentration units in the rate
+  // convert the concentration units in the rate
   // constants to kmol/m^3
-  if(ckrobj->units.Quantity == ckr::Moles)
-    {
-      // note that the length scale in the CKReader object is [cm]
-      // [mol/cm^3] * convertC = [kmol/m^3]
-      convertC=1000.0;
-    }
-   else
-    {
-      printf("ERROR: mechanism Quantity units type %d not recognized\n",
-	     ckrobj->units.Quantity);
-      exit(-1);
-    }
+  assert(ckrobj->units.Quantity == ckr::Moles);
+  // note that the length scale in the CKReader object is [cm]
+  // [mol/cm^3] * convertC = [kmol/m^3]
+  convertC=1000.0;
+
   thermoPtr=tobj;
   nStep=netobj->getNumSteps();
   cpySize=nStep*sizeof(double);
@@ -107,12 +102,17 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   setFalloffRxnList(*ckrobj,*netobj);
   setPLogInterpolationStepList(*ckrobj,*netobj);
 
-//  expWorkArray = new double[max(nFromKeqStep,nDistinctArrhenius)];
-  int allocSize = max(nPLogInterpolationStep,
-                      max(nDistinctArrhenius,nFromKeqStep));
+  Tchanged = true;
+  Tcurrent = 0;
+
+  int allocSize = nDistinctArrhenius;
   allocSize = ((allocSize + 15)/16)*16; //round to next even multiple of 16
-  expWorkArray = (double*)aligned_alloc(16, sizeof(double)*allocSize);
-  memset(expWorkArray,0.0,sizeof(double)*allocSize);
+  arrWorkArray = (double*)aligned_alloc(16, sizeof(double)*allocSize);
+  memset(arrWorkArray,0.0,sizeof(double)*allocSize);
+  allocSize = nFromKeqStep;
+  allocSize = ((allocSize + 15)/16)*16; //round to next even multiple of 16
+  keqWorkArray = (double*)aligned_alloc(16, sizeof(double)*allocSize);
+  memset(keqWorkArray,0.0,sizeof(double)*allocSize);
 
   use_external_arrh = false;
   use_external_keq = false;
@@ -132,8 +132,8 @@ rate_const::~rate_const()
   }
   delete [] Gibbs_RT;
   delete [] Kwork;
-//  delete [] expWorkArray;
-  free(expWorkArray);
+  _aligned_free(arrWorkArray);
+  _aligned_free(keqWorkArray);
 }
 
 void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)
@@ -151,23 +151,15 @@ void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)
 	{++nArrheniusStep;}
       else if(ckrobj->reactions[j].kf.type == ckr::PLogInterpolation)
         {++nPLogInterpolationStep;}
-      else
-	{
-	  printf("ERROR: reaction %d fwd is not a recognized type = %d\n",j,
-		 ckrobj->reactions[j].kf.type);
-	  exit(-1);
-	}
+      else {
+        assert(("Unsupported forward reaction type", false));
+      }
 
       if(ckrobj->reactions[j].isReversible && ckrobj->reactions[j].krev.A != 0.0)
 	{
           // krev.type =ckr::Arrhenius for REV keyword and for reversible
           // reactions with no reverse parameters specified, including PLOG
-	  if(ckrobj->reactions[j].krev.type != ckr::Arrhenius)
-	    {
-	      printf("ERROR: reaction %d rev is not a recognized type = %d\n",j,
-		     ckrobj->reactions[j].krev.type);
-	      exit(-1);
-	    }
+	  assert(("Unsupported reverse reaction type.", ckrobj->reactions[j].krev.type == ckr::Arrhenius));
 	  if(ckrobj->reactions[j].krev.A > 0.0)
 	    {++nArrheniusStep;}
 	  else
@@ -190,12 +182,7 @@ void rate_const::setRxnCount_Ptype(ckr::CKReader &ckrobj)
     }
     if(ckrobj.reactions[j].isFalloffRxn &&
        ckrobj.reactions[j].isThreeBodyRxn) {
-
-      printf("ERROR: reaction %d is both a fall-off and 3rd-body reaction\n",
-                     j);
-      printf("       These are treated as exclusive classes.\n");
-      printf("       Exiting now.\n");
-      exit(-1);
+      assert(("Can't be both fall-off and 3rd-body", false));
     }
   }
 }
@@ -258,15 +245,11 @@ void rate_const::setArrheniusStepList(ckr::CKReader *ckrobj,
 	  }
        }
     } // end for(j=0; j<nStep; j++)
-    if(k != nArrheniusStep) {
-      printf("ERROR: In rate_const::setArrheniusStepList(...),\n");
-      printf("       The number of arrheniusSteps recorded %d\n",
-             k);
-      printf("       is not the same as the number found %d in\n",
-             nArrheniusStep);
-      printf("       rate_const::setStepCount_Ttype(...)\n");
-      exit(-1);
-    }
+
+    //The number of arrheniusSteps recorded (k)
+    //should match the same as the number found in
+    //rate_const::setStepCount_Ttype(...) (nArrheniusStep)
+    assert(("Logical error in step counts.", k == nArrheniusStep));
 
     qsort((void *)paramListTmp,nArrheniusStep,sizeof(arrheniusSortElem),
           compareArrhenius);
@@ -399,11 +382,6 @@ void rate_const::setThirdBodyRxnList(ckr::CKReader &ckrobj,
       thirdBodyRxnList[k].revStepIdx=netobj.getStepIdxOfRxn(j,-1);
       nEnh=ckrobj.reactions[j].e3b.size();
 
-      if(strcmp(ckrobj.reactions[j].thirdBody.c_str(),"M")!=0) {
-	printf("ERROR: reaction %d has a third body %s != M\n",
-	       j,ckrobj.reactions[j].thirdBody.c_str());
-	exit(-1);
-      }
       if(nEnh > 0) {
 
         thirdBodyRxnList[k].etbSpcIdx.resize(nEnh);
@@ -492,22 +470,18 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
 	// T*
         falloffRxnList[k].param[5]=ckrobj.reactions[j].falloffParameters[2];
 
-        if(ckrobj.reactions[j].falloffParameters.size()==3) {
+        int nParams = ckrobj.reactions[j].falloffParameters.size();
+        assert(("Incorrect number of falloff parameters", nParams==3 || nParams==4));
+        if(nParams==3) {
           // 3-parameter TROE
           falloffRxnList[k].falloffType = TROE_THREE_PARAMS;
           falloffRxnList[k].param.resize(6);
         }
-        else if(ckrobj.reactions[j].falloffParameters.size()==4) {
+        else if(nParams==4) {
           // 4-parameter TROE
           falloffRxnList[k].falloffType = TROE_FOUR_PARAMS;
           // T**
           falloffRxnList[k].param[6]=ckrobj.reactions[j].falloffParameters[3];
-        }
-        else {
-
-          printf("ERROR: rxn %d TROE falloff with %d parameters\n",j+1,
-                 (int)ckrobj.reactions[j].falloffParameters.size());
-          exit(-1);
         }
       } // end of if reaction j is a 3 or 4 parameter Troe reaction
       else if(ckrobj.reactions[j].falloffType == ckr::SRI) {
@@ -520,8 +494,11 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
         falloffRxnList[k].param.resize(3+ckrobj.reactions[j].falloffParameters.size());
         falloffRxnList[k].param[3] = ckrobj.reactions[j].falloffParameters[0];
         falloffRxnList[k].param[4] = ckrobj.reactions[j].falloffParameters[1];
-        falloffRxnList[k].param[5] =
-          1.0/ckrobj.reactions[j].falloffParameters[2];
+        if(ckrobj.reactions[j].falloffParameters[2] > 0) {
+            falloffRxnList[k].param[5] = 1.0/ckrobj.reactions[j].falloffParameters[2];
+        } else {
+            falloffRxnList[k].param[5] = -1.0;
+        }
 
         // copy the additional parameters if present
         for(size_t m=3; m<ckrobj.reactions[j].falloffParameters.size(); ++m) {
@@ -530,9 +507,7 @@ void rate_const::setFalloffRxnList(ckr::CKReader &ckrobj,
         }
       }
       else {
-        printf("# ERROR: reaction %d falloff type %d not recognized\n",
-               j+1, ckrobj.reactions[j].falloffType);
-        exit(-1);
+        assert(("Unsupported falloff reaction type", false));
       }
 
       ++k;  // falloffRxn counter
@@ -556,7 +531,7 @@ void rate_const::updateK(const double T, const double C[])
 
   if(use_external_arrh)
   {
-     ex_func_calc_arrh(Tcurrent,expWorkArray,Kwork,
+     ex_func_calc_arrh(Tcurrent,arrWorkArray,Kwork,
                        nDistinctArrhenius,
                        distinctArrheniusLogAfact,
                        distinctArrheniusTpow,
@@ -574,7 +549,7 @@ void rate_const::updateK(const double T, const double C[])
   if(use_external_keq)
   {
      thermoPtr->getG_RT(Tcurrent,Gibbs_RT);
-     ex_func_calc_keq(nFromKeqStep,Gibbs_RT,expWorkArray,Kwork,log_e_PatmInvRuT);
+     ex_func_calc_keq(nFromKeqStep,Gibbs_RT,keqWorkArray,Kwork,log_e_PatmInvRuT);
   }
   else
   {
@@ -614,7 +589,7 @@ void rate_const::updateK_TCM(const double T,
 
   if(use_external_arrh)
   {
-     ex_func_calc_arrh(Tcurrent,expWorkArray,Kwork,
+     ex_func_calc_arrh(Tcurrent,arrWorkArray,Kwork,
                        nDistinctArrhenius,
                        distinctArrheniusLogAfact,
                        distinctArrheniusTpow,
@@ -632,7 +607,7 @@ void rate_const::updateK_TCM(const double T,
   if(use_external_keq)
   {
      thermoPtr->getG_RT(Tcurrent,Gibbs_RT);
-     ex_func_calc_keq(nFromKeqStep,Gibbs_RT,expWorkArray,Kwork,log_e_PatmInvRuT);
+     ex_func_calc_keq(nFromKeqStep,Gibbs_RT,keqWorkArray,Kwork,log_e_PatmInvRuT);
   }
   else
   {
@@ -659,30 +634,34 @@ void rate_const::updateK_TCM(const double T,
 }
 void rate_const::updateTcurrent(double const T)
 {
-  Tcurrent=T;
-  log_e_Tcurrent=log(Tcurrent);
-  invTcurrent=1.0/Tcurrent;
-  log_e_PatmInvRuT=log(P_ATM/(NIST_RU*T));
+  Tchanged=false;
+  if(T!=Tcurrent) {
+    Tchanged = true;
+    Tcurrent=T;
+    log_e_Tcurrent=log(Tcurrent);
+    invTcurrent=1.0/Tcurrent;
+    log_e_PatmInvRuT=log(P_ATM/(NIST_RU*T));
+  }
 }
 
 
 void rate_const::updateArrheniusStep()
 {
   int j;
-  //Need below def's for gcc to vectorize the loop
-  const double local_log_e_Tcurrent = log_e_Tcurrent;
-  const double local_invTcurrent = invTcurrent;
-  for(j=0; j<nDistinctArrhenius; ++j)
-    {
-      expWorkArray[j]=distinctArrheniusLogAfact[j]
-               	     +distinctArrheniusTpow[j]*local_log_e_Tcurrent
-   	             -distinctArrheniusTact[j]*local_invTcurrent;
+  if(Tchanged) {
+    //Need below def's for gcc to vectorize the loop
+    const double local_log_e_Tcurrent = log_e_Tcurrent;
+    const double local_invTcurrent = invTcurrent;
+    for(j=0; j<nDistinctArrhenius; ++j) {
+        arrWorkArray[j]=distinctArrheniusLogAfact[j]
+                 	     +distinctArrheniusTpow[j]*local_log_e_Tcurrent
+     	             -distinctArrheniusTact[j]*local_invTcurrent;
     }
-  fast_vec_exp(expWorkArray,nDistinctArrhenius+nDistinctArrhenius%2);
-  for(j=0; j<nArrheniusStep; ++j)
-    {
+    fast_vec_exp(arrWorkArray,nDistinctArrhenius+nDistinctArrhenius%2);
+  }
+  for(j=0; j<nArrheniusStep; ++j) {
       Kwork[arrheniusStepList[j].stepIdx] =
-	expWorkArray[arrheniusStepList[j].arrheniusIdx];
+	arrWorkArray[arrheniusStepList[j].arrheniusIdx];
     }
 }
 
@@ -690,41 +669,43 @@ void rate_const::updateArrheniusStep()
 void rate_const::updateFromKeqStep()
 {
   int j,k;
-  double thermo_sum=0.0;
+  if(Tchanged) {
+    double thermo_sum=0.0;
 
-  thermoPtr->getG_RT(Tcurrent,Gibbs_RT);
+    thermoPtr->getG_RT(Tcurrent,Gibbs_RT);
 
-  for(j=0; j<nFromKeqStep; ++j) {
+    for(j=0; j<nFromKeqStep; ++j) {
 
-    const int forward_step_id = fromKeqStepList[j].fwdStepIdx;
+      const int forward_step_id = fromKeqStepList[j].fwdStepIdx;
 
-    if(non_integer_network_.HasStep(forward_step_id)) {
-      // products - reactants (defined relative to the forward direction)
-      thermo_sum =
-        non_integer_network_.GetThermoChangeOfStep(forward_step_id,
-                                                   Gibbs_RT);
+      if(non_integer_network_.HasStep(forward_step_id)) {
+        // products - reactants (defined relative to the forward direction)
+        thermo_sum =
+          non_integer_network_.GetThermoChangeOfStep(forward_step_id,
+                                                     Gibbs_RT);
 
-    } else {
-      // the reactant and product counts are defined relative to the forward
-      // step direction
-      const int num_reactants = fromKeqStepList[j].nReac;
-      const int num_products  = fromKeqStepList[j].nProd;
-      thermo_sum=0.0;
-      for(k=0; k<num_products; ++k) {
-        thermo_sum += Gibbs_RT[fromKeqStepList[j].prodSpcIdx[k]];
+      } else {
+        // the reactant and product counts are defined relative to the forward
+        // step direction
+        const int num_reactants = fromKeqStepList[j].nReac;
+        const int num_products  = fromKeqStepList[j].nProd;
+        thermo_sum=0.0;
+        for(k=0; k<num_products; ++k) {
+          thermo_sum += Gibbs_RT[fromKeqStepList[j].prodSpcIdx[k]];
+        }
+        for(k=0; k<num_reactants; ++k) {
+          thermo_sum -= Gibbs_RT[fromKeqStepList[j].reacSpcIdx[k]];
+        }
+
       }
-      for(k=0; k<num_reactants; ++k) {
-        thermo_sum -= Gibbs_RT[fromKeqStepList[j].reacSpcIdx[k]];
-      }
-
+      keqWorkArray[j] = thermo_sum-fromKeqStepList[j].nDelta*log_e_PatmInvRuT;
     }
-    expWorkArray[j] = thermo_sum-fromKeqStepList[j].nDelta*log_e_PatmInvRuT;
+    fast_vec_exp(keqWorkArray,nFromKeqStep+nFromKeqStep%2);
   }
-  fast_vec_exp(expWorkArray,nFromKeqStep+nFromKeqStep%2);
   for(j=0; j<nFromKeqStep; j++) {
 
     Kwork[fromKeqStepList[j].stepIdx]=
-      expWorkArray[j]*Kwork[fromKeqStepList[j].fwdStepIdx];
+      keqWorkArray[j]*Kwork[fromKeqStepList[j].fwdStepIdx];
   }
 }
 
@@ -734,7 +715,7 @@ void rate_const::write_funcs(FILE *fptr)
   UnsupportedFeature(__FILE__,__LINE__);
   int j,k;
 
-  fprintf(fptr,"void external_func_arrh(const double Tcurrent, double expWorkArray[], double Kwork[],\n");
+  fprintf(fptr,"void external_func_arrh(const double Tcurrent, double arrWorkArray[], double Kwork[],\n");
   fprintf(fptr,"                            const int nDistinctArrhenius,\n");
   fprintf(fptr,"                            const double distinctArrheniusLogAfact[],\n");
   fprintf(fptr,"                            const double distinctArrheniusTpow[],\n");
@@ -746,7 +727,7 @@ void rate_const::write_funcs(FILE *fptr)
   fprintf(fptr,"    const double local_invTcurrent = 1.0/Tcurrent;\n");
   fprintf(fptr,"    for(j=0; j<nDistinctArrhenius; ++j)\n");
   fprintf(fptr,"      {\n");
-  fprintf(fptr,"        expWorkArray[j]= distinctArrheniusLogAfact[j]\n");
+  fprintf(fptr,"        arrWorkArray[j]= distinctArrheniusLogAfact[j]\n");
   fprintf(fptr,"                        +distinctArrheniusTpow[j]*local_log_e_Tcurrent\n");
   fprintf(fptr,"                        -distinctArrheniusTact[j]*local_invTcurrent;\n");
   fprintf(fptr,"      }\n");
@@ -806,7 +787,7 @@ void rate_const::write_funcs(FILE *fptr)
 
   fprintf(fptr,"    for(j=0; j<%d; ++j)\n",nDistinctArrhenius);
   fprintf(fptr,"      {\n");
-  fprintf(fptr,"        expWorkArray[j]= LogAfact[j]\n");
+  fprintf(fptr,"        arrWorkArray[j]= LogAfact[j]\n");
   fprintf(fptr,"                        +Tpow[j]*local_log_e_Tcurrent\n");
   fprintf(fptr,"                        -Tact[j]*local_invTcurrent;\n");
   fprintf(fptr,"      }\n");
@@ -814,22 +795,22 @@ void rate_const::write_funcs(FILE *fptr)
 
 
   fprintf(fptr,"\n");
-  fprintf(fptr,"    fast_vec_exp(expWorkArray,%d);\n",(nDistinctArrhenius+nDistinctArrhenius%2));
+  fprintf(fptr,"    fast_vec_exp(arrWorkArray,%d);\n",(nDistinctArrhenius+nDistinctArrhenius%2));
   fprintf(fptr,"\n");
   for(j=0; j<nArrheniusStep; ++j)
     {
-      fprintf(fptr,"    Kwork[%5d]=expWorkArray[%5d];\n",arrheniusStepList[j].stepIdx,
+      fprintf(fptr,"    Kwork[%5d]=arrWorkArray[%5d];\n",arrheniusStepList[j].stepIdx,
                                                        arrheniusStepList[j].arrheniusIdx);
     }
   fprintf(fptr,"}\n");
   fprintf(fptr,"\n\n\n");
 
-  fprintf(fptr,"void external_func_keq(const int nFromKeqStep, const double Gibbs_RT[], double expWorkArray[], double Kwork[], const double log_e_PatmInvRuT)\n");
+  fprintf(fptr,"void external_func_keq(const int nFromKeqStep, const double Gibbs_RT[], double keqWorkArray[], double Kwork[], const double log_e_PatmInvRuT)\n");
   fprintf(fptr,"{\n");
 
   for(j=0; j<nFromKeqStep; j++)
     {
-      fprintf(fptr,"    expWorkArray[%5d]=-( (",j);
+      fprintf(fptr,"    keqWorkArray[%5d]=-( (",j);
       fprintf(fptr,"Gibbs_RT[%5d]",fromKeqStepList[j].reacSpcIdx[0]);
       for(k=1; k<fromKeqStepList[j].nReac; ++k)
 	{
@@ -844,11 +825,11 @@ void rate_const::write_funcs(FILE *fptr)
       fprintf(fptr,") + %18.10g*log_e_PatmInvRuT);\n",fromKeqStepList[j].nDelta);
     }
   fprintf(fptr,"\n");
-  fprintf(fptr,"    fast_vec_exp(expWorkArray,%d);\n",(nFromKeqStep+nFromKeqStep%2));
+  fprintf(fptr,"    fast_vec_exp(keqWorkArray,%d);\n",(nFromKeqStep+nFromKeqStep%2));
   fprintf(fptr,"\n");
   for(j=0; j<nFromKeqStep; j++)
     {
-      fprintf(fptr,"    Kwork[%5d]=expWorkArray[%5d]*Kwork[%5d];\n",fromKeqStepList[j].stepIdx,j,
+      fprintf(fptr,"    Kwork[%5d]=keqWorkArray[%5d]*Kwork[%5d];\n",fromKeqStepList[j].stepIdx,j,
                                                                     fromKeqStepList[j].fwdStepIdx);
     }
   fprintf(fptr,"}\n");
@@ -920,10 +901,15 @@ void rate_const::updateFalloffRxn(const double C[])
        falloffRxnList[j].falloffType == TROE_FOUR_PARAMS) {
 
       // Troe 3 and 4-parameter fits
-      Fcenter=(1.0-falloffRxnList[j].param[3])
-      	       *exp(-Tcurrent/falloffRxnList[j].param[4])
-              +falloffRxnList[j].param[3]
-	       *exp(-Tcurrent/falloffRxnList[j].param[5]);
+      Fcenter = 0.0;
+      if(falloffRxnList[j].param[4]>0) {
+        Fcenter += (1.0-falloffRxnList[j].param[3])
+                   *exp(-Tcurrent/falloffRxnList[j].param[4]);
+      }
+      if(falloffRxnList[j].param[5]>0) {
+        Fcenter+=falloffRxnList[j].param[3]
+                 *exp(-Tcurrent/falloffRxnList[j].param[5]);
+      }
 
       // Below are the special TROE alterations that were present
       // in JY Chen's version of chemkin II.  They are no longer used
@@ -972,8 +958,11 @@ void rate_const::updateFalloffRxn(const double C[])
 
       // Standard 3-term SRI definition
       //   F = (a*exp(-b/T) + exp(-T/c))**X
-      fTerm = pow(a*exp(-b*invTcurrent) + exp(-Tcurrent*inv_c),
-                  x_power);
+      fTerm = a*exp(-b*invTcurrent);
+      if(inv_c > 0) {
+        fTerm += exp(-Tcurrent*inv_c);
+      }
+      fTerm = pow(fTerm, x_power);
 
       // Auxillary 4 and 5-term SRI definitions
       //   F = d*(a*exp(-b/T) + exp(-T/c))**X         (4-term)

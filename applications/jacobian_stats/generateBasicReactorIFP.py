@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
 #Name your parser
@@ -29,7 +31,7 @@ spify_parser_params.append(
     'name':'mechLogFile',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File [output]",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 
@@ -87,7 +89,7 @@ spify_parser_params.append(
     'name':'eigenvalueFile',
     'type':'string',
     'longDesc' : "File name to store the eigenvalue stats if computeEigenvalues is set to y",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 

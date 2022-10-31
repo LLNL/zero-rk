@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "set_initial_conditions.h"
 
@@ -41,7 +42,7 @@ void SetConstantInlet(FlameParams &flame_params, double *y)
       y[j*num_states+k] = flame_params.inlet_mass_fractions_[k];
     }
     y[j*num_states + num_species]   = relative_volume;
-    y[j*num_states + num_species+1] = inlet_temperature/ref_temperature;
+    y[j*num_states + num_species+1] = inlet_temperature;
 
   }
 
@@ -85,24 +86,146 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
   // For flame speed calculations
   if(flame_params.simulation_type_ == 1) {
 
-    for(int j=0; j<num_local_points; ++j) {
-      int jglobal = j + my_pe*num_local_points;
-      temp_left = flame_params.parser_->inlet_temperature()/
-	flame_params.parser_->ref_temperature();
-      temp_right = flame_params.parser_->ignition_temperature()/
-	flame_params.parser_->ref_temperature();
-      delta_temp = temp_right - temp_left;
+    if(flame_params.parser_->use_ceq_for_init()) {
+      // ------------ BEGIN Constrained Equibrium calc  -----------//
+      double equi_temperature;
+      std::vector<double> equi_mass_fractions(num_species);
 
-      y[j*num_states + num_species+1] = (temp_left+0.5*delta_temp) +
-	0.5*delta_temp*tanh(0.5*(flame_params.z_[jglobal]-flame_params.parser_->initial_inlet_extent())/flame_params.parser_->thickness());
+      // Only on root
+      if(my_pe == 0) {
+        printf("# Using equilibrium composition to initialize Y and T\n");
+        int k,l;
+        std::vector<double> thermoCoeffs(num_species*16);
+        std::vector<double> thermoCoeffs_CEQ(num_species*15);
+        flame_params.mechanism_->getThermoCoeffs(&thermoCoeffs[0]);
+        for(k=0; k<num_species; k++)
+          for(l=0; l<15; l++) //transpose
+            thermoCoeffs_CEQ[l*num_species+k] = thermoCoeffs[k*16 + l];
 
-      y[j*num_states + num_species] = flame_params.reactor_->GetGasConstant()*ref_temperature*
-        y[j*num_states + num_species+1]/(pressure*inlet_molecular_mass);
+        int ne;
+        ne = flame_params.mechanism_->getNumElements();
+        std::vector<int> Ein_int(num_species*ne);
+        std::vector<double> Ein_double(num_species*ne);
+        flame_params.mechanism_->getSpeciesOxygenCount(&Ein_int[0]);
+        flame_params.mechanism_->getSpeciesNitrogenCount(&Ein_int[2*num_species]);
+        flame_params.mechanism_->getSpeciesHydrogenCount(&Ein_int[num_species]);
+        if(ne>3) flame_params.mechanism_->getSpeciesCarbonCount(&Ein_int[3*num_species]);
+        if(ne>4) flame_params.mechanism_->getSpeciesArgonCount(&Ein_int[4*num_species]);
+        if(ne>5) flame_params.mechanism_->getSpeciesHeliumCount(&Ein_int[5*num_species]);
 
-      for(int k=0; k<num_species; ++k) {
-	y[j*num_states+k] = flame_params.inlet_mass_fractions_[k];
+        for(k=0; k<num_species*ne; k++)
+          Ein_double[k] = (double)Ein_int[k];
+
+        ofstream file1;
+        file1.open("CEQ-inputs");
+        file1 << num_species << "\n";
+        file1 << ne << "\n";
+        file1 << pressure << "\n";
+        file1 << flame_params.inlet_temperature_*ref_temperature << "\n";
+        for(k=0; k<num_species; k++)
+          file1 << 1.0/flame_params.inv_molecular_mass_[k] << " ";
+        file1 << "\n";
+        for(k=0; k<num_species*15; k++)
+          file1 << thermoCoeffs_CEQ[k] << " ";
+        file1 << "\n";
+        for(k=0; k<num_species*ne; k++)
+          file1 << Ein_double[k] << " ";
+        file1 << "\n";
+        for(k=0; k<num_species; k++)
+            file1 << flame_params.inlet_mass_fractions_[k] << " ";
+      file1 << "\n";
+      file1.close();
+
+      // Call CEQ
+      int ceq_return = system("eqHPfromFile.x");
+      if(ceq_return != 0) {
+        printf("# ERROR: could not get equilibrium mixture from CEQ.\n");
+        exit(-1);
       }
 
+      // Read equilibrium state
+      std::ifstream infile("CEQ.dat");
+      std::string line;
+      k=0;
+      double val;
+      while (std::getline(infile, line))
+      {
+        std::istringstream iss(line);
+        iss >> val;
+        if(k<num_species)
+          equi_mass_fractions[k] = val;
+        if(k==num_species)
+          equi_temperature = val/ref_temperature;
+        k++;
+      }
+      printf("# Eq. temp: %5.3e\n",equi_temperature);
+      infile.close();
+    }
+
+    // Broadcast eq. T & Y to all procs
+#ifdef ZERORK_MPI
+    MPI_Bcast(&equi_temperature, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&equi_mass_fractions[0], num_species, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+    // ------------ END Constrained Equibrium calc  -----------//
+    /**/
+
+    // Relative positions where to begin/end linear ramp
+    double ramp_start = 0.3*flame_params.length_;
+    double ramp_end = 0.5*flame_params.length_;
+
+    for(int j=0; j<num_local_points; j++) {
+      int jglobal = j + my_pe*num_local_points;
+
+      if (flame_params.z_[jglobal] <= ramp_start) {
+        for(int k=0; k<num_species; k++) {
+          y[j*num_states + k] = flame_params.inlet_mass_fractions_[k];
+        }
+        y[j*num_states + num_species + 1] = flame_params.inlet_temperature_;
+      } else if (flame_params.z_[jglobal] > ramp_start && flame_params.z_[jglobal] <= ramp_end) {
+        double frac = (flame_params.z_[jglobal]-ramp_start)/(ramp_end-ramp_start);
+        for(int k=0; k<num_species; k++) {
+          y[j*num_states + k] = frac*equi_mass_fractions[k] +
+            (1.0-frac)*flame_params.inlet_mass_fractions_[k];
+        }
+        y[j*num_states + num_species + 1] = frac*equi_temperature +
+          (1.0-frac)*flame_params.inlet_temperature_;
+      } else {
+        for(int k=0; k<num_species; k++) {
+          y[j*num_states + k] = equi_mass_fractions[k];
+        }
+        y[j*num_states + num_species + 1] = equi_temperature;
+      }
+
+      double molecular_mass = 0.0;
+      for(int k=0; k<num_species; k++) {
+        molecular_mass += y[j*num_states + k]/species_molecular_mass[k];
+      }
+      molecular_mass = 1.0/molecular_mass;
+
+      y[j*num_states + num_species] = flame_params.reactor_->GetGasConstant()*ref_temperature*
+          y[j*num_states + num_species+1]/(pressure*molecular_mass);
+    }
+  } else {
+
+    for(int j=0; j<num_local_points; ++j) {
+        int jglobal = j + my_pe*num_local_points;
+        temp_left = flame_params.parser_->inlet_temperature()/
+          flame_params.parser_->ref_temperature();
+        temp_right = flame_params.parser_->ignition_temperature()/
+          flame_params.parser_->ref_temperature();
+        delta_temp = temp_right - temp_left;
+
+        y[j*num_states + num_species+1] = (temp_left+0.5*delta_temp) +
+          0.5*delta_temp*tanh(0.5*(flame_params.z_[jglobal]-flame_params.parser_->initial_inlet_extent())/flame_params.parser_->thickness());
+
+        y[j*num_states + num_species] = flame_params.reactor_->GetGasConstant()*ref_temperature*
+          y[j*num_states + num_species+1]/(pressure*inlet_molecular_mass);
+
+        for(int k=0; k<num_species; ++k) {
+          y[j*num_states+k] = flame_params.inlet_mass_fractions_[k];
+        }
+      }
     }
 
     // For flame in tube calculations
@@ -143,7 +266,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
   // If initial_profile_file is provided, overwrite and
   // interpolate species and temperature profiles from FlameMaster solution
-  if(flame_params.parser_->initial_profile_file() != std::string("/dev/null")) {
+  if(flame_params.parser_->initial_profile_file() != std::string(zerork::utilities::null_filename)) {
     std::vector<double> file_position, file_temperature, file_density, file_mflux, file_fields;
     std::ifstream initial_profile_file;
     std::string line;
@@ -232,10 +355,10 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
     } // for k species
 
-  } // if initial_profile_file isn't "/dev/null"
+  } // if initial_profile_file isn't zerork::utilities::null_filename
 
   // If binary restart_file is provided, overwrite with that
-  if(flame_params.parser_->restart_file() != std::string("/dev/null")) {
+  if(flame_params.parser_->restart_file() != std::string(zerork::utilities::null_filename)) {
     const char* filename1;//[32];
     char filename2[32];
     int num_points_file, num_vars_file;
@@ -246,27 +369,45 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     buffer.assign(num_local_points, 0.0);
     double time_file = 0.0;
 
+#ifdef ZERORK_MPI
     MPI_File restart_file;
+#endif
     npes = flame_params.npes_;
 
     filename1 = flame_params.parser_->restart_file().c_str();
     sprintf(filename2,"%s",filename1);
-
+#ifdef ZERORK_MPI
     MPI_File_open(MPI_COMM_WORLD, filename2, MPI_MODE_RDONLY, MPI_INFO_NULL, &restart_file);
+#else
+    ifstream restart_file(filename2, ios::in | ios::binary);
+#endif
 
+#ifdef ZERORK_MPI
     MPI_File_read_all(restart_file, &num_points_file, 1, MPI_INT, MPI_STATUS_IGNORE);
     MPI_File_read_all(restart_file, &num_vars_file, 1, MPI_INT, MPI_STATUS_IGNORE);
+#else
+    restart_file.read((char*)&num_points_file, sizeof(int));
+    restart_file.read((char*)&num_vars_file, sizeof(int));
+#endif
     if(num_vars_file != num_states) {
       printf("WARNING: restart file and mechanism have different number of species. Species not found will be initialized at 0.\n");
     }
 
+#ifdef ZERORK_MPI
     MPI_File_read_all(restart_file, &time_file, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
+#else
+    restart_file.read((char*)&time_file, sizeof(double));
+#endif
     *time = time_file;
 
-    string file_state_names[num_vars_file];
+    std::vector<string> file_state_names(num_vars_file);
     for(int j=0; j<num_vars_file; ++j) {
       char buf[64];
+#ifdef ZERORK_MPI
       MPI_File_read_all(restart_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE);
+#else
+      restart_file.read((char*)&buf, 64*sizeof(char));
+#endif
       file_state_names[j] = string(buf);
     }
 
@@ -274,17 +415,26 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     for (int k=0; k<num_local_points*num_states; ++k) {
       y[k] = 0.0;
     }
+    double bc;
 
     // Read data for each variable
     for(int j=0; j<num_states; ++j) {
-      string state_name = flame_params.reactor_->GetNameOfStateId(j);
+      string state_name = zerork::utilities::GetLowerCase(flame_params.reactor_->GetNameOfStateId(j));
       for(int i=0; i<num_vars_file; ++i) {
-        if(strcasecmp(state_name.c_str(),file_state_names[i].c_str()) == 0 ) {
+	string file_state_name = zerork::utilities::GetLowerCase(file_state_names[i]);
+        if(state_name == file_state_name) {
           // Read restart_file
+#ifdef ZERORK_MPI
           disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
+            + i*sizeof(double) //left BC from prev vars
+            + sizeof(double) //left BC from cur var
             + (my_pe + i*npes)*num_local_points*sizeof(double);
           MPI_File_set_view(restart_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
           MPI_File_read(restart_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
+#else
+          restart_file.read((char*)&bc, sizeof(double)); //read/skip BC
+          restart_file.read((char*)&buffer[0], num_local_points*sizeof(double));
+#endif
           // Set y values
           for (int k=0; k<num_local_points; ++k) {
             y[k*num_states + j] = buffer[k];
@@ -307,41 +457,58 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
 
     // Read mass flux
+#ifdef ZERORK_MPI
     disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
+      + num_vars_file*sizeof(double) // left BC from prev vars
+      + sizeof(double) // left BC from cur var
       + (my_pe + num_vars_file*npes)*num_local_points*sizeof(double);
     MPI_File_set_view(restart_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
     MPI_File_read(restart_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
-
+#else
+    restart_file.read((char*)&bc, sizeof(double)); //read/skip BC
+    restart_file.read((char*)&buffer[0], num_local_points*sizeof(double));
+#endif
     for (int k=0; k<num_local_points; ++k) {
       y[k*num_states + num_states-2] = buffer[k];
     }
 
     //close file
+#ifdef ZERORK_MPI
     MPI_File_close(&restart_file);
-
-    // Set jfix and Tfix
-    // TODO: make the parallel implementation cleaner?
-    int local_jfix = 1000000;
-    for(int j=0; j<num_local_points; ++j) {
-      int jglobal = j + my_pe*num_local_points;
-      int temp_id = j*num_states+num_species + 1;
-      if( y[temp_id] > (flame_params.inlet_temperature_ +
-			flame_params.deltaTfix_/flame_params.ref_temperature_) ) {
-	local_jfix = jglobal;
-	break;
-      }
-    }
-    MPI_Allreduce(&local_jfix,&flame_params.j_fix_,1,MPI_INT,MPI_MIN,MPI_COMM_WORLD);
-
-    double local_Tfix = 0.0;
-    for(int j=0; j<num_local_points; ++j) {
-      int jglobal = j + my_pe*num_local_points;
-      int temp_id = j*num_states+num_species + 1;
-      if( jglobal == flame_params.j_fix_ ) local_Tfix = y[temp_id];
-    }
-    MPI_Allreduce(&local_Tfix,&flame_params.temperature_fix_,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+#else
+    restart_file.close();
+#endif
 
   } // if restart_file
 
+  // Set jfix and Tfix
+  // TODO: make the parallel implementation cleaner?
+  int local_jfix = 1000000;
+  for(int j=0; j<num_local_points; ++j) {
+    int jglobal = j + my_pe*num_local_points;
+    int temp_id = j*num_states+num_species + 1;
+    if( y[temp_id] > (flame_params.inlet_temperature_ +
+                      flame_params.deltaTfix_/flame_params.ref_temperature_) ) {
+      local_jfix = jglobal;
+      break;
+    }
+  }
+#if ZERORK_MPI
+  MPI_Allreduce(&local_jfix,&flame_params.j_fix_,1,MPI_INT,MPI_MIN,MPI_COMM_WORLD);
+#else
+  flame_params.j_fix_ = local_jfix;
+#endif
+
+  double local_Tfix = 0.0;
+  for(int j=0; j<num_local_points; ++j) {
+    int jglobal = j + my_pe*num_local_points;
+    int temp_id = j*num_states+num_species + 1;
+    if( jglobal == flame_params.j_fix_ ) local_Tfix = y[temp_id];
+  }
+#if ZERORK_MPI
+  MPI_Allreduce(&local_Tfix,&flame_params.temperature_fix_,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+#else
+  flame_params.temperature_fix_ = local_Tfix;
+#endif
 
 }

@@ -9,6 +9,8 @@
 
 #include "idtSolvers.h"
 
+using zerork::getHighResolutionTime;
+
 // Computes the ignition delay times for an array of temperature jumps
 // for the current ROP multipliers stored in idtCtrl->ropMultiplier[:].
 // The temperature jumps are stored in reduced form in the ODE user parameters

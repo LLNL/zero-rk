@@ -2,10 +2,10 @@ Zero-RK Chemkin Format Mechanism Parser
      derived from Cantera CKreader 1.0
      see README for license information
 
-Mon Oct  4 12:29:49 2021
+Sun Oct  3 14:36:48 2021
 
-        input file: /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp159_mec.txt
-  species database: /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+        input file: /share/zerork/mechanisms/n-heptane_reduced/heptanesymp159_mec.txt
+  species database: /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
 debugging disabled.
 
 
@@ -185,15 +185,15 @@ read 160 species.
 
 looking up species definitions...
 
-reading default temperature ranges from /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+reading default temperature ranges from /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
 
  default Tlow, Tmid, Thigh: 300.00  1000.00  5000.00
 no THERMO section in input file.
-searching external database /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt for species definitions...
+searching external database /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt for species definitions...
 
  default Tlow, Tmid, Thigh: 300.00  1000.00  5000.00
 
-found species n2 at line 16 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species n2 at line 16 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286n   2           
    phase: g
    composition: (2 n)
@@ -209,7 +209,7 @@ found species n2 at line 16 of /usr/workspace/whitesid/zerork_testing/cmake/buil
    a7  	+3.95037200E+00  	+5.98052800E+00
 
 
-found species h at line 20 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species h at line 20 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186h   1           
    phase: g
    composition: (1 h)
@@ -225,7 +225,7 @@ found species h at line 20 of /usr/workspace/whitesid/zerork_testing/cmake/build
    a7  	-4.60117600E-01  	-4.60117600E-01
 
 
-found species h2 at line 24 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species h2 at line 24 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286h   2           
    phase: g
    composition: (2 h)
@@ -241,7 +241,7 @@ found species h2 at line 24 of /usr/workspace/whitesid/zerork_testing/cmake/buil
    a7  	-3.29409400E+00  	-1.35511000E+00
 
 
-found species o at line 28 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species o at line 28 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186o   1           
    phase: g
    composition: (1 o)
@@ -257,7 +257,7 @@ found species o at line 28 of /usr/workspace/whitesid/zerork_testing/cmake/build
    a7  	+2.96399500E+00  	+4.92030800E+00
 
 
-found species o2 at line 32 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species o2 at line 32 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121386o   2           
    phase: g
    composition: (2 o)
@@ -273,7 +273,7 @@ found species o2 at line 32 of /usr/workspace/whitesid/zerork_testing/cmake/buil
    a7  	+6.03473800E+00  	+3.18916600E+00
 
 
-found species oh at line 36 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species oh at line 36 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 99 thermh   1o   1    0 
    phase: g
    composition: (1 h, 1 o)
@@ -289,7 +289,7 @@ found species oh at line 36 of /usr/workspace/whitesid/zerork_testing/cmake/buil
    a7  	+2.45014127E+00  	+7.10667307E+00
 
 
-found species h2o at line 40 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species h2o at line 40 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:    20387h   2o   1      
    phase: g
    composition: (2 h, 1 o)
@@ -305,7 +305,7 @@ found species h2o at line 40 of /usr/workspace/whitesid/zerork_testing/cmake/bui
    a7  	+2.59023300E+00  	+6.86281700E+00
 
 
-found species co at line 44 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species co at line 44 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286c   1o   1      
    phase: g
    composition: (1 c, 1 o)
@@ -321,7 +321,7 @@ found species co at line 44 of /usr/workspace/whitesid/zerork_testing/cmake/buil
    a7  	+4.84889700E+00  	+6.10821800E+00
 
 
-found species hco at line 48 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species hco at line 48 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286h   1c   1o   1 
    phase: g
    composition: (1 h, 1 c, 1 o)
@@ -337,7 +337,7 @@ found species hco at line 48 of /usr/workspace/whitesid/zerork_testing/cmake/bui
    a7  	+8.98361400E+00  	+5.55229900E+00
 
 
-found species co2 at line 52 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species co2 at line 52 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286c   1o   2      
    phase: g
    composition: (1 c, 2 o)
@@ -353,7 +353,7 @@ found species co2 at line 52 of /usr/workspace/whitesid/zerork_testing/cmake/bui
    a7  	+1.01884900E+01  	-9.55395900E-01
 
 
-found species ch3 at line 56 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3 at line 56 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286c   1h   3      
    phase: g
    composition: (1 c, 3 h)
@@ -369,7 +369,7 @@ found species ch3 at line 56 of /usr/workspace/whitesid/zerork_testing/cmake/bui
    a7  	+6.78979400E+00  	+5.45269700E+00
 
 
-found species ch4 at line 60 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch4 at line 60 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286c   1h   4      
    phase: g
    composition: (1 c, 4 h)
@@ -385,7 +385,7 @@ found species ch4 at line 60 of /usr/workspace/whitesid/zerork_testing/cmake/bui
    a7  	+1.37221900E+01  	+9.62339500E+00
 
 
-found species ho2 at line 64 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ho2 at line 64 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 99 thermh   1o   2    0 
    phase: g
    composition: (1 h, 2 o)
@@ -401,7 +401,7 @@ found species ho2 at line 64 of /usr/workspace/whitesid/zerork_testing/cmake/bui
    a7  	+8.39371099E+00  	+3.12515836E+00
 
 
-found species h2o2 at line 68 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species h2o2 at line 68 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186h   2o   2      
    phase: g
    composition: (2 h, 2 o)
@@ -417,7 +417,7 @@ found species h2o2 at line 68 of /usr/workspace/whitesid/zerork_testing/cmake/bu
    a7  	+6.78536300E+00  	+5.01137000E-01
 
 
-found species ch2o at line 72 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch2o at line 72 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286c   1h   2o   1 
    phase: g
    composition: (1 c, 2 h, 1 o)
@@ -433,7 +433,7 @@ found species ch2o at line 72 of /usr/workspace/whitesid/zerork_testing/cmake/bu
    a7  	+1.37848200E+01  	+6.91257200E+00
 
 
-found species ch3o at line 76 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3o at line 76 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121686c   1h   3o   1 
    phase: g
    composition: (1 c, 3 h, 1 o)
@@ -449,7 +449,7 @@ found species ch3o at line 76 of /usr/workspace/whitesid/zerork_testing/cmake/bu
    a7  	+1.31521800E+01  	+2.92957500E+00
 
 
-found species c2h6 at line 80 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h6 at line 80 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   2h   6    0 
    phase: g
    composition: (2 c, 6 h)
@@ -465,7 +465,7 @@ found species c2h6 at line 80 of /usr/workspace/whitesid/zerork_testing/cmake/bu
    a7  	+2.11648750E+01  	-1.30081250E+01
 
 
-found species c2h4 at line 84 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h4 at line 84 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286c   2h   4      
    phase: g
    composition: (2 c, 4 h)
@@ -481,7 +481,7 @@ found species c2h4 at line 84 of /usr/workspace/whitesid/zerork_testing/cmake/bu
    a7  	+2.42114900E+01  	+2.23038900E+00
 
 
-found species c2h5 at line 88 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h5 at line 88 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:    12387c   2h   5      
    phase: g
    composition: (2 c, 5 h)
@@ -497,7 +497,7 @@ found species c2h5 at line 88 of /usr/workspace/whitesid/zerork_testing/cmake/bu
    a7  	+1.21382000E+01  	-1.47808900E+01
 
 
-found species ch2 at line 92 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch2 at line 92 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186c   1h   2      
    phase: g
    composition: (1 c, 2 h)
@@ -513,7 +513,7 @@ found species ch2 at line 92 of /usr/workspace/whitesid/zerork_testing/cmake/bui
    a7  	+1.71257800E+00  	+2.15656100E+00
 
 
-found species ch at line 96 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch at line 96 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121286c   1h   1      
    phase: g
    composition: (1 c, 1 h)
@@ -529,7 +529,7 @@ found species ch at line 96 of /usr/workspace/whitesid/zerork_testing/cmake/buil
    a7  	+3.33158800E+00  	+9.17837300E+00
 
 
-found species c2h at line 100 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h at line 100 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:    81193c   2h   1      
    phase: g
    composition: (2 c, 1 h)
@@ -545,7 +545,7 @@ found species c2h at line 100 of /usr/workspace/whitesid/zerork_testing/cmake/bu
    a7  	+7.30022000E+00  	+1.19106300E+00
 
 
-found species c2h2 at line 104 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h2 at line 104 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121386c   2h   2      
    phase: g
    composition: (2 c, 2 h)
@@ -561,7 +561,7 @@ found species c2h2 at line 104 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+8.80537800E+00  	-2.80033800E+00
 
 
-found species c2h3 at line 108 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h3 at line 108 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:    12787c   2h   3      
    phase: g
    composition: (2 c, 3 h)
@@ -577,7 +577,7 @@ found species c2h3 at line 108 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+1.15562000E+01  	-8.53031300E+00
 
 
-found species ch3oh at line 112 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3oh at line 112 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121686c   1h   4o   1 
    phase: g
    composition: (1 c, 4 h, 1 o)
@@ -593,7 +593,7 @@ found species ch3oh at line 112 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+1.12326300E+01  	+2.37819600E+00
 
 
-found species ch2oh at line 116 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch2oh at line 116 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186h   3c   1o   1 
    phase: g
    composition: (3 h, 1 c, 1 o)
@@ -609,7 +609,7 @@ found species ch2oh at line 116 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+1.03979400E+01  	-8.32936600E+00
 
 
-found species ch2co at line 120 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch2co at line 120 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   121686c   2h   2o   1 
    phase: g
    composition: (2 c, 2 h, 1 o)
@@ -625,7 +625,7 @@ found species ch2co at line 120 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+8.67355300E+00  	-7.65758100E+00
 
 
-found species hcco at line 124 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species hcco at line 124 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:    32387h   1c   2o   1 
    phase: g
    composition: (1 h, 2 c, 1 o)
@@ -641,7 +641,7 @@ found species hcco at line 124 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+4.81843900E-01  	-9.07126200E+00
 
 
-found species pc2h4oh at line 132 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species pc2h4oh at line 132 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   2h   5o   1 
    phase: g
    composition: (2 c, 5 h, 1 o)
@@ -657,7 +657,7 @@ found species pc2h4oh at line 132 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+2.20081586E+01  	-1.24958732E+01
 
 
-found species ch3co at line 140 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3co at line 140 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186c   2h   3o   1 
    phase: g
    composition: (2 c, 3 h, 1 o)
@@ -673,7 +673,7 @@ found species ch3co at line 140 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+1.12288500E+01  	-3.27494900E+00
 
 
-found species ch2cho at line 144 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch2cho at line 144 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   110393o   1h   3c   2 
    phase: g
    composition: (1 o, 3 h, 2 c)
@@ -689,7 +689,7 @@ found species ch2cho at line 144 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+9.55829000E+00  	-5.04525100E+00
 
 
-found species ch3cho at line 148 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3cho at line 148 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186c   2o   1h   4 
    phase: g
    composition: (2 c, 1 o, 4 h)
@@ -705,7 +705,7 @@ found species ch3cho at line 148 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+1.33508900E+01  	-6.01294600E+00
 
 
-found species c3h4-a at line 152 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h4-a at line 152 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   101993h   4c   3      
    phase: g
    composition: (4 h, 3 c)
@@ -721,7 +721,7 @@ found species c3h4-a at line 152 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+9.93570200E+00  	-3.07706100E+01
 
 
-found species c3h4-p at line 156 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h4-p at line 156 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   101993h   4c   3      
    phase: g
    composition: (4 h, 3 c)
@@ -737,7 +737,7 @@ found species c3h4-p at line 156 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+8.00459400E+00  	-3.02067800E+01
 
 
-found species c3h6 at line 160 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h6 at line 160 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   3h   6    0 
    phase: g
    composition: (3 c, 6 h)
@@ -753,7 +753,7 @@ found species c3h6 at line 160 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+2.19003736E+01  	-2.00160668E+01
 
 
-found species c4h6 at line 164 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h6 at line 164 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186c   4h   6      
    phase: g
    composition: (4 c, 6 h)
@@ -769,7 +769,7 @@ found species c4h6 at line 164 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+9.89566000E+00  	-1.80045800E+01
 
 
-found species nc3h7 at line 168 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc3h7 at line 168 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186c   3h   7      
    phase: g
    composition: (3 c, 7 h)
@@ -785,7 +785,7 @@ found species nc3h7 at line 168 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+1.39927100E+01  	-1.93561100E+01
 
 
-found species ic3h7 at line 172 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ic3h7 at line 172 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186c   3h   7      
    phase: g
    composition: (3 c, 7 h)
@@ -801,7 +801,7 @@ found species ic3h7 at line 172 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+1.29790100E+01  	-2.19264700E+01
 
 
-found species c3h8 at line 176 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h8 at line 176 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   120186c   3h   8      
    phase: g
    composition: (3 c, 8 h)
@@ -817,7 +817,7 @@ found species c3h8 at line 176 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+1.93553300E+01  	-1.78439000E+01
 
 
-found species c4h7 at line 188 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h7 at line 188 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   7    0 
    phase: g
    composition: (4 c, 7 h)
@@ -833,7 +833,7 @@ found species c4h7 at line 188 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+2.67295696E+01  	-3.55593015E+01
 
 
-found species c4h8-1 at line 192 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h8-1 at line 192 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   4h   8    0 
    phase: g
    composition: (4 c, 8 h)
@@ -849,7 +849,7 @@ found species c4h8-1 at line 192 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+2.95084236E+01  	-3.64369438E+01
 
 
-found species sc4h9 at line 200 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species sc4h9 at line 200 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   9    0 
    phase: g
    composition: (4 c, 9 h)
@@ -865,7 +865,7 @@ found species sc4h9 at line 200 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+2.49106489E+01  	-3.68210535E+01
 
 
-found species pc4h9 at line 204 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species pc4h9 at line 204 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   9    0 
    phase: g
    composition: (4 c, 9 h)
@@ -881,7 +881,7 @@ found species pc4h9 at line 204 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+2.86852732E+01  	-3.93425822E+01
 
 
-found species ch3coch3 at line 224 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3coch3 at line 224 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 92 thermc   3h   6o   1 
    phase: g
    composition: (3 c, 6 h, 1 o)
@@ -897,7 +897,7 @@ found species ch3coch3 at line 224 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+1.96395025E+01  	-2.86113215E+01
 
 
-found species ch3coch2 at line 228 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3coch2 at line 228 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 92 thermc   3h   5o   1 
    phase: g
    composition: (3 c, 5 h, 1 o)
@@ -913,7 +913,7 @@ found species ch3coch2 at line 228 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+1.78046408E+01  	-2.79197220E+01
 
 
-found species c2h5cho at line 232 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h5cho at line 232 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   3h   6o   1 
    phase: g
    composition: (3 c, 6 h, 1 o)
@@ -929,7 +929,7 @@ found species c2h5cho at line 232 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+1.61153348E+01  	-2.85346843E+01
 
 
-found species c2h5co at line 236 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h5co at line 236 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   3h   5o   1 
    phase: g
    composition: (3 c, 5 h, 1 o)
@@ -945,7 +945,7 @@ found species c2h5co at line 236 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+1.35958355E+01  	-2.49235196E+01
 
 
-found species c5h9 at line 240 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c5h9 at line 240 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 99 thermc   5h   9    0 
    phase: g
    composition: (5 c, 9 h)
@@ -961,7 +961,7 @@ found species c5h9 at line 240 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+3.26441304E+01  	-5.14501773E+01
 
 
-found species c5h10-1 at line 244 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c5h10-1 at line 244 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   5h  10    0 
    phase: g
    composition: (5 c, 10 h)
@@ -977,7 +977,7 @@ found species c5h10-1 at line 244 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+3.22739790E+01  	-5.23683936E+01
 
 
-found species c5h11-1 at line 292 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c5h11-1 at line 292 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   5h  11    0 
    phase: g
    composition: (5 c, 11 h)
@@ -993,7 +993,7 @@ found species c5h11-1 at line 292 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+3.25574963E+01  	-5.49528859E+01
 
 
-found species c5h11-2 at line 296 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c5h11-2 at line 296 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   5h  11    0 
    phase: g
    composition: (5 c, 11 h)
@@ -1009,7 +1009,7 @@ found species c5h11-2 at line 296 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+2.78600953E+01  	-5.29613979E+01
 
 
-found species c2h5o at line 312 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h5o at line 312 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   2h   5o   1 
    phase: g
    composition: (2 c, 5 h, 1 o)
@@ -1025,7 +1025,7 @@ found species c2h5o at line 312 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+2.28079378E+01  	-1.73416790E+01
 
 
-found species ch3o2 at line 316 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3o2 at line 316 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   1h   3o   2 
    phase: g
    composition: (1 c, 3 h, 2 o)
@@ -1041,7 +1041,7 @@ found species ch3o2 at line 316 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+5.16330320E+00  	-4.71963886E+00
 
 
-found species c2h5o2 at line 320 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h5o2 at line 320 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   2h   5o   2 
    phase: g
    composition: (2 c, 5 h, 2 o)
@@ -1057,7 +1057,7 @@ found species c2h5o2 at line 320 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+1.27953147E+01  	-1.99384891E+01
 
 
-found species ch3o2h at line 324 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3o2h at line 324 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   1h   4o   2 
    phase: g
    composition: (1 c, 4 h, 2 o)
@@ -1073,7 +1073,7 @@ found species ch3o2h at line 324 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+9.25623949E+00  	-1.91170629E+01
 
 
-found species c2h3o1,2 at line 332 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h3o1,2 at line 332 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   2h   3o   1 
    phase: g
    composition: (2 c, 3 h, 1 o)
@@ -1089,7 +1089,7 @@ found species c2h3o1,2 at line 332 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+2.50825660E+01  	-3.40412712E+01
 
 
-found species c2h4o2h at line 344 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h4o2h at line 344 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   2h   5o   2 
    phase: g
    composition: (2 c, 5 h, 2 o)
@@ -1105,7 +1105,7 @@ found species c2h4o2h at line 344 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+1.35264941E+01  	-2.87480538E+01
 
 
-found species o2c2h4oh at line 348 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species o2c2h4oh at line 348 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   2h   5o   3 
    phase: g
    composition: (2 c, 5 h, 3 o)
@@ -1121,7 +1121,7 @@ found species o2c2h4oh at line 348 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+1.28482112E+01  	-2.33254953E+01
 
 
-found species c2h3co at line 364 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h3co at line 364 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   3h   3o   1 
    phase: g
    composition: (3 c, 3 h, 1 o)
@@ -1137,7 +1137,7 @@ found species c2h3co at line 364 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+2.04173489E+01  	-2.67674022E+01
 
 
-found species c2h3cho at line 368 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h3cho at line 368 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   3h   4o   1 
    phase: g
    composition: (3 c, 4 h, 1 o)
@@ -1153,7 +1153,7 @@ found species c2h3cho at line 368 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+2.28878280E+01  	-3.07235061E+01
 
 
-found species c3h5o at line 372 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h5o at line 372 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   3h   5o   1 
    phase: g
    composition: (3 c, 5 h, 1 o)
@@ -1169,7 +1169,7 @@ found species c3h5o at line 372 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+2.15566221E+01  	-2.77655042E+01
 
 
-found species c3h6ooh1-2 at line 376 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h6ooh1-2 at line 376 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   3h   7o   2 
    phase: g
    composition: (3 c, 7 h, 2 o)
@@ -1185,7 +1185,7 @@ found species c3h6ooh1-2 at line 376 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+1.20159683E+01  	-4.47976591E+01
 
 
-found species c3h6ooh2-1 at line 384 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h6ooh2-1 at line 384 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   3h   7o   2 
    phase: g
    composition: (3 c, 7 h, 2 o)
@@ -1201,7 +1201,7 @@ found species c3h6ooh2-1 at line 384 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+1.78673585E+01  	-4.92810904E+01
 
 
-found species nc3h7o at line 400 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc3h7o at line 400 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   3h   7o   1 
    phase: g
    composition: (3 c, 7 h, 1 o)
@@ -1217,7 +1217,7 @@ found species nc3h7o at line 400 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+2.54387810E+01  	-3.27511689E+01
 
 
-found species ic3h7o at line 404 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ic3h7o at line 404 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   3h   7o   1 
    phase: g
    composition: (3 c, 7 h, 1 o)
@@ -1233,7 +1233,7 @@ found species ic3h7o at line 404 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+2.57650010E+01  	-3.62203624E+01
 
 
-found species nc3h7o2 at line 416 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc3h7o2 at line 416 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   3h   7o   2 
    phase: g
    composition: (3 c, 7 h, 2 o)
@@ -1249,7 +1249,7 @@ found species nc3h7o2 at line 416 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+1.49406763E+01  	-3.57854035E+01
 
 
-found species ic3h7o2 at line 420 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ic3h7o2 at line 420 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   3h   7o   2 
    phase: g
    composition: (3 c, 7 h, 2 o)
@@ -1265,7 +1265,7 @@ found species ic3h7o2 at line 420 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+1.67736536E+01  	-3.96629320E+01
 
 
-found species c4h7o at line 444 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h7o at line 444 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   7o   1 
    phase: g
    composition: (4 c, 7 h, 1 o)
@@ -1281,7 +1281,7 @@ found species c4h7o at line 444 of /usr/workspace/whitesid/zerork_testing/cmake/
    a7  	+1.64848950E+01  	-4.02608515E+01
 
 
-found species c4h8ooh1-3o2 at line 468 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h8ooh1-3o2 at line 468 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 7/98 trmc   4h   9o   4 
    phase: g
    composition: (4 c, 9 h, 4 o)
@@ -1297,7 +1297,7 @@ found species c4h8ooh1-3o2 at line 468 of /usr/workspace/whitesid/zerork_testing
    a7  	+1.17446314E+01  	-7.52165802E+01
 
 
-found species c4h8ooh1-2 at line 500 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h8ooh1-2 at line 500 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   4h   9o   2 
    phase: g
    composition: (4 c, 9 h, 2 o)
@@ -1313,7 +1313,7 @@ found species c4h8ooh1-2 at line 500 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+1.21592799E+01  	-5.57317121E+01
 
 
-found species c4h8ooh1-3 at line 504 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h8ooh1-3 at line 504 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   4h   9o   2 
    phase: g
    composition: (4 c, 9 h, 2 o)
@@ -1329,7 +1329,7 @@ found species c4h8ooh1-3 at line 504 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+2.09179383E+01  	-4.85929362E+01
 
 
-found species c4h8o1-3 at line 540 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h8o1-3 at line 540 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   8o   1 
    phase: g
    composition: (4 c, 8 h, 1 o)
@@ -1345,7 +1345,7 @@ found species c4h8o1-3 at line 540 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.67400719E+01  	-6.13871862E+01
 
 
-found species pc4h9o2 at line 600 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species pc4h9o2 at line 600 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   4h   9o   2 
    phase: g
    composition: (4 c, 9 h, 2 o)
@@ -1361,7 +1361,7 @@ found species pc4h9o2 at line 600 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+1.73052261E+01  	-5.16056477E+01
 
 
-found species c3h5-a at line 968 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h5-a at line 968 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   3h   5    0 
    phase: g
    composition: (3 c, 5 h)
@@ -1377,7 +1377,7 @@ found species c3h5-a at line 968 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+2.53067131E+01  	-2.25809450E+01
 
 
-found species c3h5-s at line 972 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h5-s at line 972 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   3h   5    0 
    phase: g
    composition: (3 c, 5 h)
@@ -1393,7 +1393,7 @@ found species c3h5-s at line 972 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+1.83328787E+01  	-1.74291589E+01
 
 
-found species c3h5-t at line 976 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h5-t at line 976 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   3h   5    0 
    phase: g
    composition: (3 c, 5 h)
@@ -1409,7 +1409,7 @@ found species c3h5-t at line 976 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+1.48785684E+01  	-1.43478655E+01
 
 
-found species c3h3 at line 980 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h3 at line 980 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:    82489c   3h   3      
    phase: g
    composition: (3 c, 3 h)
@@ -1425,7 +1425,7 @@ found species c3h3 at line 980 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+5.85454900E-01  	-2.17791900E+01
 
 
-found species c3h2 at line 984 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h2 at line 984 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:   102193h   2c   3      
    phase: g
    composition: (2 h, 3 c)
@@ -1441,7 +1441,7 @@ found species c3h2 at line 984 of /usr/workspace/whitesid/zerork_testing/cmake/b
    a7  	+8.86944600E+00  	-1.23689000E+01
 
 
-found species c3h6o1-2 at line 988 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h6o1-2 at line 988 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   3h   6o   1 
    phase: g
    composition: (3 c, 6 h, 1 o)
@@ -1457,7 +1457,7 @@ found species c3h6o1-2 at line 988 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+2.88467826E+01  	-4.22894035E+01
 
 
-found species ch2(s) at line 1004 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch2(s) at line 1004 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date:    31287c   1h   2      
    phase: g
    composition: (1 c, 2 h)
@@ -1473,7 +1473,7 @@ found species ch2(s) at line 1004 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+5.75320700E-02  	+1.68657000E+00
 
 
-found species nc4ket13 at line 1024 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc4ket13 at line 1024 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   4h   8o   3 
    phase: g
    composition: (4 c, 8 h, 3 o)
@@ -1489,7 +1489,7 @@ found species nc4ket13 at line 1024 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+1.48248314E+01  	-6.82492782E+01
 
 
-found species nc3h7cho at line 1244 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc3h7cho at line 1244 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   8o   1 
    phase: g
    composition: (4 c, 8 h, 1 o)
@@ -1505,7 +1505,7 @@ found species nc3h7cho at line 1244 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+1.91568574E+01  	-4.51790228E+01
 
 
-found species nc3h7co at line 1248 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc3h7co at line 1248 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   7o   1 
    phase: g
    composition: (4 c, 7 h, 1 o)
@@ -1521,7 +1521,7 @@ found species nc3h7co at line 1248 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+1.64848950E+01  	-4.02608515E+01
 
 
-found species ch2ch2coch3 at line 1252 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch2ch2coch3 at line 1252 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /95 therc   4h   7o   1 
    phase: g
    composition: (4 c, 7 h, 1 o)
@@ -1537,7 +1537,7 @@ found species ch2ch2coch3 at line 1252 of /usr/workspace/whitesid/zerork_testing
    a7  	+1.93993386E+01  	-3.62186375E+01
 
 
-found species c2h5coch2 at line 1256 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h5coch2 at line 1256 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   7o   1 
    phase: g
    composition: (4 c, 7 h, 1 o)
@@ -1553,7 +1553,7 @@ found species c2h5coch2 at line 1256 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+1.87098570E+01  	-3.69081191E+01
 
 
-found species ch3chco at line 1284 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species ch3chco at line 1284 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   3h   4o   1 
    phase: g
    composition: (3 c, 4 h, 1 o)
@@ -1569,7 +1569,7 @@ found species ch3chco at line 1284 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+1.71552068E+01  	-2.77829973E+01
 
 
-found species c3h6cho-2 at line 1296 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c3h6cho-2 at line 1296 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   4h   7o   1 
    phase: g
    composition: (4 c, 7 h, 1 o)
@@ -1585,7 +1585,7 @@ found species c3h6cho-2 at line 1296 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+1.74324072E+01  	-2.80298956E+01
 
 
-found species c2h5coc2h4p at line 1348 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c2h5coc2h4p at line 1348 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /96 thrmc   5h   9o   1 
    phase: g
    composition: (5 c, 9 h, 1 o)
@@ -1601,7 +1601,7 @@ found species c2h5coc2h4p at line 1348 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.01162807E+01  	-5.52272610E+01
 
 
-found species nc3h7coch2 at line 1396 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc3h7coch2 at line 1396 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 96 thermc   5h   9o   1 
    phase: g
    composition: (5 c, 9 h, 1 o)
@@ -1617,7 +1617,7 @@ found species nc3h7coch2 at line 1396 of /usr/workspace/whitesid/zerork_testing/
    a7  	+2.34112884E+01  	-5.83864884E+01
 
 
-found species nc4h9cho at line 1500 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc4h9cho at line 1500 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 96 thermc   5h  10o   1 
    phase: g
    composition: (5 c, 10 h, 1 o)
@@ -1633,7 +1633,7 @@ found species nc4h9cho at line 1500 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.21281498E+01  	-6.09063312E+01
 
 
-found species nc4h9co at line 1504 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc4h9co at line 1504 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 96 thermc   5h   9o   1 
    phase: g
    composition: (5 c, 9 h, 1 o)
@@ -1649,7 +1649,7 @@ found species nc4h9co at line 1504 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+1.92695879E+01  	-5.58943579E+01
 
 
-found species hoch2o at line 1548 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species hoch2o at line 1548 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   1h   3o   2 
    phase: g
    composition: (1 c, 3 h, 2 o)
@@ -1665,7 +1665,7 @@ found species hoch2o at line 1548 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+7.46807254E+00  	-6.63865583E+00
 
 
-found species hocho at line 1552 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species hocho at line 1552 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   1h   2o   2 
    phase: g
    composition: (1 c, 2 h, 2 o)
@@ -1681,7 +1681,7 @@ found species hocho at line 1552 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+1.72885798E+01  	-1.13104798E+01
 
 
-found species c6h13-1 at line 1560 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c6h13-1 at line 1560 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95 thermc   6h  13    0 
    phase: g
    composition: (6 c, 13 h)
@@ -1697,7 +1697,7 @@ found species c6h13-1 at line 1560 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.35439856E+01  	-7.06345855E+01
 
 
-found species c6h12-1 at line 1572 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c6h12-1 at line 1572 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   6h  12    0 
    phase: g
    composition: (6 c, 12 h)
@@ -1713,7 +1713,7 @@ found species c6h12-1 at line 1572 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.53120691E+01  	-6.83818851E+01
 
 
-found species c6h11 at line 1584 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c6h11 at line 1584 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   6h  11    0 
    phase: g
    composition: (6 c, 11 h)
@@ -1729,7 +1729,7 @@ found species c6h11 at line 1584 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+3.63570478E+01  	-6.77269441E+01
 
 
-found species nc7h16 at line 1824 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7h16 at line 1824 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  16    0 
    phase: g
    composition: (7 c, 16 h)
@@ -1745,7 +1745,7 @@ found species nc7h16 at line 1824 of /usr/workspace/whitesid/zerork_testing/cmak
    a7  	+3.53732912E+01  	-9.23040196E+01
 
 
-found species c7h15-1 at line 1828 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15-1 at line 1828 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  15    0 
    phase: g
    composition: (7 c, 15 h)
@@ -1761,7 +1761,7 @@ found species c7h15-1 at line 1828 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.46564011E+01  	-8.64954311E+01
 
 
-found species c7h15-2 at line 1832 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15-2 at line 1832 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  15    0 
    phase: g
    composition: (7 c, 15 h)
@@ -1777,7 +1777,7 @@ found species c7h15-2 at line 1832 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.37321506E+01  	-8.52209653E+01
 
 
-found species c7h15-3 at line 1836 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15-3 at line 1836 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  15    0 
    phase: g
    composition: (7 c, 15 h)
@@ -1793,7 +1793,7 @@ found species c7h15-3 at line 1836 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.37321506E+01  	-8.52209653E+01
 
 
-found species c7h15-4 at line 1840 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15-4 at line 1840 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  15    0 
    phase: g
    composition: (7 c, 15 h)
@@ -1809,7 +1809,7 @@ found species c7h15-4 at line 1840 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.30426690E+01  	-8.59104470E+01
 
 
-found species c7h14-1 at line 1844 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14-1 at line 1844 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14    0 
    phase: g
    composition: (7 c, 14 h)
@@ -1825,7 +1825,7 @@ found species c7h14-1 at line 1844 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.85068032E+01  	-8.44391108E+01
 
 
-found species c7h14-2 at line 1848 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14-2 at line 1848 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14    0 
    phase: g
    composition: (7 c, 14 h)
@@ -1841,7 +1841,7 @@ found species c7h14-2 at line 1848 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+3.59871070E+01  	-8.22519387E+01
 
 
-found species c7h14-3 at line 1852 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14-3 at line 1852 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14    0 
    phase: g
    composition: (7 c, 14 h)
@@ -1857,7 +1857,7 @@ found species c7h14-3 at line 1852 of /usr/workspace/whitesid/zerork_testing/cma
    a7  	+4.02316266E+01  	-8.25235002E+01
 
 
-found species c7h13 at line 1856 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h13 at line 1856 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  13    0 
    phase: g
    composition: (7 c, 13 h)
@@ -1873,7 +1873,7 @@ found species c7h13 at line 1856 of /usr/workspace/whitesid/zerork_testing/cmake
    a7  	+3.89797235E+01  	-8.35627043E+01
 
 
-found species c7h15o2-1 at line 1860 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o2-1 at line 1860 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -1889,7 +1889,7 @@ found species c7h15o2-1 at line 1860 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+2.53067342E+01  	-9.73923542E+01
 
 
-found species c7h15o2-2 at line 1864 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o2-2 at line 1864 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -1905,7 +1905,7 @@ found species c7h15o2-2 at line 1864 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+2.76255370E+01  	-1.00675588E+02
 
 
-found species c7h15o2-3 at line 1868 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o2-3 at line 1868 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -1921,7 +1921,7 @@ found species c7h15o2-3 at line 1868 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+2.76255370E+01  	-1.00675588E+02
 
 
-found species c7h15o2-4 at line 1872 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o2-4 at line 1872 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -1937,7 +1937,7 @@ found species c7h15o2-4 at line 1872 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+2.69360553E+01  	-1.01365070E+02
 
 
-found species c7h15o2h-1 at line 1876 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o2h-1 at line 1876 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  16o   2 
    phase: g
    composition: (7 c, 16 h, 2 o)
@@ -1953,7 +1953,7 @@ found species c7h15o2h-1 at line 1876 of /usr/workspace/whitesid/zerork_testing/
    a7  	+2.86394003E+01  	-1.11617766E+02
 
 
-found species c7h15o2h-2 at line 1880 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o2h-2 at line 1880 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  16o   2 
    phase: g
    composition: (7 c, 16 h, 2 o)
@@ -1969,7 +1969,7 @@ found species c7h15o2h-2 at line 1880 of /usr/workspace/whitesid/zerork_testing/
    a7  	+3.10277331E+01  	-1.14905489E+02
 
 
-found species c7h15o2h-3 at line 1884 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o2h-3 at line 1884 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  16o   2 
    phase: g
    composition: (7 c, 16 h, 2 o)
@@ -1985,7 +1985,7 @@ found species c7h15o2h-3 at line 1884 of /usr/workspace/whitesid/zerork_testing/
    a7  	+3.10277331E+01  	-1.14905489E+02
 
 
-found species c7h15o-1 at line 1892 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o-1 at line 1892 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  15o   1 
    phase: g
    composition: (7 c, 15 h, 1 o)
@@ -2001,7 +2001,7 @@ found species c7h15o-1 at line 1892 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.56475170E+01  	-9.48882293E+01
 
 
-found species c7h15o-2 at line 1896 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o-2 at line 1896 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  15o   1 
    phase: g
    composition: (7 c, 15 h, 1 o)
@@ -2017,7 +2017,7 @@ found species c7h15o-2 at line 1896 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.77738325E+01  	-9.87360860E+01
 
 
-found species c7h15o-3 at line 1900 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h15o-3 at line 1900 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  15o   1 
    phase: g
    composition: (7 c, 15 h, 1 o)
@@ -2033,7 +2033,7 @@ found species c7h15o-3 at line 1900 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.77738325E+01  	-9.87360860E+01
 
 
-found species c7h14ooh1-2 at line 1908 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh1-2 at line 1908 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2049,7 +2049,7 @@ found species c7h14ooh1-2 at line 1908 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.73754005E+01  	-1.06332170E+02
 
 
-found species c7h14ooh1-3 at line 1912 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh1-3 at line 1912 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2065,7 +2065,7 @@ found species c7h14ooh1-3 at line 1912 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.73754005E+01  	-1.06332170E+02
 
 
-found species c7h14ooh1-4 at line 1916 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh1-4 at line 1916 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2081,7 +2081,7 @@ found species c7h14ooh1-4 at line 1916 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.73754005E+01  	-1.06332170E+02
 
 
-found species c7h14ooh2-3 at line 1928 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh2-3 at line 1928 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2097,7 +2097,7 @@ found species c7h14ooh2-3 at line 1928 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97815441E+01  	-1.09739277E+02
 
 
-found species c7h14ooh2-4 at line 1932 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh2-4 at line 1932 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2113,7 +2113,7 @@ found species c7h14ooh2-4 at line 1932 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97815441E+01  	-1.09739277E+02
 
 
-found species c7h14ooh2-5 at line 1936 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh2-5 at line 1936 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2129,7 +2129,7 @@ found species c7h14ooh2-5 at line 1936 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97815441E+01  	-1.09739277E+02
 
 
-found species c7h14ooh3-1 at line 1944 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-1 at line 1944 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2145,7 +2145,7 @@ found species c7h14ooh3-1 at line 1944 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97386718E+01  	-1.09813224E+02
 
 
-found species c7h14ooh3-2 at line 1948 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-2 at line 1948 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2161,7 +2161,7 @@ found species c7h14ooh3-2 at line 1948 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97815441E+01  	-1.09739277E+02
 
 
-found species c7h14ooh3-4 at line 1952 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-4 at line 1952 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2177,7 +2177,7 @@ found species c7h14ooh3-4 at line 1952 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97815441E+01  	-1.09739277E+02
 
 
-found species c7h14ooh3-5 at line 1956 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-5 at line 1956 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2193,7 +2193,7 @@ found species c7h14ooh3-5 at line 1956 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97815441E+01  	-1.09739277E+02
 
 
-found species c7h14ooh3-6 at line 1960 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-6 at line 1960 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2209,7 +2209,7 @@ found species c7h14ooh3-6 at line 1960 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.97815441E+01  	-1.09739277E+02
 
 
-found species c7h14ooh4-2 at line 1972 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh4-2 at line 1972 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2225,7 +2225,7 @@ found species c7h14ooh4-2 at line 1972 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.90920624E+01  	-1.10428759E+02
 
 
-found species c7h14ooh4-3 at line 1976 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh4-3 at line 1976 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: /98 thrmc   7h  15o   2 
    phase: g
    composition: (7 c, 15 h, 2 o)
@@ -2241,7 +2241,7 @@ found species c7h14ooh4-3 at line 1976 of /usr/workspace/whitesid/zerork_testing
    a7  	+2.90920624E+01  	-1.10428759E+02
 
 
-found species c7h14ooh1-3o2 at line 1984 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh1-3o2 at line 1984 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2257,7 +2257,7 @@ found species c7h14ooh1-3o2 at line 1984 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.25912030E+01  	-1.32597311E+02
 
 
-found species c7h14ooh2-3o2 at line 2000 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh2-3o2 at line 2000 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2273,7 +2273,7 @@ found species c7h14ooh2-3o2 at line 2000 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh2-4o2 at line 2004 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh2-4o2 at line 2004 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2289,7 +2289,7 @@ found species c7h14ooh2-4o2 at line 2004 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh2-5o2 at line 2008 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh2-5o2 at line 2008 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2305,7 +2305,7 @@ found species c7h14ooh2-5o2 at line 2008 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh3-1o2 at line 2016 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-1o2 at line 2016 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2321,7 +2321,7 @@ found species c7h14ooh3-1o2 at line 2016 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.25912030E+01  	-1.32597311E+02
 
 
-found species c7h14ooh3-2o2 at line 2020 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-2o2 at line 2020 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2337,7 +2337,7 @@ found species c7h14ooh3-2o2 at line 2020 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh3-4o2 at line 2024 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-4o2 at line 2024 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2353,7 +2353,7 @@ found species c7h14ooh3-4o2 at line 2024 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh3-5o2 at line 2028 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-5o2 at line 2028 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2369,7 +2369,7 @@ found species c7h14ooh3-5o2 at line 2028 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh3-6o2 at line 2032 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh3-6o2 at line 2032 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2385,7 +2385,7 @@ found species c7h14ooh3-6o2 at line 2032 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh4-2o2 at line 2044 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh4-2o2 at line 2044 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2401,7 +2401,7 @@ found species c7h14ooh4-2o2 at line 2044 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14ooh4-3o2 at line 2048 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14ooh4-3o2 at line 2048 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 23/98 tmc   7h  15o   4 
    phase: g
    composition: (7 c, 15 h, 4 o)
@@ -2417,7 +2417,7 @@ found species c7h14ooh4-3o2 at line 2048 of /usr/workspace/whitesid/zerork_testi
    a7  	+2.43873873E+01  	-1.35817581E+02
 
 
-found species c7h14o1-3 at line 2056 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14o1-3 at line 2056 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14o   1 
    phase: g
    composition: (7 c, 14 h, 1 o)
@@ -2433,7 +2433,7 @@ found species c7h14o1-3 at line 2056 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+6.05805871E+01  	-9.93857329E+01
 
 
-found species c7h14o1-4 at line 2060 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14o1-4 at line 2060 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14o   1 
    phase: g
    composition: (7 c, 14 h, 1 o)
@@ -2449,7 +2449,7 @@ found species c7h14o1-4 at line 2060 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+6.49157213E+01  	-9.93440338E+01
 
 
-found species c7h14o2-4 at line 2072 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14o2-4 at line 2072 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14o   1 
    phase: g
    composition: (7 c, 14 h, 1 o)
@@ -2465,7 +2465,7 @@ found species c7h14o2-4 at line 2072 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+5.73755835E+01  	-1.02450761E+02
 
 
-found species c7h14o2-5 at line 2076 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14o2-5 at line 2076 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14o   1 
    phase: g
    composition: (7 c, 14 h, 1 o)
@@ -2481,7 +2481,7 @@ found species c7h14o2-5 at line 2076 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+6.24742748E+01  	-1.02440732E+02
 
 
-found species c7h14o3-5 at line 2088 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c7h14o3-5 at line 2088 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 95      c   7h  14o   1 
    phase: g
    composition: (7 c, 14 h, 1 o)
@@ -2497,7 +2497,7 @@ found species c7h14o3-5 at line 2088 of /usr/workspace/whitesid/zerork_testing/c
    a7  	+5.73755835E+01  	-1.02450761E+02
 
 
-found species nc7ket13 at line 2096 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket13 at line 2096 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2513,7 +2513,7 @@ found species nc7ket13 at line 2096 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.25860013E+01  	-1.15032511E+02
 
 
-found species nc7ket23 at line 2112 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket23 at line 2112 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2529,7 +2529,7 @@ found species nc7ket23 at line 2112 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.49969216E+01  	-1.21313991E+02
 
 
-found species nc7ket24 at line 2116 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket24 at line 2116 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2545,7 +2545,7 @@ found species nc7ket24 at line 2116 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.39852490E+01  	-1.13686529E+02
 
 
-found species nc7ket25 at line 2120 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket25 at line 2120 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2561,7 +2561,7 @@ found species nc7ket25 at line 2120 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.39852490E+01  	-1.13686529E+02
 
 
-found species nc7ket31 at line 2128 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket31 at line 2128 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2577,7 +2577,7 @@ found species nc7ket31 at line 2128 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.07041129E+01  	-1.10365114E+02
 
 
-found species nc7ket32 at line 2132 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket32 at line 2132 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2593,7 +2593,7 @@ found species nc7ket32 at line 2132 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.39067009E+01  	-1.20609073E+02
 
 
-found species nc7ket34 at line 2136 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket34 at line 2136 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2609,7 +2609,7 @@ found species nc7ket34 at line 2136 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.39067009E+01  	-1.20609073E+02
 
 
-found species nc7ket35 at line 2140 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket35 at line 2140 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2625,7 +2625,7 @@ found species nc7ket35 at line 2140 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.39852490E+01  	-1.13686529E+02
 
 
-found species nc7ket36 at line 2144 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket36 at line 2144 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2641,7 +2641,7 @@ found species nc7ket36 at line 2144 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.39852490E+01  	-1.13686529E+02
 
 
-found species nc7ket42 at line 2156 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket42 at line 2156 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2657,7 +2657,7 @@ found species nc7ket42 at line 2156 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+2.31534700E+01  	-1.13656794E+02
 
 
-found species nc7ket43 at line 2160 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc7ket43 at line 2160 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 98 thermc   7h  14o   3 
    phase: g
    composition: (7 c, 14 h, 3 o)
@@ -2673,7 +2673,7 @@ found species nc7ket43 at line 2160 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.39067009E+01  	-1.20609073E+02
 
 
-found species nc4h9coch2 at line 2212 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species nc4h9coch2 at line 2212 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 96 thermc   6h  11o   1 
    phase: g
    composition: (6 c, 11 h, 1 o)
@@ -2689,7 +2689,7 @@ found species nc4h9coch2 at line 2212 of /usr/workspace/whitesid/zerork_testing/
    a7  	+2.65180216E+01  	-7.71140999E+01
 
 
-found species c4h7ooh1-4 at line 2232 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h7ooh1-4 at line 2232 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 96 thermc   4h   8o   2 
    phase: g
    composition: (4 c, 8 h, 2 o)
@@ -2705,7 +2705,7 @@ found species c4h7ooh1-4 at line 2232 of /usr/workspace/whitesid/zerork_testing/
    a7  	+2.25862038E+01  	-5.76609547E+01
 
 
-found species c4h7o1-4 at line 2236 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c4h7o1-4 at line 2236 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 96 thermc   4h   7o   1 
    phase: g
    composition: (4 c, 7 h, 1 o)
@@ -2721,7 +2721,7 @@ found species c4h7o1-4 at line 2236 of /usr/workspace/whitesid/zerork_testing/cm
    a7  	+3.03629978E+01  	-4.16160087E+01
 
 
-found species c5h9ooh1-4 at line 2240 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c5h9ooh1-4 at line 2240 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   5h  10o   2 
    phase: g
    composition: (5 c, 10 h, 2 o)
@@ -2737,7 +2737,7 @@ found species c5h9ooh1-4 at line 2240 of /usr/workspace/whitesid/zerork_testing/
    a7  	+2.80373555E+01  	-7.58287543E+01
 
 
-found species c5h9o1-4 at line 2244 of /usr/workspace/whitesid/zerork_testing/cmake/build_3.0test/inst_dir/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+found species c5h9o1-4 at line 2244 of /share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
    id/date: 97 thermc   5h   9o   1 
    phase: g
    composition: (5 c, 9 h, 1 o)
@@ -9265,4 +9265,4 @@ reaction 1540
    rate coeff:  A, n, E = (5E+10, 0, 9599.9)
 
 
-Success... elapsed CPU time = 0.08 s
+Success... elapsed CPU time = 0.13 s

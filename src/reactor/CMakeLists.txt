@@ -15,4 +15,5 @@ set_target_properties(reactor PROPERTIES
  PUBLIC_HEADER  "${public_headers}")
 install(TARGETS reactor
  LIBRARY DESTINATION lib
+ ARCHIVE DESTINATION lib
  PUBLIC_HEADER DESTINATION include/reactor)

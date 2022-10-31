@@ -1,10 +1,22 @@
 
+set(sundials_libs nvecserial nvecparallel cvode cvodes kinsol ida arkode)
+
+if(NOT (${SUNDIALS_VERSION} EQUAL "2"))
+set(sundials_libs "${sundials_libs};sunlinsollapackdense")
+endif()
+
 set(SUNDIALS_IFACE_NUM ${SUNDIALS_VERSION})
 if(${SUNDIALS_VERSION} EQUAL "5")
 set(SUNDIALS_IFACE_NUM "4")
-endif()
-
-set(sundials_libs nvecserial nvecparallel cvode cvodes kinsol ida arkode)
+if(${ENABLE_GPU})
+set(sundials_libs "${sundials_libs};nveccuda")
+set(MAGMA_ARGS "")
+if(${ZERORK_HAVE_MAGMA})
+set(sundials_libs "${sundials_libs};sunlinsolmagmadense;sunmatrixmagmadense")
+set(MAGMA_ARGS "-DENABLE_MAGMA=ON -DMAGMA_DIR=${magma_prefix}")
+endif() #MAGMA
+endif() #GPU
+endif() #Sundials5
 
 set(sundials_system_working ON)
 if(EXISTS ${SYSTEM_SUNDIALS_ROOT})
@@ -20,7 +32,7 @@ if(EXISTS ${SYSTEM_SUNDIALS_ROOT})
     endif()
   endforeach()
 else()
-  set(sundials_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/sundials${SUNDIALS_VERSION})
+  set(sundials_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/sundials${SUNDIALS_VERSION}/${ZERORK_EXTERNALS_BUILD_TYPE})
 endif()
 
 if((NOT EXISTS ${sundials_prefix}) OR (NOT ${sundials_system_working}))
@@ -34,7 +46,7 @@ if((NOT EXISTS ${sundials_prefix}) OR (NOT ${sundials_system_working}))
   if(result)
     message(FATAL_ERROR "CMake step for Sundials-${SUNDIALS_VERSION} failed: ${result}")
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  execute_process(COMMAND ${CMAKE_COMMAND} --build . --config ${ZERORK_EXTERNALS_BUILD_TYPE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/sundials${SUNDIALS_VERSION}-build)
   if(result)
@@ -56,5 +68,8 @@ foreach(LIBRARY ${sundials_libs})
   IMPORTED_LOCATION ${sundials_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}sundials_${LIBRARY}${CMAKE_STATIC_LIBRARY_SUFFIX}
   INTERFACE_INCLUDE_DIRECTORIES ${sundials_prefix}/include
   INTERFACE_COMPILE_DEFINITIONS SUNDIALS${SUNDIALS_IFACE_NUM})
+  if(${ZERORK_HAVE_MAGMA})
+    target_link_libraries(sundials_${LIBRARY} INTERFACE magma)
+  endif()
   ##target_compile_definitions(sundials_${LIBRARY} INTERFACE SUNDIALS${SUNDIALS_IFACE_NUM} JACOBIAN_SIZE_LONG_INT)
 endforeach()

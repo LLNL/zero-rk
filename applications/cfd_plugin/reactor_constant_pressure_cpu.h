@@ -1,14 +1,13 @@
-#ifndef REACTOR_CONSTANT_VOLUME_H
-#define REACTOR_CONSTANT_VOLUME_H
-#include <memory>
+#ifndef REACTOR_CONSTANT_PRESSURE_CPU_H
+#define REACTOR_CONSTANT_PRESSURE_CPU_H
 
 #include "reactor_nvector_serial.h"
 
-class ReactorConstantVolume : public ReactorNVectorSerial
+class ReactorConstantPressureCPU : public ReactorNVectorSerial
 {
  public:
-  ReactorConstantVolume(std::shared_ptr<zerork::mechanism> mech_ptr);
-  ~ReactorConstantVolume();
+  ReactorConstantPressureCPU(std::shared_ptr<zerork::mechanism> mech_ptr);
+  ~ReactorConstantPressureCPU();
 
   void InitializeState(const double reactor_time,
                        const int n_reactors,
@@ -19,7 +18,8 @@ class ReactorConstantVolume : public ReactorNVectorSerial
                        const double *e_src,
                        const double *y_src);
 
-  void GetState(double *T,
+  void GetState(const double reactor_time,
+                double *T,
                 double *P,
                 double *mf);
 

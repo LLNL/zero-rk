@@ -345,6 +345,49 @@ namespace ckr {
       
       return true;
     default:
+      if(rxn.kf.type != Arrhenius) {
+        throw CK_SyntaxError(*parser_log,
+	   "Error: Only Arrhenius and PLogInterpolation supported for forward rate coefficients",
+	   line_num);
+        return false; 
+      }
+      if(rxn.krev.type != Arrhenius) {
+        throw CK_SyntaxError(*parser_log,
+	   "Error: Only Arrhenius supported for reverse rate coefficients",
+	   line_num);
+        return false; 
+      }
+      if(rxn.isFalloffRxn && rxn.isThreeBodyRxn) {
+        throw CK_SyntaxError(*parser_log,
+	   "Error: Falloff and 3rd-body reactions are treated as exclusive classes",
+	   line_num);
+        return false; 
+      }
+
+      if(rxn.isThreeBodyRxn) {
+        if(rxn.thirdBody.compare("M")!=0) {
+          throw CK_SyntaxError(*parser_log,
+            "Error: reactions has a third body != M",
+	   line_num);
+          return false; 
+        }
+      }
+      if(rxn.isFalloffRxn) {
+        if(rxn.falloffType == Troe) {
+          int nParams = rxn.falloffParameters.size();
+          if(nParams != 3 && nParams != 4) {
+            throw CK_SyntaxError(*parser_log,
+              "Error: Troe reaction must have 3 or 4 parameters",
+             line_num);
+            return false; 
+          }
+        } else if( rxn.falloffType != SRI && rxn.falloffType != Lindemann ) {
+          throw CK_SyntaxError(*parser_log,
+            "Error: Unsupported falloff reaction type",
+           line_num);
+          return false; 
+        }
+      }
       return true;
     }
   }
@@ -427,7 +470,11 @@ namespace ckr {
                 m_last_eol = ch;
                 break;
             }
+#if WIN32
+            if (ch>=0 && ch < 255 && isprint(ch)) line += ch;
+#else
             if (isprint(ch)) line += ch;
+#endif
         }
 
         string::size_type icom = line.find(commentChar);
@@ -1044,24 +1091,29 @@ next:
         unsigned int ir;
         for (ir = 1; ir < toks.size(); ir++) {
             tok = toks[ir];
-            if (match(tok,"CAL/MOLE"))         
+            if (match(tok,"CAL/MOLE")) {
                 units.ActEnergy = Cal_per_Mole;
-            else if (match(tok,"KCAL/MOLE"))   
+            } else if (match(tok,"KCAL/MOLE")) {
                 units.ActEnergy = Kcal_per_Mole;
-            else if (match(tok,"JOULES/MOLE")) 
+            } else if (match(tok,"JOULES/MOLE")) {
                 units.ActEnergy = Joules_per_Mole;
-            else if (match(tok,"KJOULES/MOLE")) 
+            } else if (match(tok,"KJOULES/MOLE")) {
                 units.ActEnergy = Kjoules_per_Mole;
-            else if (match(tok,"KELVINS"))     
+            } else if (match(tok,"KELVINS")) {
                 units.ActEnergy = Kelvin;
-            else if (match(tok,"EVOLTS"))      
+            } else if (match(tok,"EVOLTS")) {
                 units.ActEnergy = Electron_Volts;
-            else if (match(tok,"MOLES"))       
+                throw CK_SyntaxError(*m_log,
+                      " EVOLTS units not supported", m_line);
+            } else if (match(tok,"MOLES")) {
                 units.Quantity = Moles;
-            else if (match(tok,"MOLECULES"))   
+            } else if (match(tok,"MOLECULES")) {
                 units.Quantity = Molecules;
+                throw CK_SyntaxError(*m_log,
+                      " MOLECULES units not supported", m_line);
+            }
         }
-    
+
         Reaction rxn;
 
         vector<string> cm;

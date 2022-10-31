@@ -13,5 +13,6 @@ target_link_libraries(thermo_check.x zerork spify zerorkutilities lapack)
 target_link_libraries(thermo_check_only.x zerork spify zerorkutilities lapack)
 add_spifyIFP_target(ThermoCheckIFP thermo_check.x thermo_check_only.x)
 
-install(TARGETS thermo_check.x thermo_check_only.x)
+install(TARGETS thermo_check.x thermo_check_only.x
+        RUNTIME DESTINATION bin)
 

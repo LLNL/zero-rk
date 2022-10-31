@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "set_initial_conditions.h"
 
@@ -100,7 +101,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
 
   // Restart using binary file if provided
-  if(flame_params.parser_->restart_file() != std::string("/dev/null")) {
+  if(flame_params.parser_->restart_file() != std::string(zerork::utilities::null_filename)) {
     const char* filename1;//[32];
     char filename2[32];
     int num_points_file, num_vars_file;
@@ -128,7 +129,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     MPI_File_read_all(restart_file, &time_file, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
     *time = time_file;
 
-    string file_state_names[num_vars_file];
+    std::vector<string> file_state_names(num_vars_file);
     for(int j=0; j<num_vars_file; ++j) {
       char buf[64];
       MPI_File_read_all(restart_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE);
@@ -142,9 +143,10 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
     /**/
     for(int j=0; j<num_states; ++j) {
-      string state_name = flame_params.reactor_->GetNameOfStateId(j);
+      string state_name = zerork::utilities::GetLowerCase(flame_params.reactor_->GetNameOfStateId(j));
       for(int i=0; i<num_vars_file; ++i) {
-        if(strcasecmp(state_name.c_str(),file_state_names[i].c_str()) == 0 ) {
+        string file_state_name = zerork::utilities::GetLowerCase(file_state_names[i]);
+        if(state_name == file_state_name) {
           // Skip over BC data
 
           // Read interior data

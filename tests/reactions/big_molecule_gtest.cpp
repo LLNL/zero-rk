@@ -50,8 +50,6 @@ class MechanismTestFixture: public ::testing::Test
       load_mech = std::string(ZERORK_DATA_DIR) + "/" + load_mech;
       load_therm = std::string(ZERORK_DATA_DIR) + "/" + load_therm;
     }
-    // TODO: add the correct (best practice locations to check if classes
-    //       needed in the fixture are allocated 
     mechanism_ = new zerork::mechanism(load_mech.c_str(),
                                        load_therm.c_str(),
                                        PARSER_LOGNAME);

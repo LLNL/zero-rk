@@ -1,7 +1,6 @@
 #include "utility_funcs.h"
 
 #include <stdio.h>
-#include <sys/time.h>
 #include <math.h>
 
 #include "zerork/mechanism.h"
@@ -127,16 +126,6 @@ void permute_sparse_csc_iperm(int n,const int* aColSum, const int *aRowIdx, cons
   }
   permute_sparse_csc(n, aColSum, aRowIdx, aVals, bColSum, bRowIdx, bVals, perm_c);
   delete [] perm_c;
-}
-
-
-double getHighResolutionTime(void)
-{
-    struct timeval tod;
-
-    gettimeofday(&tod, NULL);
-    double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
-    return time_seconds;
 }
 
 

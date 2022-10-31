@@ -33,7 +33,7 @@ spify_parser_params.append(
     'name':'logFile',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 

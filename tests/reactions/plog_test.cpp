@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include "zerork/mechanism.h"
+#include "utilities/math_utilities.h"
 
 const double KP1atm=1.01325e5;
 const double KEnergyToTemp=4184.0/8.3144621e3;  // [K/(cal/mol)]
@@ -81,7 +82,7 @@ int main(int argc, char *argv[])
 
   if(seed == -1) {seed = time(0);}
   
-  srand48(seed);
+  zerork::utilities::random01seed(seed);
 
   const char * TEST_MECH = "mechanisms/plog/plog_test.mech";
   const char * TEST_THERM = "mechanisms/plog/plog_test.therm";
@@ -202,17 +203,17 @@ void GetRandomTestState(zerork::mechanism *mech, TestState *test)
 {
   double total_concentration;
 
-  test->pressure = log(KMinPressure) + drand48()*
+  test->pressure = log(KMinPressure) + zerork::utilities::random01()*
     (log(KMaxPressure)-log(KMinPressure));
   test->pressure = exp(test->pressure);
 
-  test->temperature = KMinTemperature + drand48()*
+  test->temperature = KMinTemperature + zerork::utilities::random01()*
     (KMaxTemperature-KMinTemperature);
 
   total_concentration = test->pressure/(mech->getGasConstant()*
                                         test->temperature);
 
-  test->mole_fraction[0] = drand48();
+  test->mole_fraction[0] = zerork::utilities::random01();
   test->mole_fraction[1] = 1.0-test->mole_fraction[0];
 
   test->concentration[0] = total_concentration*test->mole_fraction[0];

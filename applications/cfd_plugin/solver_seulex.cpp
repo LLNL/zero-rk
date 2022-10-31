@@ -5,10 +5,20 @@
 #include "utility_funcs.h"
 #include "interfaces/seulex_cpp/seulex_cpp.h"
 
+#include "nvector/nvector_serial.h"
+
+static int SeulexSolverMonitorFn(int nsteps, double x, double h, N_Vector y, N_Vector ydot, void *cb_fn_data)
+{
+  SeulexSolver* solver = static_cast<SeulexSolver*>(cb_fn_data);
+  return solver->MonitorFn(nsteps, x, h, y, ydot);
+}
+
 SeulexSolver::SeulexSolver(ReactorBase& reactor)
   :
       SolverBase(reactor),
-      reactor_ref_(reactor)
+      reactor_ref_(reactor),
+      cb_fn_(nullptr),
+      cb_fn_data_(nullptr)
 {}
 
 int SeulexSolver::Integrate(const double end_time) {
@@ -43,7 +53,7 @@ int SeulexSolver::Integrate(const double end_time) {
   s.set_jac_decomp_fcn(ReactorJacobianFactor);
   s.set_jac_solve_fcn(ReactorJacobianSolve);
 
-  s.set_output_fcn(this->RootMonitor);
+  s.set_output_fcn(SeulexSolverMonitorFn, this);
 
   reactor_ref_.GetReactorWeightsRef().assign(num_batches,1.0);
 
@@ -84,7 +94,6 @@ int SeulexSolver::Integrate(const double end_time) {
   return nsteps;
 }
 
-
 void SeulexSolver::AdjustWeights() {
   int num_batches = reactor_ref_.GetNumBatchReactors();
   std::vector<double>& weights = reactor_ref_.GetReactorWeightsRef();
@@ -96,23 +105,35 @@ void SeulexSolver::AdjustWeights() {
   return;
 }
 
+void SeulexSolver::SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data) {
+  cb_fn_ = fn;
+  cb_fn_data_ = cb_fn_data;
+}
 
-int SeulexSolver::RootMonitor(int nsteps, double x, N_Vector y, N_Vector ydot, void *user_data)
-{
-  int num_root_fns = ReactorGetNumRootFunctions(user_data);
-  static std::vector<double> last_root_fn_values(num_root_fns,0.0);
-  std::vector<double> current_root_fn_values(num_root_fns);
-  int flag = ReactorRootFunction(x, y, &current_root_fn_values[0], user_data);
-  if(nsteps > 0) {
-    for (int i = 0; i < num_root_fns; ++i) {
-      if(current_root_fn_values[i] * last_root_fn_values[i] <= 0) {
-          //printf("Found root[%d]: %g  (nsteps=%d)\n",i,x,nsteps);
+int SeulexSolver::MonitorFn(int nsteps, double x, double h, N_Vector y, N_Vector ydot) {
+  int cb_flag = 0;
+  int reactor_id = reactor_ref_.GetID();
+  int num_root_fns = ReactorGetNumRootFunctions(&reactor_ref_);
+  if(num_root_fns > 0) {
+    static std::vector<double> last_root_fn_values(num_root_fns,0.0);
+    std::vector<double> current_root_fn_values(num_root_fns);
+    int flag = ReactorRootFunction(x, y, &current_root_fn_values[0], &reactor_ref_);
+    if(nsteps > 0) {
+      for (int i = 0; i < num_root_fns; ++i) {
+        if(current_root_fn_values[i] * last_root_fn_values[i] <= 0) {
+            //printf("Found root[%d]: %g  (nsteps=%d)\n",i,x,nsteps);
+        }
       }
     }
+    for (int i = 0; i < num_root_fns; ++i) {
+      last_root_fn_values[i] = current_root_fn_values[i];
+    }
   }
-  for (int i = 0; i < num_root_fns; ++i) {
-    last_root_fn_values[i] = current_root_fn_values[i];
+  if(cb_fn_ != nullptr) {
+    if(N_VGetVectorID(y) == SUNDIALS_NVEC_SERIAL) {
+      cb_flag = cb_fn_(reactor_id,nsteps, x, h, NV_DATA_S(y), NV_DATA_S(ydot), cb_fn_data_);
+    }
   }
-  return 0;
+  return cb_flag;
 }
 

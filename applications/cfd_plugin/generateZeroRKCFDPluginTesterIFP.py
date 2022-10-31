@@ -95,8 +95,8 @@ spify_parser_params.append(
 {
     'name':'delta_temperature_ignition',
     'type':'double',
-    'defaultValue': 400.0,
-    'boundMin': 50.0,
+    'defaultValue': 0.0,
+    'boundMin': 0.0,
     'boundMax': 100000.0
 }
 )
@@ -176,6 +176,15 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"state_files_cfd",
+    'type':'v_string',
+    'shortDesc' : "CFD files to read initial states from.",
+    'defaultValue' : []   #empty
+}
+)
+
+spify_parser_params.append(
+{
     'name':"reactor_history_file_prefix",
     'type':'string',
     'shortDesc' : "Filename prefix for history files.",
@@ -187,7 +196,7 @@ spify_parser_params.append(
 {
     'name':"log_species",
     'type':'v_string',
-    'shortDesc' : "Species names to includie in history (defaults to fuel and oxidizer species).",
+    'shortDesc' : "Species names to includie in history (defaults to fuel and oxidizer species.",
     'defaultValue' : []   #empty
 }
 )
@@ -196,8 +205,17 @@ spify_parser_params.append(
 {
     'name':"app_owns_aux_fields",
     'type':'bool',
-    'shortDesc' : "If true, application over-rides library storage for auxilliary fields (reactor cost, dP/dt, etc.).",
+    'shortDesc' : "If true, application over-rides library storage for auxilliary fields (reactor cost, gpu solve, and dP/dt).",
     'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"dpdt",
+    'type':'double',
+    'shortDesc' : "Pressure gradient in Pa/s",
+    'defaultValue' : 0.0
 }
 )
 
@@ -205,7 +223,16 @@ spify_parser_params.append(
 {
     'name':"e_src",
     'type':'double',
-    'shortDesc' : "Energy source in J/kg.",
+    'shortDesc' : "Energy source in J/kg/s",
+    'defaultValue' : 0.0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"y_src",
+    'type':'double',
+    'shortDesc' : "Species mass fraction source in 1/s",
     'defaultValue' : 0.0
 }
 )
@@ -215,6 +242,24 @@ spify_parser_params.append(
     'name':"constant_volume",
     'type':'int',
     'shortDesc' : "Energy form: constant volume or constant pressure.",
+    'defaultValue' : 1
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"stop_after_ignition",
+    'type':'int',
+    'shortDesc' : "Stop integration once ignition criteria is reached.",
+    'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"batched",
+    'type':'int',
+    'shortDesc' : "Solve multiple reactors in one call to plugin.",
     'defaultValue' : 1
 }
 )

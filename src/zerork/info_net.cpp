@@ -1,23 +1,13 @@
-#include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "info_net.h"
 #include "constants.h"
 
 namespace zerork {
 
-#ifdef EXIT_THROWS_EXCEPTION
-  // create a local function to overide the system exit and throw an exception
-  // with the status integer.
-  static void exit(int status) {throw status;}
-#endif // EXIT_THROWS_EXCEPTION
-
 info_net::info_net(ckr::CKReader *ckrobj)
 {
-  if(ckrobj == NULL)
-  {
-    printf("ERROR: in info_net() CKReader object not allocated\n");
-    exit(-1);
-  }
+  assert(ckrobj != NULL);
  
   setRxnStepIdxMaps(ckrobj);
   setReactionFlags(ckrobj);
@@ -243,13 +233,13 @@ int info_net::setParticipants(ckr::CKReader *ckrobj)
         {
           count=ckrobj->reactions[rxnIdx].reactants[k].number;
           intCount=(int)(count+0.5);
-          if(fabs(count-(double)intCount) >= STOICH_TOL)
-          {
-            printf("# ERROR: non-integer stoichiometric coefficient\n");
-            printf("#        found in reactant %d of fwd reaction %d\n",
-                   k,rxnIdx);
-            exit(-1);
-          }
+//          if(fabs(count-(double)intCount) >= STOICH_TOL)
+//          {
+//            printf("# ERROR: non-integer stoichiometric coefficient\n");
+//            printf("#        found in reactant %d of fwd reaction %d\n",
+//                   k,rxnIdx);
+//          }
+          assert(fabs(count-(double)intCount) < STOICH_TOL);
           reactantCount+=count;
         }
      
@@ -258,13 +248,13 @@ int info_net::setParticipants(ckr::CKReader *ckrobj)
         {
           count=ckrobj->reactions[rxnIdx].products[k].number;
           intCount=(int)(count+0.5);
-          if(fabs(count-(double)intCount) >= STOICH_TOL)
-          {
-            printf("# ERROR: non-integer stoichiometric coefficient\n");
-            printf("#        found in product %d of fwd reaction %d\n",
-                   k,rxnIdx);
-            exit(-1);
-          }
+//          if(fabs(count-(double)intCount) >= STOICH_TOL)
+//          {
+//            printf("# ERROR: non-integer stoichiometric coefficient\n");
+//            printf("#        found in product %d of fwd reaction %d\n",
+//                   k,rxnIdx);
+//          }
+          assert(fabs(count-(double)intCount) < STOICH_TOL);
           productCount+=count;
         }
     }

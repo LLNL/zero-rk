@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "flame_params.h"
 
@@ -487,7 +488,7 @@ void FlameParams::SetGrid()
   length_ = parser_->length();
   int num_points = parser_->num_points();
 
-  if(parser_->grid_file() == std::string("/dev/null")) {
+  if(parser_->grid_file() == std::string(zerork::utilities::null_filename)) {
     // if no grid provided -> uniform grid from input file parameters
     if(parser_->num_points() < 2) {
       printf("# ERROR: number of grid points must be two or greater than two\n"
@@ -751,12 +752,13 @@ void FlameParams::SetMemory()
   max_velocity_ = 0.0;
   min_velocity_ = 0.0;
   max_thermal_diffusivity_ = 0.0;
+  max_svf_ = 0.0;
 
   stagnation_plane_ = length_*0.25; //initialize at a quarter?
   jContBC_ = num_points / 4;
 
   if(parser_->finite_separation()) {
-    if(flame_type_ == 0 or flame_type_ == 2) {
+    if(flame_type_ == 0 || flame_type_ == 2) {
       mass_flux_fuel_ = parser_->mass_flux_fuel();
       mass_flux_oxidizer_ = -parser_->mass_flux_oxidizer();
     } else if (flame_type_ == 1) {

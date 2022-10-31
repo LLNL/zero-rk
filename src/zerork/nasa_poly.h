@@ -24,6 +24,8 @@ class nasa_poly_group
   double *thermoCoef;
   double *Tlow;
   double *Thigh;
+  // the enthalpy coefficient multipliers are padded with ones at the
+  // beginning as in the gpu implementation
 };
 
 } // namespace zerork

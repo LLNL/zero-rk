@@ -11,5 +11,6 @@ target_link_libraries(idt_diagnostic.x zerork zerorkutilities zerorktransport
                       sundials_nvecserial sundials_cvode superlu spify)
 add_spifyIFP_target(BasicReactorIFP idt_diagnostic.x)
 
-install(TARGETS idt_diagnostic.x)
+install(TARGETS idt_diagnostic.x
+        RUNTIME DESTINATION bin)
 

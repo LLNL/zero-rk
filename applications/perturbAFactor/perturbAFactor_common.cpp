@@ -1,6 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
+#ifdef WIN32
+#include <io.h>
+#define F_OK 00
+#define R_OK 04
+#define access _access
+#else
+#include "unistd.h"
+#endif
 
 #include <vector>
 

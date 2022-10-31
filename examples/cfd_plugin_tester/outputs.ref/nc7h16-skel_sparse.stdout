@@ -1,22 +1,22 @@
-* Zero-RK Lib Build Date:  Oct  4 2021                     *
-Rank 0 calculated 32 reactors in 1.872677 seconds.
-Max Time, Avg Time, Wasted Time = 1.872677, 1.872677, 0.000000
-Rank 0 calculated 32 reactors in 0.424110 seconds.
-Max Time, Avg Time, Wasted Time = 0.424110, 0.424110, 0.000000
-Rank 0 calculated 32 reactors in 0.489126 seconds.
-Max Time, Avg Time, Wasted Time = 0.489126, 0.489126, 0.000000
-Rank 0 calculated 32 reactors in 0.765671 seconds.
-Max Time, Avg Time, Wasted Time = 0.765671, 0.765671, 0.000000
-Rank 0 calculated 32 reactors in 5.911544 seconds.
-Max Time, Avg Time, Wasted Time = 5.911544, 5.911544, 0.000000
-Rank 0 calculated 32 reactors in 2.591370 seconds.
-Max Time, Avg Time, Wasted Time = 2.591370, 2.591370, 0.000000
-Rank 0 calculated 32 reactors in 0.429599 seconds.
-Max Time, Avg Time, Wasted Time = 0.429599, 0.429599, 0.000000
-Rank 0 calculated 32 reactors in 0.181725 seconds.
-Max Time, Avg Time, Wasted Time = 0.181725, 0.181725, 0.000000
-Rank 0 calculated 32 reactors in 0.113748 seconds.
-Max Time, Avg Time, Wasted Time = 0.113748, 0.113748, 0.000000
-Rank 0 calculated 32 reactors in 0.192823 seconds.
-Max Time, Avg Time, Wasted Time = 0.192823, 0.192823, 0.000000
-simTime : 12.9743 s
+* Zero-RK Lib Build Date:  Oct  3 2021                     *
+Rank 0 calculated 32 reactors in 4.564129 seconds.
+Max Time, Avg Time, Wasted Time = 4.564129, 4.564129, 0.000000
+Rank 0 calculated 32 reactors in 0.910252 seconds.
+Max Time, Avg Time, Wasted Time = 0.910252, 0.910252, 0.000000
+Rank 0 calculated 32 reactors in 1.037886 seconds.
+Max Time, Avg Time, Wasted Time = 1.037886, 1.037886, 0.000000
+Rank 0 calculated 32 reactors in 1.623725 seconds.
+Max Time, Avg Time, Wasted Time = 1.623725, 1.623725, 0.000000
+Rank 0 calculated 32 reactors in 12.570227 seconds.
+Max Time, Avg Time, Wasted Time = 12.570227, 12.570227, 0.000000
+Rank 0 calculated 32 reactors in 5.423831 seconds.
+Max Time, Avg Time, Wasted Time = 5.423831, 5.423831, 0.000000
+Rank 0 calculated 32 reactors in 0.806060 seconds.
+Max Time, Avg Time, Wasted Time = 0.806060, 0.806060, 0.000000
+Rank 0 calculated 32 reactors in 0.295789 seconds.
+Max Time, Avg Time, Wasted Time = 0.295789, 0.295789, 0.000000
+Rank 0 calculated 32 reactors in 0.189064 seconds.
+Max Time, Avg Time, Wasted Time = 0.189064, 0.189064, 0.000000
+Rank 0 calculated 32 reactors in 0.303983 seconds.
+Max Time, Avg Time, Wasted Time = 0.303983, 0.303983, 0.000000
+simTime : 27.7286 s

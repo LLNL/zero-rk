@@ -8,7 +8,8 @@ add_mpi_executable(counterflow_unsteady_flame_solver.x counterflow_unsteady_flam
 target_link_libraries(counterflow_unsteady_flame_solver.x zerorkutilities mechanisminfo reactor
                       zerorktransport zerork superlu spify sundials_cvode sundials_nvecparallel)
 
-install(TARGETS counterflow_unsteady_flame_solver.x)
+install(TARGETS counterflow_unsteady_flame_solver.x
+        RUNTIME DESTINATION bin)
 
 add_spifyIFP_target(UnsteadyFlameIFP counterflow_unsteady_flame_solver.x)
 endif()

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 
+#include "utilities/file_utilities.h"
 #include "utility_funcs.h"
 
 #include "perturbAFactor_common.h"
@@ -16,7 +16,7 @@ void checkCommandLine(int inpArgc, char *inpArgv[])
            inpArgv[0]);
     exit(-1);
   }
-  if(access(inpArgv[1],R_OK) != 0) {
+  if(!zerork::utilities::FileIsReadable(inpArgv[1])) {
     printf("ERROR: can not open input file %s for read access\n",
            inpArgv[1]);
     exit(-2);

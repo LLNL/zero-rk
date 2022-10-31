@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+
 from SpifyParserGenerator import SpifyParserGenerator as spg
 
 #Name your parser
@@ -45,7 +47,7 @@ spify_parser_params.append(
     'name':'grid_file',
     'type':'string',
     'longDesc' : "Grid file [input] column 1 = position [m]",
-    'defaultValue': '/dev/null'
+    'defaultValue': os.devnull
 }
 )
 
@@ -53,8 +55,8 @@ spify_parser_params.append(
 {
     'name':'fixed_temperature_file',
     'type':'string',
-    'longDesc' : "Temperature file [input] column 1 = position [m], column 2 = temperature [K].  Fuel inlet position is at zero. If set to /dev/null then the temperature will be calculated.",
-    'defaultValue': '/dev/null'
+    'longDesc' : "Temperature file [input] column 1 = position [m], column 2 = temperature [K].  Fuel inlet position is at zero. If set to os.devnull then the temperature will be calculated.",
+    'defaultValue': os.devnull
 }
 )
 
@@ -63,7 +65,7 @@ spify_parser_params.append(
     'name':'restart_file',
     'type':'string',
     'longDesc' : "Binary data file for restarts. Contains number of grid points, number of variables, time, and all species, relative volume, and temperature data.",
-    'defaultValue': '/dev/null'
+    'defaultValue': os.devnull
 }
 )
 
@@ -72,7 +74,7 @@ spify_parser_params.append(
     'name':'baseline_file',
     'type':'string',
     'longDesc' : "Binary data file for soot uncertainty quantification. Contains number of grid points, number of variables, time, and all species, relative volume, and temperature data.",
-    'defaultValue': '/dev/null'
+    'defaultValue': os.devnull
 }
 )
 
@@ -82,7 +84,7 @@ spify_parser_params.append(
     'name':'log_file',
     'type':'string',
     'shortDesc' : "Mechanism Parser Log File [output]",
-    'defaultValue' : '/dev/null'
+    'defaultValue' : os.devnull
 }
 )
 

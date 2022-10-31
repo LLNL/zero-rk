@@ -11,6 +11,12 @@ namespace zerork
 namespace utilities 
 {
 
+#ifdef WIN32
+const char* null_filename = "nul";
+#else
+const char* null_filename = "/dev/null";
+#endif
+
 bool FileIsReadable(const std::string &file_name)
 {
   FILE *fptr = fopen(file_name.c_str(),"r");
@@ -192,7 +198,7 @@ void Logger::InitializeStreams(const std::string &log_filename,
   use_stderr_     = use_stderr;
   log_file_ptr_   = NULL;
 
-  if(log_filename != "/dev/null") {
+  if(log_filename != null_filename && log_filename.size() > 0) {
 
     log_file_ptr_ = fopen(log_filename.c_str(),"a");
 
@@ -218,7 +224,7 @@ void Logger::InitializeStreams(const std::string &log_filename,
                                    // ending
       fflush(log_file_ptr_);
     }
-  } // end if(log_filename != "/dev/null")
+  } // end if(log_filename != null_filename)
 
   if(use_stdout_ || use_stderr_ || log_file_ptr_ != NULL) {
     any_log_stream_ = true;

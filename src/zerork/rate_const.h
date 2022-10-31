@@ -107,6 +107,7 @@ class rate_const
   double convertC;
 
   double Csum;
+  bool Tchanged;
   double Tcurrent;
   double log_e_Tcurrent;
   double invTcurrent;
@@ -148,7 +149,8 @@ class rate_const
   double *distinctArrheniusTpow;
   double *distinctArrheniusTact;
   double *arrheniusCoeffs;
-  double *expWorkArray;
+  double *arrWorkArray;
+  double *keqWorkArray;
   void setArrheniusStepList(ckr::CKReader *ckrobj, info_net *netobj);
   void updateArrheniusStep();
 

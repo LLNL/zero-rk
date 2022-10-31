@@ -5,7 +5,11 @@
 
 namespace zerork {
 
+class rate_const_cuda; //forward declaration for friendship
+
 class PLogReaction {
+  friend class zerork::rate_const_cuda;//needs direct access to tables
+
  public:
   PLogReaction(const int rxn_id,
                const int step_id,

@@ -22,8 +22,6 @@ class PhysicalConstantsTestFixture: public ::testing::Test
   PhysicalConstantsTestFixture( ) { 
     // initialization code here
     physical_constants_  = NULL;
-    // TODO: add the correct (best practice locations to check if classes
-    //       needed in the fixture are allocated 
     physical_constants_ = new zerork::PhysicalConstants();
   } 
 

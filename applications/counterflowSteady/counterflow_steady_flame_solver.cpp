@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <vector>
 #include <string>
@@ -21,6 +20,7 @@
 
 #endif
 
+#include "utilities.h"
 #include <utilities/file_utilities.h>
 
 #include <mpi.h>
@@ -29,13 +29,13 @@
 #include "kinsol_functions.h"
 #include "set_initial_conditions.h"
 
+using zerork::getHighResolutionTime;
+
 const bool RUN_DEBUG=false;
 const int NUM_STDOUT_PARAMS = 19; // number of non species parameters to write
                                   // to standard out
 
 static int check_flag(void *flagvalue, const char *funcname, int opt);
-
-static double GetHighResolutionTime();
 
 static double FindMaximumParallel(const size_t num_points,
 				  const double x[],
@@ -82,17 +82,27 @@ static int GetStateMaxima(const std::vector<int> &state_id,
 
 static double StoichiometricMixtureFraction(const FlameParams &params);
 
-static int SootOutput(const FlameParams &params, const double state[]);
+static int SootOutput(FlameParams &params, const double state[], const bool print = true);
 
 static double Min(double a, double b)
 {
   return ((a < b) ? a : b);
 }
 
+typedef struct
+{
+  int rxnId;
+  double relSens;
+  double relSensAbs;
+} rxnSens_t;
+
+int compare_rxnSens_t(const void *A, const void *B);
+
+
 int main(int argc, char *argv[])
 {
-  double clock_time = GetHighResolutionTime();
-  double setup_time, loop_time;
+  double clock_time = getHighResolutionTime();
+  double setup_time, loop_time, sensanal_time;
 
   if(argc < 2) {
     printf("# ERROR: Incorrect command line usage.\n");
@@ -129,6 +139,8 @@ int main(int argc, char *argv[])
   const int num_local_points = flame_params.num_local_points_;
   const int num_states = flame_params.reactor_->GetNumStates();
   const int num_species = flame_params.reactor_->GetNumSpecies();
+  const int num_steps = flame_params.reactor_->GetNumSteps();
+  int num_reactions = flame_params.reactor_->GetNumReactions(); //?
   long int num_local_states = num_local_points*num_states;
   long int total_states = num_grid_points*num_states;
   double max_time = flame_params.parser_->max_time();
@@ -336,8 +348,8 @@ int main(int argc, char *argv[])
   }// if(my_pe==0)
 
   // Save time for CPU time evaluation
-  setup_time = GetHighResolutionTime() - clock_time;
-  clock_time = GetHighResolutionTime();
+  setup_time = getHighResolutionTime() - clock_time;
+  clock_time = getHighResolutionTime();
 
   double fnorm, stepnorm;
 
@@ -353,24 +365,24 @@ int main(int argc, char *argv[])
     double kinstart_time, kinend_time;
     flame_params.dt_ = flame_params.parser_->pseudo_unsteady_dt()*0.5; //Half the timestep for first iteration
 
-    while(pseudo_time < 0.05) {
+    while(pseudo_time < 0.08) {
       for(int j=0; j<num_local_states; j++) {
         flame_params.y_old_[j] = flame_state_ptr[j];
       }
 
       // Solve system
-      kinstart_time = GetHighResolutionTime();
+      kinstart_time = getHighResolutionTime();
       flag = KINSol(kinsol_ptr,
                     flame_state,
                     KIN_NONE,
                     scaler,
                     scaler);
-      kinend_time = GetHighResolutionTime();
+      kinend_time = getHighResolutionTime();
 
       KINGetNumFuncEvals(kinsol_ptr,&nfevals);
       KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-      if((flag==0 or flag==1) and fnorm != 0.0){
+      if((flag==0 || flag==1) && fnorm != 0.0){
         // Success
         // Compute T
         for(int j=0; j<num_local_points; ++j) {
@@ -400,7 +412,7 @@ int main(int argc, char *argv[])
           flame_params.dt_ *= 2.0;
 
         // Increase time step if it's converging quickly
-        if((nfevals < 6) and (pseudo_time > flame_params.dt_))
+        if((nfevals < 6) && (pseudo_time > flame_params.dt_))
           flame_params.dt_ *= 2.0;
 
       } else {
@@ -431,7 +443,7 @@ int main(int argc, char *argv[])
 
   KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-  if((flag==0 or flag==1) and fnorm != 0){
+  if((flag==0 || flag==1) && fnorm != 0){
     // Get KINSOL stats
     flag = KINGetNumFuncEvals(kinsol_ptr,&nfevals);
     flag = KINGetNumNonlinSolvIters(kinsol_ptr, &nsteps);
@@ -523,13 +535,13 @@ int main(int argc, char *argv[])
   }
 
   // For error cases
-  if(flag<0 or fnorm == 0.0) {
+  if(flag<0 || fnorm == 0.0) {
     if(my_pe == 0) { //only root prints
       printf("Final  0  0  0  Error\n");
     }
   }
 
-  loop_time = GetHighResolutionTime() - clock_time;
+  loop_time = getHighResolutionTime() - clock_time;
 
   // Clear before sens analysis?
   KINFree(&kinsol_ptr);
@@ -537,13 +549,155 @@ int main(int argc, char *argv[])
   SUNLinSolFree(LS);
 #endif
 
-  // TO DO: add sensitivity analysis here
+  /*------------------------------------------------------------------------*/
+  if(flame_params.parser_->sensitivity_analysis()) {
+    if(my_pe==0) printf("Performing soot sensitivity analysis\n");
+
+    clock_time = getHighResolutionTime();
+    vector<int> sensitive_reactions;
+    sensitive_reactions = flame_params.parser_->sensitive_reactions();
+    if(sensitive_reactions.size() > 0) {
+      num_reactions = sensitive_reactions.size();
+    }
+    double multiplier = flame_params.parser_->sensitivity_multiplier();
+    rxnSens_t *rxnSensList;
+    rxnSensList = new rxnSens_t[num_reactions];
+
+    // 1) Save current/original flame state
+    std::vector<double> flame_state_orig;
+    flame_state_orig.assign(num_local_states, 0.0); // DUMB
+    for(int j=0; j<num_local_states; j++)
+      flame_state_orig[j] = flame_state_ptr[j];
+
+    double max_svf_orig = flame_params.max_svf_;
+
+    // 2) Loop over reactions
+    for(int k=0; k<num_reactions; k++) {
+      // 2.1) Perturb A factor
+      int reacId;
+      if(sensitive_reactions.size() > 0) {
+        reacId = sensitive_reactions[k];
+      } else {
+        reacId = k;
+      }
+      int fwdId = flame_params.mechanism_->getStepIdxOfRxn(reacId,1);
+      int revId = flame_params.mechanism_->getStepIdxOfRxn(reacId,-1);
+
+      flame_params.reactor_->SetAMultiplierOfStepId(fwdId, multiplier);
+      if(revId >= 0 && revId < num_steps)
+        flame_params.reactor_->SetAMultiplierOfStepId(revId, multiplier);
+
+      // 2.2) Compute solution
+      kinsol_ptr = KINCreate();
+      flag = KINInit(kinsol_ptr, ConstPressureFlame, flame_state);
+      flag = KINSetErrHandlerFn(kinsol_ptr, ErrorFunction, &flame_params);
+      flag = KINSetUserData(kinsol_ptr, &flame_params);
+      flag = KINSetFuncNormTol(kinsol_ptr, flame_params.parser_->rel_tol());
+      flag = KINSetScaledStepTol(kinsol_ptr, flame_params.parser_->abs_tol());
+#ifdef SUNDIALS2
+      flag = KINSpgmr(kinsol_ptr, maxl);
+      flag = KINSpilsSetMaxRestarts(kinsol_ptr, maxlrst);
+      if(flame_params.parser_->integrator_type() == 2) {
+        flag = KINSpilsSetPreconditioner(kinsol_ptr, ReactorBBDSetup, ReactorBBDSolve);
+      } else if(flame_params.parser_->integrator_type() == 3) {
+          flag = KINSpilsSetPreconditioner(kinsol_ptr, ReactorAFSetup, ReactorAFSolve);
+      } else  {
+        printf("integrator_type == %d not supported\n",
+               flame_params.parser_->integrator_type());
+        flag = -1;
+      }
+#elif SUNDIALS3
+      LS = SUNSPGMR(flame_state, PREC_RIGHT, maxl);
+      flag = KINSpilsSetLinearSolver(kinsol_ptr, LS);
+      flag = SUNSPGMRSetMaxRestarts(LS, maxlrst);
+      if(flame_params.parser_->integrator_type() == 2) {
+        flag = KINSpilsSetPreconditioner(kinsol_ptr, ReactorBBDSetup, ReactorBBDSolve);
+      } else if(flame_params.parser_->integrator_type() == 3) {
+          flag = KINSpilsSetPreconditioner(kinsol_ptr, ReactorAFSetup, ReactorAFSolve);
+      } else  {
+        printf("integrator_type == %d not supported\n",
+               flame_params.parser_->integrator_type());
+        flag = -1;
+      }
+#elif SUNDIALS4
+      LS = SUNLinSol_SPGMR(flame_state, PREC_RIGHT, maxl);
+      flag = KINSetLinearSolver(kinsol_ptr, LS, NULL);
+      flag = SUNLinSol_SPGMRSetMaxRestarts(LS, maxlrst);
+      if(flame_params.parser_->integrator_type() == 2) {
+        flag = KINSetPreconditioner(kinsol_ptr, ReactorBBDSetup, ReactorBBDSolve);
+      } else if(flame_params.parser_->integrator_type() == 3) {
+          flag = KINSetPreconditioner(kinsol_ptr, ReactorAFSetup, ReactorAFSolve);
+      } else  {
+        printf("integrator_type == %d not supported\n",
+               flame_params.parser_->integrator_type());
+        flag = -1;
+      }
+#endif
+      flag = KINSetNumMaxIters(kinsol_ptr, maxiter);
+      flag = KINSetMaxSetupCalls(kinsol_ptr, mset);
+      flag = KINSetPrintLevel(kinsol_ptr, 0);
+
+      flag = KINSol(kinsol_ptr,
+                    flame_state,
+                    KIN_NONE,
+                    scaler,
+                    scaler);
+
+      KINFree(&kinsol_ptr);
+#if defined SUNDIALS3 || defined SUNDIALS4
+      SUNLinSolFree(LS);
+#endif
+      // 2.3) Compute max soot VF
+      SootOutput(flame_params,&flame_state_ptr[0], false);
+      double max_svf = flame_params.max_svf_;
+
+      // 2.4) Compute sensitivity coefficient
+      rxnSensList[k].rxnId = reacId;
+      rxnSensList[k].relSens = (max_svf - max_svf_orig)/max_svf_orig/(multiplier-1.0);
+      rxnSensList[k].relSensAbs = fabs(max_svf - max_svf_orig)/fabs(max_svf_orig)/(multiplier-1.0);
+      if(my_pe==0) printf("reaction %d / %d, %s, S: %14.7e\n",
+                          k, num_reactions,
+                          flame_params.mechanism_->getReactionName(reacId),
+                          rxnSensList[k].relSens);
+
+      // 2.5) Set A and solution back to original
+      flame_params.reactor_->SetAMultiplierOfStepId(fwdId, 1.0);
+      if(revId >= 0 && revId < num_steps)
+        flame_params.reactor_->SetAMultiplierOfStepId(revId, 1.0);
+
+      for(int j=0; j<num_local_states; j++)
+        flame_state_ptr[j] = flame_state_orig[j];
+
+    } // for k<num_reactions
+
+    // 3) Sort sensitivity coefficients in descending order
+    qsort((void *)&rxnSensList[0], num_reactions, sizeof(rxnSens_t), compare_rxnSens_t);
+
+    if(my_pe == 0) {
+      FILE * sensFile;
+      sensFile = fopen("sensAnal","w");
+      fprintf(sensFile,"#reac_id  reaction         Srel\n");
+      for(int j=0; j<num_reactions; j++) {
+        fprintf(sensFile,"%d  %s  %14.7e\n",
+                rxnSensList[j].rxnId,
+                flame_params.mechanism_->getReactionName(rxnSensList[j].rxnId),
+                rxnSensList[j].relSens);
+      }
+      fclose(sensFile);
+    }
+    sensanal_time = getHighResolutionTime() - clock_time;
+
+  } // if  sensanal
+  /*------------------------------------------------------------------------*/
+
 
   // Finalize
 
   if(my_pe == 0) {
     printf("# Simulation setup time   [s]: %12.5e\n",setup_time);
     printf("# Time in integrator loop [s]: %12.5e\n",loop_time);
+    if(flame_params.parser_->sensitivity_analysis()) printf("# Time in sensitivity loop [s]: %12.5e\n",sensanal_time);
+
   }
   flame_params.logger_->PrintF(
     "# Simulation setup time   [s]: %12.5e\n",setup_time);
@@ -705,7 +859,7 @@ static void WriteFieldParallel(double t,
     } else if(j==num_species+1){
       buffer[0] = params.oxidizer_temperature_*params.ref_temperature_;
     } else if (j==num_species+2) {
-      if(params.flame_type_ == 0 or params.flame_type_ == 2) {
+      if(params.flame_type_ == 0 || params.flame_type_ == 2) {
         buffer[0] = 0.0;
       } else if (params.flame_type_ == 1) {
         buffer[0] = params.G_right_*params.ref_momentum_;
@@ -960,16 +1114,6 @@ static int GetStateMaxima(const std::vector<int> &state_id,
   return 0;
 }
 
-static double GetHighResolutionTime()
-{
-    struct timeval time_of_day;
-
-    gettimeofday(&time_of_day, NULL);
-    double time_seconds =
-      (double) time_of_day.tv_sec + ((double) time_of_day.tv_usec / 1000000.0);
-    return time_seconds;
-}
-
 static int GetFuelSpeciesId(const FlameParams &params,
                             std::vector<int> *species_id)
 {
@@ -1050,8 +1194,9 @@ static double StoichiometricMixtureFraction(const FlameParams &params)
   return fuel_sum;
 }
 
-static int SootOutput(const FlameParams &params,
-                       const double state[])
+static int SootOutput(FlameParams &params,
+                      const double state[],
+                      const bool print)
 {
   const int num_species = params.reactor_->GetNumSpecies();
   const int num_states = params.reactor_->GetNumStates();
@@ -1097,6 +1242,7 @@ static int SootOutput(const FlameParams &params,
   soot_vol_frac.assign(num_local_points, 0.0);
 
   // Compute mole fractions and number densities of tracked species
+  double local_max = 0.0;
   for(int j=0; j<num_local_points; j++) {
 
     mixture_molecular_mass = 0.0;
@@ -1118,58 +1264,74 @@ static int SootOutput(const FlameParams &params,
         // SVF = sum(N_i*D_i^3*pi/6)
         soot_vol_frac[j] += number_density[j*num_tracked_species+i]*
           pow(diameter[i],3.0)*3.1416/6;
+        if(soot_vol_frac[j] > local_max) local_max = soot_vol_frac[j];
       } // if tracked_species
     } // loop tracked_species
   } // loop grid
 
+  MPI_Allreduce(&local_max,&params.max_svf_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,params.comm_);
 
-  // Output
-  int npes = params.npes_;
-  int my_pe = params.my_pe_;
-  MPI_Comm comm = params.comm_;
-  std::vector<double> mole_fraction_all, number_density_all, soot_vol_frac_all;
-  mole_fraction_all.assign(num_local_points*npes*num_tracked_species, 0.0);
-  number_density_all.assign(num_local_points*npes*num_tracked_species, 0.0);
-  soot_vol_frac_all.assign(num_local_points*npes, 0.0);
+  if(print) {
+    // Output
+    int npes = params.npes_;
+    int my_pe = params.my_pe_;
+    MPI_Comm comm = params.comm_;
+    std::vector<double> mole_fraction_all, number_density_all, soot_vol_frac_all;
+    mole_fraction_all.assign(num_local_points*npes*num_tracked_species, 0.0);
+    number_density_all.assign(num_local_points*npes*num_tracked_species, 0.0);
+    soot_vol_frac_all.assign(num_local_points*npes, 0.0);
 
-  long int dsize = num_local_points*num_tracked_species;
-  int nodeDest = 0;
+    long int dsize = num_local_points*num_tracked_species;
+    int nodeDest = 0;
 
-  MPI_Gather(&mole_fraction[0], dsize, PVEC_REAL_MPI_TYPE,
-             &mole_fraction_all[0], dsize, PVEC_REAL_MPI_TYPE, nodeDest, comm);
+    MPI_Gather(&mole_fraction[0], dsize, PVEC_REAL_MPI_TYPE,
+               &mole_fraction_all[0], dsize, PVEC_REAL_MPI_TYPE, nodeDest, comm);
 
-  MPI_Gather(&number_density[0], dsize, PVEC_REAL_MPI_TYPE,
-             &number_density_all[0], dsize, PVEC_REAL_MPI_TYPE, nodeDest, comm);
+    MPI_Gather(&number_density[0], dsize, PVEC_REAL_MPI_TYPE,
+               &number_density_all[0], dsize, PVEC_REAL_MPI_TYPE, nodeDest, comm);
 
-  dsize = num_local_points;
-  MPI_Gather(&soot_vol_frac[0], dsize, PVEC_REAL_MPI_TYPE,
-             &soot_vol_frac_all[0], dsize, PVEC_REAL_MPI_TYPE, nodeDest, comm);
+    dsize = num_local_points;
+    MPI_Gather(&soot_vol_frac[0], dsize, PVEC_REAL_MPI_TYPE,
+               &soot_vol_frac_all[0], dsize, PVEC_REAL_MPI_TYPE, nodeDest, comm);
 
 
-  if(my_pe == 0) {
-    FILE * dimerFile;
-    dimerFile = fopen("soot_output","w");
-    fprintf(dimerFile,"# x (m)   soot_VF  ");
-    for(int i=0; i<num_tracked_species; i++) {
-      line = "X_" + state_name[i].substr(state_name[i].find("_") + 1);
-      fprintf(dimerFile,"%s  ",line.c_str());
-      line = "n_" + state_name[i].substr(state_name[i].find("_") + 1);
-      fprintf(dimerFile,"%s  ",line.c_str());
-    }
-    fprintf(dimerFile,"\n");
-    for(int j=0; j<num_local_points*npes; j++) {
-      fprintf(dimerFile,"%14.7e  %14.7e  ",params.z_[j], soot_vol_frac_all[j]);
+    if(my_pe == 0) {
+      FILE * dimerFile;
+      dimerFile = fopen("soot_output","w");
+      fprintf(dimerFile,"# x (m)   soot_VF  ");
       for(int i=0; i<num_tracked_species; i++) {
-        fprintf(dimerFile,"%14.7e   %14.7e  ",
-                mole_fraction_all[j*num_tracked_species+i],
-                number_density_all[j*num_tracked_species+i]);
+        line = "X_" + state_name[i].substr(state_name[i].find("_") + 1);
+        fprintf(dimerFile,"%s  ",line.c_str());
+        line = "n_" + state_name[i].substr(state_name[i].find("_") + 1);
+        fprintf(dimerFile,"%s  ",line.c_str());
       }
       fprintf(dimerFile,"\n");
+      for(int j=0; j<num_local_points*npes; j++) {
+        fprintf(dimerFile,"%14.7e  %14.7e  ",params.z_[j], soot_vol_frac_all[j]);
+        for(int i=0; i<num_tracked_species; i++) {
+          fprintf(dimerFile,"%14.7e   %14.7e  ",
+                  mole_fraction_all[j*num_tracked_species+i],
+                  number_density_all[j*num_tracked_species+i]);
+        }
+        fprintf(dimerFile,"\n");
+      }
+      fclose(dimerFile);
     }
-    fclose(dimerFile);
   }
 
 
+  return 0;
+}
 
+int compare_rxnSens_t(const void *A, const void *B)
+{
+  rxnSens_t *Aptr =(rxnSens_t *)A;
+  rxnSens_t *Bptr =(rxnSens_t *)B;
+  if(Aptr->relSensAbs < Bptr->relSensAbs) {
+    return 1;
+  }
+  else if (Aptr->relSensAbs > Bptr->relSensAbs) {
+    return -1;
+  }
   return 0;
 }

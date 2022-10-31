@@ -8,7 +8,6 @@ string(REPLACE .cpp .x TEST ${TEST_SRC})
 zerork_add_gtests(${TEST} SOURCES ${TEST_SRC} LINK_LIBRARIES zerorkutilities)
 endforeach()
 
-#TODO: ZERORK_DATA_DIR (?)
 #Only copy data once
 add_dependencies(file_utilities_gtest.x math_utilities_gtest.x)
 add_custom_command(TARGET math_utilities_gtest.x  PRE_BUILD

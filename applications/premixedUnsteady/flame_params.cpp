@@ -1,10 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
+#ifdef WIN32
+#define _USE_MATH_DEFINES //for M_PI
+#endif
+#include <cmath>
 
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "flame_params.h"
 
@@ -12,12 +16,15 @@
 static double NormalizeComposition(const size_t num_elements,
                                    double composition[]);
 
-FlameParams::FlameParams(const std::string &input_name, MPI_Comm &comm)
+FlameParams::FlameParams(const std::string &input_name)
 {
-
-  comm_ = comm;
+  npes_ = 1;
+  my_pe_ = 0;
+#ifdef ZERORK_MPI
+  comm_ = MPI_COMM_WORLD;
   MPI_Comm_size(comm_, &npes_);
   MPI_Comm_rank(comm_, &my_pe_);
+#endif
 
   int error_code;
 
@@ -526,7 +533,10 @@ void FlameParams::SetInitialComposition()
 // Set grid
 void FlameParams::SetGrid()
 {
-  if(parser_->grid_file() == std::string("/dev/null")) {
+  length_ = parser_->length();
+  int num_points = parser_->num_points();
+
+  if(parser_->grid_file() == std::string(zerork::utilities::null_filename)) {
     // if no grid provided -> uniform grid from input file parameters
     if(parser_->num_points() < 2) {
       printf("# ERROR: number of grid points must be two or greater than two\n"
@@ -540,10 +550,11 @@ void FlameParams::SetGrid()
       exit(-1);
     }
 
-    const int num_points = parser_->num_points();
+    const double delta_z = length_/(double)(num_points+1-1);
+    num_points_ = num_points;
     z_.assign(num_points, 0.0);
     for(int j=0; j<num_points; ++j) {
-      z_[j] = (double)j*parser_->length()/(double)(num_points-1);
+      z_[j] = delta_z + (double)j*delta_z;
     }
 
   } else {
@@ -581,14 +592,20 @@ void FlameParams::SetGrid()
       exit(-1);
     } // if z.size
 
+    length_ = z_[z_.size()-1];
+    //Remove first point
+    z_.erase(z_.begin());
   }
 
-  const int num_points = z_.size();
+  num_points = z_.size();
+  num_points_ = num_points;
   num_local_points_ = num_points/npes_;
 
   if(num_points % npes_ != 0 ) {
     printf("Number of grid points not divisible by number of processors \n");
+#ifdef ZERORK_MPI
     MPI_Finalize();
+#endif
     exit(-1);
   }
 
@@ -600,11 +617,15 @@ void FlameParams::SetGrid()
   int nover = 2;
   if(num_local_points_ < nover ) {
     printf("Need at least two grid points per processor for second order discretization \n");
+#ifdef ZERORK_MPI
     MPI_Finalize();
+#endif
     exit(-1);
   }
 
+#ifdef ZERORK_MPI
   MPI_Status status;
+#endif
   dz_local_.assign( num_local_points_+(2*nover), 0.0);
   dzm_local_.assign( num_local_points_+(2*nover), 0.0);
   inv_dz_local_.assign( num_local_points_+(2*nover), 0.0);
@@ -630,6 +651,7 @@ void FlameParams::SetGrid()
     inv_dzm_local_[nover+j] = 1.0/dzm_[jglobal];
   }
 
+#ifdef ZERORK_MPI
   // Send left and right
   if (my_pe_ !=0) {
     MPI_Send(&dz_local_[nover], nover, MPI_DOUBLE, my_pe_-1, 0, comm_);
@@ -656,6 +678,7 @@ void FlameParams::SetGrid()
     MPI_Recv(&inv_dz_local_[num_local_points_+nover], nover, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
     MPI_Recv(&inv_dzm_local_[num_local_points_+nover], nover, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
   }
+#endif
 
   if(my_pe_ == 0) {
     for(int j=0; j<nover; ++j) {
@@ -710,7 +733,7 @@ void FlameParams::SetWallProperties()
                            parser_->inlet_temperature()/
                            parser_->ref_temperature());
 
-  if(parser_->wall_temperature_file() == std::string("/dev/null")) {
+  if(parser_->wall_temperature_file() == std::string(zerork::utilities::null_filename)) {
     // if no wall temperature file is specified, then wall temperature
     // remains equal to the inlet_temperature and the nusselt number is
     // set to zero for an adiabatic calculation
@@ -788,7 +811,7 @@ void FlameParams::SetWallProperties()
       wall_temperature_[j] /= parser_->ref_temperature();
     }
 
-  } // if(parser_->wall_temperature_file() == std::string("/dev/null")) else
+  } // if(parser_->wall_temperature_file() == std::string(zerork::utilities::null_filename)) else
 
 }
 
@@ -874,7 +897,7 @@ void FlameParams::SetMemory()
 
   // The Jacobian pattern is assumed to be in compressed column storage
   reactor_->GetJacobianPattern(&row_id_[0],
-                                 &column_id[0]);
+                               &column_id[0]);
 
   last_dense_id = -1;
   for(int j=0; j<num_nonzeros; ++j) {

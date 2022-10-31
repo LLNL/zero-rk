@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 #include <math.h>
+#include <vector>
 
 #include "utility_funcs.h"
 
@@ -58,22 +58,13 @@ void permute_sparse_csc(int n,const int* aColSum, const int *aRowIdx, const doub
 
 void permute_sparse_csc_iperm(int n,const int* aColSum, const int *aRowIdx, const double *aVals, int* bColSum, int* bRowIdx, double *bVals, int* iperm_c)
 {
-  int j, perm_c[n];
+  int j;
+  std::vector<int> perm_c(n);
   for(j = 0; j < n; ++j)
   {
     perm_c[iperm_c[j]] = j;
   }
-  permute_sparse_csc(n, aColSum, aRowIdx, aVals, bColSum, bRowIdx, bVals, perm_c);
-}
-
-
-double getHighResolutionTime(void)
-{
-    struct timeval tod;
-
-    gettimeofday(&tod, NULL);
-    double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
-    return time_seconds;
+  permute_sparse_csc(n, aColSum, aRowIdx, aVals, bColSum, bRowIdx, bVals, &perm_c[0]);
 }
 
 

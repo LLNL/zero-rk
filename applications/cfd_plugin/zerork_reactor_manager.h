@@ -12,32 +12,42 @@
 #include "reactor_base.h"
 
 #include "zerork/mechanism.h"
+#ifdef ZERORK_GPU
+#include "zerork/mechanism_cuda.h"
+#endif
 
 class ZeroRKReactorManager : public ZeroRKReactorManagerBase
 {
  public:
-  ZeroRKReactorManager(const char *input_filename,
-                       const char* mech_filename,
-                       const char* therm_filename);
+  ZeroRKReactorManager();
   virtual ~ZeroRKReactorManager() {};
 
-  void SetInputVariables(int n_cycle,
+  zerork_status_t ReadOptionsFile(const std::string& options_filename);
+  zerork_status_t LoadMechanism();
+
+  zerork_status_t SetInputVariables(int n_cycle,
                          double time,
                          double dt,
-                         int n_reactors, 
+                         int n_reactors,
                          double* T,
                          double* P,
                          double* mass_fractions);
 
-  void SetAuxFieldPointer(zerork_field_type ft, double* field_pointer);
+  zerork_status_t SetAuxFieldPointer(zerork_field_t ft, double* field_pointer);
+  zerork_status_t SetCallbackFunction(zerork_callback_fn fn, void* cb_fn_data);
+  zerork_status_t SetReactorIDs(int* reactor_ids);
 
-  void LoadBalance();
-  void SolveReactors();
-  void RedistributeResults();
-  void PostSolve();
+  zerork_status_t FinishInit();
+  zerork_status_t LoadBalance();
+  zerork_status_t SolveReactors();
+  zerork_status_t RedistributeResults();
+  zerork_status_t PostSolve();
 
  private:
   std::shared_ptr<zerork::mechanism> mech_ptr_;
+#ifdef ZERORK_GPU
+  std::shared_ptr<zerork::mechanism_cuda> mech_cuda_ptr_;
+#endif
 
   int n_reactors_self_;
   int n_reactors_other_;
@@ -49,6 +59,7 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int nranks_;
   int root_rank_;
   int load_balance_;
+  bool dump_reactors_;
 
   int tx_count_per_reactor_;
   std::vector<int> comm_mtx_row_sum_;
@@ -66,7 +77,10 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   double* rg_self_;
   double* y_src_self_;
   double* e_src_self_;
+  double* root_times_self_;
+  double* temp_delta_self_;
   int* nstep_self_;
+  int* reactor_ids_self_;
 
   std::vector<double> T_other_;
   std::vector<double> P_other_;
@@ -76,31 +90,60 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   std::vector<double> y_src_other_;
   std::vector<double> rc_other_;
   std::vector<double> rg_other_;
+  std::vector<double> root_times_other_;
+  std::vector<double> temp_delta_other_;
   std::vector<int> nstep_other_;
+  std::vector<int> reactor_ids_other_;
 
-  bool dpdt_owned_;
   bool rc_owned_;
   bool rg_owned_;
-  bool y_src_defined_;
+  bool root_times_owned_;
+  bool temp_delta_owned_;
+  bool dpdt_defined_;
   bool e_src_defined_;
-  std::vector<double> dpdt_default_;
+  bool y_src_defined_;
+  bool reactor_ids_defined_;
   std::vector<double> rc_default_;
   std::vector<double> rg_default_;
+  std::vector<double> root_times_default_;
+  std::vector<double> temp_delta_default_;
 
+  bool tried_init_;
   int n_calls_;
   int n_cycle_;
-  int n_solve_;
-  int n_steps_;
+  int n_gpu_solve_;
+  int n_gpu_solve_no_temperature_;
+  int n_cpu_solve_;
+  int n_cpu_solve_no_temperature_;
+  int n_steps_cpu_;
+  int n_steps_gpu_;
+  int n_gpu_groups_;
   int n_weight_updates_;
   int n_reactors_min_;
   int n_reactors_max_;
-  double sum_reactor_time_;
+  int load_balance_noise_;
+  int reactor_weight_mult_;
+  double gpu_multiplier_;
+  double sum_cpu_reactor_time_;
+  double sum_gpu_reactor_time_;
+  double avg_reactor_time_;
   std::vector<double> rank_weights_;
   std::vector<int> n_reactors_solved_ranks_;
   std::vector<double> all_time_ranks_;
   std::ofstream reactor_log_file_;
+  zerork_callback_fn cb_fn_;
+  void* cb_fn_data_;
 
   std::unique_ptr<ReactorBase> reactor_ptr_;
+#ifdef ZERORK_GPU
+  int n_cpu_ranks_;
+  int n_gpu_ranks_;
+  int gpu_id_;
+  std::vector<int> rank_has_gpu_;
+  std::unique_ptr<ReactorBase> reactor_gpu_ptr_;
+  void AssignGpuId();
+  void UpdateRankWeights();
+#endif
 
   static const int EXCHANGE_SEND_TAG_ = 42;
   static const int EXCHANGE_RETURN_TAG_ = 43;
@@ -108,8 +151,10 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int RecvReactors(size_t send_rank);
   void SendReactors(std::vector<size_t> send_reactor_idxs, size_t recv_rank);
 
-  void UpdateRankWeights();
   void ProcessPerformance();
+
+  void DumpReactor(std::string tag, int id, double T, double P,
+                   double rc, double rg, double* mf);
 };
 
 #endif

@@ -12,7 +12,9 @@ ExternalProject_Add(
              -DEXAMPLES_ENABLE=OFF
              -DEXAMPLES_INSTALL=OFF
              -DMPI_ENABLE=${ENABLE_MPI}
-             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+             -DCMAKE_BUILD_TYPE=${ZERORK_EXTERNALS_BUILD_TYPE}
+             -DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}
+             -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
              -DCMAKE_C_COMPILER=${MPI_C_COMPILER}
              -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 )
@@ -20,5 +22,4 @@ ExternalProject_Add(
 add_custom_command(TARGET sundials2
                    POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E create_symlink ${sundials_prefix}/lib  ${sundials_prefix}/lib64)
-
 

@@ -7,12 +7,11 @@
 namespace seulex_cpp {
 
 typedef int (*seul_deriv_fcn)(double x, N_Vector y, N_Vector dy, void* user_data);
-typedef int (*seul_jac_fcn)(double x, N_Vector y, N_Vector fy, void* user_data,
-                            N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+typedef int (*seul_jac_fcn)(double x, N_Vector y, N_Vector fy, void* user_data);
 typedef int (*seul_jac_decomp_fcn)(double hji, void* user_data);
 typedef int (*seul_jac_solve_fcn)(double x, N_Vector y, N_Vector fy,
-                                  N_Vector r, N_Vector z, void* user_data, N_Vector tmp);
-typedef int (*seul_output_fcn)(int nsteps, double x, N_Vector y, N_Vector dy, void* user_data);
+                                  N_Vector r, N_Vector z, void* user_data);
+typedef int (*seul_output_fcn)(int nsteps, double x, double h, N_Vector y, N_Vector dy, void* user_data);
 
 class seulex {
  public:
@@ -41,7 +40,7 @@ class seulex {
   void set_jac_fcn(seul_jac_fcn);
   void set_jac_decomp_fcn(seul_jac_decomp_fcn);
   void set_jac_solve_fcn(seul_jac_solve_fcn);
-  void set_output_fcn(seul_output_fcn);
+  void set_output_fcn(seul_output_fcn, void*);
   void set_user_data(void*);
   int solve(double* x_in, double xend, N_Vector y);
   void get_integrator_stats(int* nfcn,int* njac,int* nstep,
@@ -117,8 +116,6 @@ class seulex {
   N_Vector wh;
   N_Vector scal;
   N_Vector tmp1;
-  N_Vector tmp2;
-  N_Vector tmp3;
   std::vector<N_Vector> t;
 
   seul_deriv_fcn deriv_fcn;
@@ -127,6 +124,7 @@ class seulex {
   seul_jac_solve_fcn jac_solve_fcn;
   seul_output_fcn output_fcn;
 
+  void* output_fcn_data;
   void* user_data;
 };
 

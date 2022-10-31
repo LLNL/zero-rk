@@ -7,6 +7,9 @@
 
 #include "seulex_cpp.h"
 #include "nvector/nvector_serial.h"
+#ifdef ZERORK_CUDA_LIB
+#include "nvector/nvector_serial_cuda.h"
+#endif
 
 namespace seulex_cpp {
 
@@ -25,7 +28,7 @@ seulex::seulex(int _n, N_Vector _y0)
       nsequ(2),
       lambda(0),
       nrdens(0),
-      uround(1.0e-16), //TODO:
+      uround(1.0e-16),
       h(0.0),
       hmax(0.0),
       thet(1.0e-4),
@@ -53,6 +56,7 @@ seulex::seulex(int _n, N_Vector _y0)
       jac_decomp_fcn(NULL),
       jac_solve_fcn(NULL),
       output_fcn(NULL),
+      output_fcn_data(NULL),
       user_data(NULL)
 {
   //N.B. not storing _y0
@@ -67,6 +71,7 @@ seulex::~seulex()
   jac_decomp_fcn = NULL;
   jac_solve_fcn = NULL;
   output_fcn = NULL;
+  output_fcn_data = NULL;
   user_data = NULL;
   N_VDestroy(rtol);
   N_VDestroy(atol);
@@ -197,9 +202,10 @@ void seulex::set_jac_solve_fcn(seul_jac_solve_fcn _jac_solve_fcn)
   jac_solve_fcn = _jac_solve_fcn;
 }
 
-void seulex::set_output_fcn(seul_output_fcn _output_fcn)
+void seulex::set_output_fcn(seul_output_fcn _output_fcn, void* _output_fcn_data)
 {
   output_fcn = _output_fcn;
+  output_fcn_data = _output_fcn_data;
 }
 
 void seulex::set_user_data(void* _user_data)
@@ -230,10 +236,6 @@ int seulex::solve(double* x_in, double xend, N_Vector y)
   ndec = 0;
   nsol = 0;
 
-  //TODO: do we need to know N?
-  long int lrw, liw;
-  N_VSpace(y,&lrw, &liw);
-  assert(lrw == n);//problem is same size as we were initialized with
   assert(deriv_fcn != NULL);
   assert(jac_fcn != NULL);
   assert(jac_decomp_fcn != NULL);
@@ -263,10 +265,10 @@ int seulex::solve(double* x_in, double xend, N_Vector y)
   h = posneg*std::min(h,hmax);
   theta = 2*fabs(thet);
   deriv_fcn(x,y,dy,user_data);
-  if(output_fcn != NULL)
-  {
-    output_fcn(nstep,x,y,dy,user_data);
-  }
+  //if(output_fcn != NULL)
+  //{
+  //  output_fcn(nstep,x,h,y,dy,output_fcn_data);
+  //}
 
   w[0] = 1.0e30;
   N_VAbs(y,scal);
@@ -294,7 +296,7 @@ g10:
   {
     njac += 1;
     deriv_fcn(x,y,dy,user_data);
-    jac_fcn(x, y, dy, user_data, tmp1, tmp2, tmp3);
+    jac_fcn(x, y, dy, user_data);
     caljac = true;
   }
 
@@ -351,7 +353,7 @@ g55:
 //C *** *** *** *** *** *** ***
 g60:
   x = x + h;
-  //TODO: Inefficient, also above
+  //N.B. : could be improved by fusing (also above)
   N_VAbs(t[0],scal);
   N_VProd(rtol,scal,scal);
   N_VLinearSum(1.0, atol, 1.0, scal, scal);
@@ -362,7 +364,10 @@ g60:
   //TODO: Interpolation functions for continous output
   if(output_fcn != NULL)
   {
-    output_fcn(naccept,x,y,dy,user_data);
+    int ofcn_flag = output_fcn(naccept,x,h,y,dy,output_fcn_data);
+    if(ofcn_flag != 0) {
+      goto g110;
+    }
   }
 //C --- COMPUTE OPTIMAL ORDER
   if(kc == 1)
@@ -481,18 +486,14 @@ int seulex::seul(double x,
   N_VScale(1.0,dy,del);
   //printf("nstep, nreject, njac, ndec, nsol, jj, hji, thet, theta = %d, %d, %d, %d, %d, %d, %g, %g, %g\n",
   //       nstep,nreject,njac,ndec,nsol,jj,hji,thet,theta);
-  jac_solve_fcn(x, y, dy, del, tmp1, user_data, tmp2);
+  //DEBUG N_VPrint_Serial(del);
+  jac_solve_fcn(x, y, dy, del, tmp1, user_data);
   N_VScale(1.0, tmp1, del);
   N_VScale(hj,del,del);
+
   nsol += 1;
   m=nj[jj];
 
-//  IF (IOUT.EQ.2.AND.M.EQ.JJ) THEN  //TODO:
-//     IPT=IPT+1
-//     DO I=1,NRD
-//        FSAFE(IPT,I)=DEL(ICOMP(I))
-//     END DO
-//  END IF
 
 //C *** *** *** *** *** *** ***
 //C --- SEMI-IMPLICIT EULER METHOD
@@ -509,26 +510,28 @@ int seulex::seul(double x,
       if (mm == 1 && jj <= 1) //mm 1-based; jj 0-based
       {
 //C --- STABILITY CHECK
-         double del1=0.0;
-         del1 = N_VWL2Norm(del,scal);
+         double del1 = N_VWL2Norm(del,scal);
+         if(isnan(del1)) goto g79;
          ier = deriv_fcn(x+hj,yh,wh,user_data);
          nfcn+=1;
          if(ier != 0) goto g79;
          N_VLinearSum(1.0,wh,-hji,del,del);
-         jac_solve_fcn(x+hj, yh, wh, del, tmp1, user_data, tmp2);
+         jac_solve_fcn(x+hj, yh, wh, del, tmp1, user_data);
          N_VScale(1.0, tmp1, del);
          N_VScale(hj,del,del);
          nsol+=1;
-         double del2=0.0;
+
          double max_del = N_VMaxNorm(del);
          if(max_del > 1e15) goto g79;
-         del2 = N_VWL2Norm(del,scal);
+
+         double del2 = N_VWL2Norm(del,scal);
+         if(isnan(del2)) goto g79;
          theta=del2/std::max(1.0,del1);
          //theta=del2/std::min(1.0,del1+1.0e-30);
          if (theta > 1.0) goto g79;
       }
       //N_VScale(hj,dyh,dyh);
-      jac_solve_fcn(x+hj*(mm+1), yh, dyh, dyh, tmp1, user_data, tmp2);
+      jac_solve_fcn(x+hj*(mm+1), yh, dyh, dyh, tmp1, user_data);
       N_VScale(1.0, tmp1, dyh);
       N_VScale(hj,dyh,dyh);
       nsol+=1;
@@ -549,7 +552,8 @@ int seulex::seul(double x,
   if(jj==0) return 0;
   for(int l = jj; l > 0; --l)
   {
-     double fac=((double) nj[jj])/((double)nj[l-1])-1.0; //TODO: OF tabulates these
+     //N.B. OpenFOAM implementation uses a table
+     double fac=((double) nj[jj])/((double)nj[l-1])-1.0;
      fac = 1.0/fac;
      N_VLinearSum(1.0,t[l],-1.0,t[l-1],t[l-1]);
      N_VLinearSum(1.0,t[l],fac,t[l-1],t[l-1]);
@@ -557,10 +561,10 @@ int seulex::seul(double x,
   err = 0.0;
   N_VLinearSum(1.0, t[0], -1.0, t[1], wh); //USING wh for temp storage here
   N_VAbs(wh,wh);
-  err = N_VWrmsNorm(scal,wh); //TODO: no overflow protection
+  err = N_VWrmsNorm(scal,wh);
+  if(isnan(err)) goto g79;
   if(err < 0.0) goto g79;
-  //printf("err=%g\n",err);
-  if (err > 1.0e15) goto g79; //TODO: not exactly the same as F
+  if (err > 1.0e15) goto g79;
   if (jj > 1 && err >= errold) goto g79;
   errold = std::max(4*err,1.0);
 //C --- COMPUTE OPTIMAL STEP SIZES
@@ -630,8 +634,6 @@ void seulex::create_work_vectors(N_Vector y)
   wh = N_VClone(y);
   scal = N_VClone(y);
   tmp1 = N_VClone(y);
-  tmp2 = N_VClone(y);
-  tmp3 = N_VClone(y);
   t.resize(km+1);
   for(int i = 0; i <= km; ++i)
   {
@@ -648,8 +650,6 @@ void seulex::destroy_work_vectors()
   N_VDestroy(wh);
   N_VDestroy(scal);
   N_VDestroy(tmp1);
-  N_VDestroy(tmp2);
-  N_VDestroy(tmp3);
   for(int i = 0; i <= km; ++i)
   {
     N_VDestroy(t[i]);

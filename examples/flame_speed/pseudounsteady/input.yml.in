@@ -1,0 +1,182 @@
+#Chemkin Format Mechansim File [input]
+#Type: string
+mech_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_mech.txt
+
+#Chemkin Format Thermodynamics File [input]
+#Type: string
+therm_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_therm.txt
+
+#Transport File [input]
+#Type: string
+trans_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_transport.txt
+
+#Transport model
+#Only 'ConstantLewis' is supported with
+#the steady flame solver
+transport_model: 'ConstantLewis'
+#transport_model: 'MixAvg'
+#transport_model: 'MixAvgSoret'
+
+#Fuel composition mole fraction map for inlet
+#Type: string:floating-point map
+inlet_fuel_comp: {
+NC12H26: 1.0
+}
+
+#Oxidizer composition mole fraction map for inlet
+#Type: string:floating-point map
+inlet_oxidizer_comp: {
+N2: 3.76,
+O2: 1.0
+}
+
+######################################
+#####  DON'T MODIFY LINES BELOW  #####
+######################################
+
+pseudo_unsteady: y
+pseudo_unsteady_dt: 1.0e-6
+
+Lewis_file: Lewis_file
+
+grid_file: grid_file
+restart_file: "data_0.000582"
+
+convective_scheme_type: 2
+
+step_limiter : 1e+300
+simulation_type : 1
+ignition_temperature : 1500
+
+#Pressure of the flame system [Pa]
+#Type: floating-point
+#Optional with default value of 101325
+pressure: 2500000.0
+
+inlet_velocity: 0.2450339
+
+#diameter of the flame tube [m]
+#Type: floating-point
+#Optional with default value of 0.001
+diameter: 0.001
+
+#length of the flame tube [m]
+#Type: floating-point
+#Optional with default value of 0.1
+length: 0.015
+
+#Nusselt number for the heat transfer to the wall [-]
+#Type: floating-point
+#Optional with default value of 4
+nusselt: 0.0
+
+inlet_full_comp: {}
+
+#Mixture composition mole fraction map for the entire domain
+#Type: string:floating-point map
+initial_comp: {
+N2: 3.76,
+O2: 1.0
+}
+
+#Extent [m] to which the inlet composition is initialized
+#within the domain interior. That is, every grid point less
+#than or equal to this value is set to the inlet composition
+#(from inlet_oxidizer_comp, inlet_fuel_comp and inlet_phi: 1.0
+#Every grid point greater than this value is set to
+#initial_comp.
+#Type: floating-point
+#Optional with default value of -1e+300
+initial_inlet_extent: 0.00034924996914343953
+thickness : 0.00001
+
+
+#Maximum integration time [s]
+#Type: floating-point
+max_time: 0.0006975000000000001
+
+#Vector of species names (case sensitive) to track the
+#position of their maximum value in the domain. In the case
+#of multiple maxima at the same value, only the most
+#upstream position is reported. Note that temperature is
+#tracked automatically.
+#Type: string vector
+#Optional with default value of [not_a_species]
+track_max: [OH, CH, H2O2]
+
+#Print the basic stats every interval equal to stats_dt: 2e-06
+#Type: floating-point
+#Optional with default value of 0.001
+stats_dt: 2e-06
+
+#Print all the field variables at an interval equal to this
+#multiplier times stats_dt: 2e-06
+#Type: integer
+#Optional with default value of 1
+field_dt_multiplier: 56
+
+#Integrator type: (0 = CVode direct dense solve using J from
+#divided differences, 1 = CVode direct banded solve using J
+#from divided differences, 2 = CVode direct banded solve
+#using user supplied J, 3 = CVode preconditioner)
+#Type: integer
+#Optional with default value of 0
+integrator_type: 3
+
+#Flag that when set to true [y] stores the jacobian data for
+#each grid point when computed by user (integrator_type: 3
+#3)
+#Type: boolean
+#Optional with default value of 0
+store_jacobian: y
+
+#Number of off-diagonals to retain in the banded jacobian
+#(integrator_type: 3
+#Type: integer
+#Optional with default value of 0
+num_off_diagonals: 0
+
+#Maximum Internal Integrator Step Size [s]
+#Type: floating-point
+#Optional with default value of 1e-06
+max_internal_dt: 2.0e-5
+
+#Maximum Number of Integrator Steps
+#Type: integer
+#Optional with default value of 1000000
+max_steps: 1000000
+
+#Maximum Number of iterations between jacobian updates
+#Type: integer
+#Optional with default value of 10
+max_subiter: 10
+
+#Number of grid points
+#Type: integer
+#Optional with default value of 100
+num_points: 384
+
+#Relative Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-08
+rel_tol: 0.01
+
+#Absolute Integrator Tolerance
+#Type: floating-point
+#Optional with default value of 1e-20
+abs_tol: 1.0e-20
+
+#Reference temperature to normalize the ODE dT/dt equation
+#Type: floating-point
+#Optional with default value of 1000
+ref_temperature: 1000.0
+
+#Inlet temperature [K]
+#Type: floating-point
+#Optional with default value of 300
+inlet_temperature: 400.0
+
+#Inlet equivalence ratio (F/A)/(F/A)_{st} [-]
+#Type: floating-point
+#Optional with default value of 1
+inlet_phi: 1.0

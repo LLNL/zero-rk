@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <iomanip>
 #include <sstream>
 
@@ -9,11 +10,14 @@
 #include "ZeroRKCFDPluginTesterIFP.h"
 
 #include "zerork/mechanism.h"
+#include "file_utilities.h"
 #include "zerork_cfd_plugin.h"
 
 #ifdef USE_MPI
 #include "mpi.h"
 #endif
+
+using zerork::getHighResolutionTime;
 
 template <typename T>
 static std::vector<T> linspace(T a, T b, size_t N);
@@ -28,30 +32,88 @@ static void setReactorMassFrac(int nReactors, const zerork::mechanism& mech,
 
 static void log_output(int step, double time, int n_print_reactors,
                        std::vector<double> reactorT, std::vector<double> reactorP,
-                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac, 
-                       std::vector<double> reactorCost,
+                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac,
+                       std::vector<double> reactorCost, std::vector<double> reactorGpu,
                        std::vector<int> log_species_indexes, std::vector<std::string> log_species_names,
                        int nsp, std::vector<std::shared_ptr<std::ofstream>> reactor_log_files);
 
+
+typedef struct UserData {
+  int nsteps;
+  double time;
+} user_data_t;
+
+static zerork_handle zrm_handle;
+static user_data_t ud;
+
+static int callback(int reactor_id, int nsteps, double time, double dt, const double* y, const double* ydot, void* user_data) {
+  user_data_t* ud = static_cast<user_data_t*>(user_data);
+  // printf("%d, %g: %g [%g, %g]\n",nsteps, time, y[0], ud->x, ud->y);
+  ud->nsteps += 1;
+  ud->time += dt;
+  return 0;
+}
+
 void zerork_reactor(int inp_argc, char **inp_argv)
 {
-
-  if(inp_argc != 2)
-    {
-      printf("ERROR: incorrect command line usage\n");
-      printf("       use instead %s <idt sweep input>\n",inp_argv[0]);
-      fflush(stdout); exit(-1);
-    }
+  if(inp_argc != 2) {
+    printf("ERROR: incorrect command line usage\n");
+    printf("       use instead %s <idt sweep input>\n",inp_argv[0]);
+    fflush(stdout); exit(-1);
+  }
 
 
   ZeroRKCFDPluginTesterIFP inputFileDB(inp_argv[1]);
 
+  const int constant_volume = inputFileDB.constant_volume() ? 1 : 0;
+  const int stop_after_ignition = inputFileDB.stop_after_ignition();
+  const double delta_temperature_ignition = inputFileDB.delta_temperature_ignition();
+
   const char* mechfilename = inputFileDB.mechanism_file().c_str();
   const char* thermfilename = inputFileDB.thermo_file().c_str();
-  const char* zerorkfilename = inputFileDB.zerork_cfd_plugin_input().c_str();
-  zerork_handle zrm_handle = zerork_reactor_init(zerorkfilename, mechfilename, thermfilename);
+  int error_state = 0;
+  zerork_status_t status_mech = ZERORK_STATUS_SUCCESS;
+  zerork_status_t status_options = ZERORK_STATUS_SUCCESS;
+  zerork_status_t status_other = ZERORK_STATUS_SUCCESS;
+#ifdef USE_OMP
+  #pragma omp threadprivate(zrm_handle, ud)
+  #pragma omp parallel reduction(+:error_state)
+  {
+#endif
+  zrm_handle = zerork_reactor_init();
+  ud.nsteps = 0;
+  ud.time = 0.0;
+  if(inputFileDB.zerork_cfd_plugin_input().size() > 0) {
+    status_options = zerork_reactor_read_options_file(inputFileDB.zerork_cfd_plugin_input().c_str(), zrm_handle);
+  }
+  status_other = zerork_reactor_set_mechanism_files(mechfilename, thermfilename, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_mech = zerork_reactor_load_mechanism(zrm_handle);
+  status_other = zerork_reactor_set_callback_fn(callback, &ud, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_other = zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_other = zerork_reactor_set_int_option("stop_after_ignition", stop_after_ignition, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+  status_other = zerork_reactor_set_double_option("delta_temperature_ignition", delta_temperature_ignition, zrm_handle);
+  if(status_other != ZERORK_STATUS_SUCCESS) error_state += 1;
+#ifdef USE_OMP
+  }
+#endif
+  if(status_mech != ZERORK_STATUS_SUCCESS) {
+    printf("ERROR: Failed to parse mechanism file.\n");
+    fflush(stdout); exit(-1);
+  }
+  if(status_options != ZERORK_STATUS_SUCCESS) {
+    printf("WARNING: Failed to parse options file, continuing with default options.\n");
+    fflush(stdout);
+  }
+  if(error_state>0) {
+    printf("WARNING: Failed to set some cfd-plugin option(s).\n");
+    fflush(stdout);
+  }
 
-  const char* cklogfilename = "/dev/null"; //We already parsed in reactor manager no need to have another log
+  const char* cklogfilename = zerork::utilities::null_filename; //We already parsed in reactor manager no need to have another log
   // TODO: Avoid parsing twice/having two mechanisms
   zerork::mechanism mech(mechfilename, thermfilename, cklogfilename);
 
@@ -64,12 +126,16 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   int nReactors = inputFileDB.n_reactors();
 
   //Set up reactor initial states
+  int nReactorsAlloc = nReactors;
   std::vector<double> reactorT(nReactors);
   std::vector<double> reactorP(nReactors);
   std::vector<double> reactorMassFrac(nReactors*nSpc);
-  std::vector<double> reactorDPDT(nReactors,0.0); //TODO: Using ZERO for now.
+  std::vector<double> reactorDPDT(nReactors,inputFileDB.dpdt());
   std::vector<double> reactorCost(nReactors);
+  std::vector<double> reactorGpu(nReactors);
   std::vector<double> reactorESRC(nReactors, inputFileDB.e_src());
+  std::vector<double> reactorYsrc(nReactors*nSpc, inputFileDB.y_src());
+  std::vector<double> reactorIDT(nReactors,-1.0);
   std::vector<int> log_species_indexes(0);
   std::vector<std::string> log_species_names = inputFileDB.log_species();
   int n_print_reactors = std::min(inputFileDB.n_print_reactors(),nReactors);
@@ -77,11 +143,12 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   if( inputFileDB.log_species().size() > 0 ) {
      for (int k = 0; k < inputFileDB.log_species().size(); ++k) {
         std::string sp = inputFileDB.log_species()[k];
-        //TODO: This currently will fail on invalid species name
-        //      should throw exception or return negative instead
-        //      so we can catch/handle
         int idx=mech.getIdxFromName(sp.c_str());
-        log_species_indexes.push_back(idx);
+        if(idx == -1) {
+          printf("WARNING: log_species %s not found in mechanism. Ignoring\n",sp.c_str());
+        } else {
+          log_species_indexes.push_back(idx);
+        }
      }
   }
   if(inputFileDB.state_files().size() != 0) {
@@ -112,6 +179,68 @@ void zerork_reactor(int inp_argc, char **inp_argv)
       reactorP[k] = val;
       fclose(stateFile);
     }
+  } else if(inputFileDB.state_files_cfd().size() != 0) {
+    int kReactor = 0;
+    //Load initial state from files
+    for(int k=0; k<inputFileDB.state_files_cfd().size() ; ++k) {
+      FILE* stateFile = fopen(inputFileDB.state_files_cfd()[k].c_str(),"r");
+      if(stateFile == NULL) {
+        printf("Unable to read file: %s\n",inputFileDB.state_files_cfd()[k].c_str());
+        exit(-1);
+      }
+      while(true) {
+        if(kReactor >= nReactorsAlloc) {
+          nReactorsAlloc += 100;
+          reactorT.resize(nReactorsAlloc);
+          reactorP.resize(nReactorsAlloc);
+          reactorMassFrac.resize(nReactorsAlloc*nSpc);
+          reactorDPDT.resize(nReactorsAlloc,inputFileDB.dpdt());
+          reactorCost.resize(nReactorsAlloc,0);
+          reactorGpu.resize(nReactorsAlloc,0);
+          reactorIDT.resize(nReactorsAlloc,-1.0);
+          reactorESRC.resize(nReactorsAlloc, inputFileDB.e_src());
+          reactorYsrc.resize(nReactorsAlloc*nSpc, inputFileDB.y_src());
+        }
+        int ival;
+        double dval;
+        // read index
+        // N.B. index is ignored
+        int matches = fscanf(stateFile,"%d",&ival);
+        if( matches != 1 ) {
+          break;
+        }
+        fscanf(stateFile,"%lf",&dval);
+        reactorT[kReactor] = dval;
+        fscanf(stateFile,"%lf",&dval);
+        reactorP[kReactor] = dval;
+        fscanf(stateFile,"%d",&ival);
+        reactorCost[kReactor] = (double) ival;
+        fscanf(stateFile,"%lf",&dval);
+        reactorGpu[kReactor] = dval;
+        for(int j=0;j<nSpc;++j) {
+          matches = fscanf(stateFile,"%lf",&dval);
+          if( matches != 1 ) {
+            printf("Failed to find value in file %s\n",
+                   inputFileDB.state_files()[k].c_str());
+            exit(-1);
+          }
+          reactorMassFrac[kReactor*nSpc+j] = dval;
+        }
+        kReactor += 1;
+      }
+      fclose(stateFile);
+    }
+    nReactors = kReactor;
+    reactorT.resize(nReactors);
+    reactorP.resize(nReactors);
+    reactorMassFrac.resize(nReactors*nSpc);
+    reactorDPDT.resize(nReactors);
+    reactorCost.resize(nReactors);
+    reactorGpu.resize(nReactors);
+    reactorIDT.resize(nReactors);
+    reactorESRC.resize(nReactors);
+    reactorYsrc.resize(nReactors*nSpc);
+    printf("Read %d reactors from %d files\n",nReactors, inputFileDB.state_files_cfd().size());
   } else {
     //Set initial states using linear ranges of T,P,phi, and egr
     double phiMin, phiMax, egrMin, egrMax, TMin, TMax, pMin, pMax;
@@ -144,6 +273,8 @@ void zerork_reactor(int inp_argc, char **inp_argv)
         {
             std::string spcName = mapit->first;
             int spcIdx = mech.getIdxFromName(spcName.c_str());
+            //N.B. We already checked fuel names in getFracsFromCompMap;
+            assert(spcIdx != -1);
             log_species_indexes.push_back(spcIdx);
             log_species_names.push_back(spcName);
         }
@@ -152,6 +283,8 @@ void zerork_reactor(int inp_argc, char **inp_argv)
         {
             std::string spcName = mapit->first;
             int spcIdx = mech.getIdxFromName(spcName.c_str());
+            //N.B. We already checked oxid names in getFracsFromCompMap;
+            assert(spcIdx != -1);
             log_species_indexes.push_back(spcIdx);
             log_species_names.push_back(spcName);
         }
@@ -166,8 +299,10 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   startTime=getHighResolutionTime();
 
   int rank = 0;
+  int nranks = 1;
 #ifdef USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  MPI_Comm_size(MPI_COMM_WORLD,&nranks);
 #endif
   std::vector<std::shared_ptr<std::ofstream>> reactor_log_files(0);
   if(rank != 0) {
@@ -181,40 +316,94 @@ void zerork_reactor(int inp_argc, char **inp_argv)
     }
   }
 
-  int constant_volume = inputFileDB.constant_volume() ? 1 : 0;
-  zerork_reactor_set_int_option("constant_volume", constant_volume, zrm_handle);
-  
-  int flag = 0;
+  if(rank == 0 && nranks > 1 && !inputFileDB.batched()) {
+    printf("WARNING: nranks > 1 can not be used with option \"batched\" disabled.\n");
+    printf("         Running in batched mode.\n");
+  }
+
+  zerork_status_t flag = ZERORK_STATUS_SUCCESS;
+  int num_solution_failures = 0;
   double t = 0;
   double dt= tend/n_steps;
   for(int i = 0; i < n_steps; ++i) {
-      if(inputFileDB.app_owns_aux_fields()) {
-          //For AMR/moving mesh codes
-          zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[0], zrm_handle);
-          zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[0], zrm_handle);
+      if(!inputFileDB.batched() && nranks == 1) {
+#ifdef USE_OMP
+        #pragma omp parallel for reduction(+:num_solution_failures)
+#endif
+        for(int k = 0; k < nReactors; ++k) {
+            ud.nsteps = 0;
+            ud.time = 0.0;
+            if(delta_temperature_ignition > 0) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_IGNITION_TIME, &reactorIDT[k], zrm_handle);
+            }
+            if(inputFileDB.app_owns_aux_fields()) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[k], zrm_handle);
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_GPU, &reactorGpu[k], zrm_handle);
+            }
+            if(inputFileDB.dpdt() != 0.0) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[k], zrm_handle);
+            }
+            if(inputFileDB.e_src() != 0.0) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[k], zrm_handle);
+            }
+            if(inputFileDB.y_src() != 0.0) {
+                zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_Y_SRC, &reactorYsrc[k*nSpc], zrm_handle);
+            }
+            flag = zerork_reactor_solve(i, t, dt, 1, &reactorT[k], &reactorP[k],
+                                        &reactorMassFrac[k*nSpc], zrm_handle);
+            if(flag != ZERORK_STATUS_SUCCESS) num_solution_failures+=1;
+        }
+      } else {
+        if(delta_temperature_ignition > 0) {
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_IGNITION_TIME, &reactorIDT[0], zrm_handle);
+        }
+        if(inputFileDB.app_owns_aux_fields()) {
+            //For AMR/moving mesh codes
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_COST, &reactorCost[0], zrm_handle);
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_GPU, &reactorGpu[0], zrm_handle);
+        }
+        if(inputFileDB.dpdt() != 0) {
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_DPDT, &reactorDPDT[0], zrm_handle);
+        }
+        if(inputFileDB.e_src() != 0.0) {
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[0], zrm_handle);
+        }
+        if(inputFileDB.y_src() != 0.0) {
+            zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_Y_SRC, &reactorYsrc[0], zrm_handle);
+        }
+        flag = zerork_reactor_solve(i, t, dt, nReactors, &reactorT[0], &reactorP[0],
+                                    &reactorMassFrac[0], zrm_handle);
+        if(flag != ZERORK_STATUS_SUCCESS) num_solution_failures+=1;
       }
-      if(inputFileDB.e_src() != 0.0) {
-          zerork_reactor_set_aux_field_pointer(ZERORK_FIELD_E_SRC, &reactorESRC[0], zrm_handle);
-      }
-      flag = zerork_reactor_solve(i, t, dt, nReactors, &reactorT[0], &reactorP[0],
-                                  &reactorMassFrac[0], zrm_handle);
       if(rank==0) {
           log_output(i, t+dt, n_print_reactors, reactorT, reactorP, reactorDPDT,
-                     reactorMassFrac, reactorCost,
+                     reactorMassFrac, reactorCost, reactorGpu,
                      log_species_indexes, log_species_names,
                      nSpc, reactor_log_files);
       }
-      if(flag != 0) {
-        printf("Zero-RK CFD Plugin returned error: %d\n",flag);
+      if(num_solution_failures != 0) {
+        printf("Zero-RK CFD Plugin failed to solve.\n");
         break;
       }
       t += dt;
+  }
+  if(rank == 0 && delta_temperature_ignition > 0) {
+    for(int k = 0; k < nReactors; ++k) {
+      printf("reactor[%d] IDT: %g s\n", k, reactorIDT[k]);
+    }
   }
 
   stopTime=getHighResolutionTime();
   simTime=stopTime-startTime;
   printf("simTime : %g s\n",simTime);
+#ifdef USE_OMP
+#pragma omp parallel
+  {
+#endif
   zerork_reactor_free(zrm_handle);
+#ifdef USE_OMP
+  }
+#endif
 }
 
 int main(int argc, char **argv)
@@ -226,7 +415,7 @@ int main(int argc, char **argv)
 #ifdef USE_MPI
   MPI_Finalize();
 #endif
-  return 0; 
+  return 0;
 }
 
 
@@ -280,7 +469,6 @@ static void getFracsFromCompMap(zerork::mechanism& mech,
     {
       std::cerr << "Species \"" << spcName << "\" in composition array \""
                 << "\" not found in mechanism." << std::endl;
-      //TODO: throw
       exit(-1);
     }
     fracArray[spcIdx]=mapit->second;
@@ -344,8 +532,8 @@ static void setReactorMassFrac(int nReactors, const zerork::mechanism& mech,
 
 static void log_output(int step, double time, int n_print_reactors,
                        std::vector<double> reactorT, std::vector<double> reactorP,
-                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac, 
-                       std::vector<double> reactorCost,
+                       std::vector<double> reactorDPDT, std::vector<double> reactorMassFrac,
+                       std::vector<double> reactorCost, std::vector<double> reactorGpu,
                        std::vector<int> log_species_indexes, std::vector<std::string> log_species_names,
                        int nsp, std::vector<std::shared_ptr<std::ofstream>> reactor_log_files)
 {
@@ -358,7 +546,7 @@ static void log_output(int step, double time, int n_print_reactors,
               rlf << std::setw(17) <<  "time";
               rlf << std::setw(17) <<  "temperature";
               rlf << std::setw(17) <<  "pressure";
- 
+
               for(int j = 0; j < n_log_species; ++j) {
                   rlf << std::setw(17) << log_species_names[j];
               }
@@ -371,7 +559,7 @@ static void log_output(int step, double time, int n_print_reactors,
             rlf << std::setw(17) <<  reactorP[k];
 
             for(int j = 0; j < n_log_species; ++j) {
-                int spcIdx = log_species_indexes[j]; 
+                int spcIdx = log_species_indexes[j];
                 double mf = reactorMassFrac[k*nsp+spcIdx];
                 rlf << std::setw(17) << mf;
             }

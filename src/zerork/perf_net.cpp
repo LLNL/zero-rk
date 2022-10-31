@@ -1,18 +1,11 @@
 #include <stdlib.h>
 #include <assert.h>
-#include <sys/time.h>
 
+#include "utilities.h"
 #include "perf_net.h"
 
 
-
 namespace zerork {
-
-#ifdef EXIT_THROWS_EXCEPTION
-  // create a local function to overide the system exit and throw an exception
-  // with the status integer.
-  static void exit(int status) {throw status;}
-#endif // EXIT_THROWS_EXCEPTION
 
 static void UnsupportedFeature(const char filename[], const int line_num)
 {
@@ -23,17 +16,6 @@ static void UnsupportedFeature(const char filename[], const int line_num)
   assert(0);  // disabled with macro #define NDEBUG
               // or -DNDEBUG for the compiler
 }
-
-
-static double getHighResolutionTime(void)
-{
-    struct timeval tod;
-
-    gettimeofday(&tod, NULL);
-    double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
-    return time_seconds;
-}
-
 
 perf_net::perf_net(info_net &netobj, rate_const &Kobj)
 {
@@ -79,20 +61,9 @@ perf_net::perf_net(info_net &netobj, rate_const &Kobj)
       ++pCtr;
     }
   }
-  if(pCtr != totProd)
-  {
-    printf("ERROR: in perf_net() constructor\n");
-    printf("       total products (local %d != %d info_net)\n",
-           pCtr,totProd);
-    exit(-1);
-  }
-  if(rCtr != totReac)
-  {
-    printf("ERROR: in perf_net() constructor\n");
-    printf("       total reactants (local %d != %d info_net)\n",
-           rCtr,totReac);
-    exit(-1);
-  }
+  assert(pCtr == totProd);
+  assert(rCtr == totReac);
+
   non_integer_network_ = netobj.getNonIntegerReactionNetwork();
   use_non_integer_network_ = true;
   if(non_integer_network_.GetNumNonIntegerSteps() == 0) {
@@ -553,12 +524,11 @@ void perf_net::writeExternalFuncs()
   UnsupportedFeature(__FILE__, __LINE__);
 
   FILE *fptr=fopen("external_funcs.cpp","w");
-  if(fptr==NULL)
-    {
+  if(fptr==NULL) {
       printf("ERROR: could not open file external_funcs.cpp for write operation\n");
       printf("       in perf_net::writeExternalFuncs(...)\n");
-      exit(-1);
-    }
+      return;
+  }
 
   fprintf(fptr,"#include \"external_funcs.h\"\n");
   fprintf(fptr,"#include \"stdio.h\"\n");
@@ -579,15 +549,16 @@ void perf_net::write_func_check(FILE* fptr)
 {
   UnsupportedFeature(__FILE__, __LINE__);
 
-  fprintf(fptr,"void external_func_check(const int nsp, const int nstep)\n");
+  fprintf(fptr,"bool external_func_check(const int nsp, const int nstep)\n");
   fprintf(fptr,"{\n");
 
   fprintf(fptr,"  if(nsp != %d || nstep != %d)\n",nSpc,nStep);
   fprintf(fptr,"  {\n");
   fprintf(fptr,"      printf(\"Current mechanism doesn't match external lib. Quitting.\\n\");\n");
-  fprintf(fptr,"      exit(1);\n");
+  fprintf(fptr,"      return false;\n");
+  fprintf(fptr,"  }\n");
+  fprintf(fptr,"  return true;\n");
   fprintf(fptr,"}\n");
-
 
   fprintf(fptr,"}\n");
 }

@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/time.h>
 
 #include <vector>
 #include <string>
@@ -8,14 +7,20 @@
 
 #include <utilities/file_utilities.h>
 
+#ifdef ZERORK_MPI
 #include <mpi.h>
+#endif
 
 #include "flame_params.h"
 #include "kinsol_functions.h"
 #include "set_initial_conditions.h"
 
-
+#ifdef ZERORK_MPI
 #include <nvector/nvector_parallel.h> // serial N_Vector types, fcts., and macros
+#else
+#include <nvector/nvector_serial.h>
+#endif
+
 #include <kinsol/kinsol.h>
 
 #ifdef SUNDIALS2
@@ -32,25 +37,30 @@
 //#include <sundials/sundials_types.h>
 //#include <sundials/sundials_math.h>
 
+using zerork::getHighResolutionTime;
+
 const bool RUN_DEBUG=false;
 const int NUM_STDOUT_PARAMS = 19; // number of non species parameters to write
                                   // to standard out
 
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
-static double GetHighResolutionTime();
+static double FindMaximum(const size_t num_points,
+                          const double x[],
+                          const size_t x_stride,
+                          const double f[],
+                          const size_t f_stride,
+                          const bool use_quadratic,
+                          double *x_at_max);
 
-static double FindMaximumParallel(const size_t num_points,
-				  const double x[],
-				  const size_t x_stride,
-				  const double f[],
-				  const size_t f_stride,
-				  const bool use_quadratic,
-				  double *x_at_max);
-
+#ifdef ZERORK_MPI
 static void WriteFieldParallel(double t,
 			       const double state[],
 			       const FlameParams &params);
+#endif
+static void WriteFieldSerial(double t,
+                             const double state[],
+                             const FlameParams &params);
 
 static double GetMixtureMolecularMass(const int grid_id,
                                       const double t,
@@ -84,7 +94,7 @@ static int GetStateMaxima(const std::vector<int> &state_id,
 
 int main(int argc, char *argv[])
 {
-  double clock_time = GetHighResolutionTime();
+  double clock_time = getHighResolutionTime();
   double setup_time, loop_time, sensanal_time;
 
   if(argc < 2) {
@@ -94,9 +104,9 @@ int main(int argc, char *argv[])
   }
 
   // MPI
-  MPI_Comm comm;
+#ifdef ZERORK_MPI
   MPI_Init(&argc, &argv);
-  comm = MPI_COMM_WORLD;
+#endif
 
   // KINSOL memory pointer and linear solver
   void *kinsol_ptr = NULL;
@@ -106,7 +116,7 @@ int main(int argc, char *argv[])
 #endif
 
   // Initialize flame params
-  FlameParams flame_params(argv[1],comm);
+  FlameParams flame_params(argv[1]);
 
   // Initialize state variables/scalers vectors and pointers
   N_Vector flame_state, scaler, constraints;
@@ -155,11 +165,20 @@ int main(int argc, char *argv[])
   int my_pe = flame_params.my_pe_;
 
   // allocate KINSOL data structures
+#ifdef ZERORK_MPI
+  MPI_Comm comm = flame_params.comm_;
   flame_state          = N_VNew_Parallel(comm, Nlocal, total_states);
   flame_state_ptr      = NV_DATA_P(flame_state);
   scaler          = N_VNew_Parallel(comm, Nlocal, total_states);
   scaler_ptr      = NV_DATA_P(scaler);
   constraints     = N_VNew_Parallel(comm, Nlocal, total_states);
+#else
+  flame_state          = N_VNew_Serial(total_states);
+  flame_state_ptr      = NV_DATA_S(flame_state);
+  scaler          = N_VNew_Serial(total_states);
+  scaler_ptr      = NV_DATA_S(scaler);
+  constraints     = N_VNew_Serial(total_states);
+#endif
   N_VConst(0.0, constraints); //0.0 no constraints, 1.0 u_i >= 0.0, 2.0 u_i > 0.0
 
   // Initialize state vector
@@ -200,7 +219,11 @@ int main(int argc, char *argv[])
 
   // Set constraints
   flag = KINSetConstraints(kinsol_ptr, constraints);
+#ifdef ZERORK_MPI
   N_VDestroy_Parallel(constraints);
+#else
+  N_VDestroy_Serial(constraints);
+#endif
 
   // Set tolerances
   // RHS(y) < fnormtol
@@ -278,9 +301,15 @@ int main(int argc, char *argv[])
   GetTrackMaxStateId(flame_params, &track_max_state_id);
 
   if (time_offset == 0.0) {
+#ifdef ZERORK_MPI
     WriteFieldParallel(time_offset,
 		       &flame_state_ptr[0],
 		       flame_params);
+#else
+    WriteFieldSerial(time_offset,
+                     &flame_state_ptr[0],
+                     flame_params);
+#endif
   }
 
   // Report simulation info to screen/logfile
@@ -340,22 +369,22 @@ int main(int argc, char *argv[])
   }// if(my_pe==0)
 
   // Get time
-  setup_time = GetHighResolutionTime() - clock_time;
-  clock_time = GetHighResolutionTime();
+  setup_time = getHighResolutionTime() - clock_time;
+  clock_time = getHighResolutionTime();
 
   double fnorm, stepnorm;
 
     // Pseudo-unsteady
   if(flame_params.pseudo_unsteady_) {
     flag = KINSetPrintLevel(kinsol_ptr, 0);
-    flag = KINSetNumMaxIters(kinsol_ptr, 50);
+    flag = KINSetNumMaxIters(kinsol_ptr, 80);
     if(my_pe==0) {
       printf("# begin pseudo time-stepping\n");
       printf("# time      timestep     SL     nfevals  cputime\n");
     }
     double pseudo_time = 0.0;
     double kinstart_time, kinend_time;
-    flame_params.dt_ = 1.0e-3; //seems to be a good starting guess
+    flame_params.dt_ = flame_params.parser_->pseudo_unsteady_dt()*0.5; //Half the timestep for first iteration
 
     while(pseudo_time < 0.05) {
       for(int j=0; j<num_local_states; j++) {
@@ -363,18 +392,18 @@ int main(int argc, char *argv[])
       }
 
       // Solve system
-      kinstart_time = GetHighResolutionTime();
+      kinstart_time = getHighResolutionTime();
       flag = KINSol(kinsol_ptr,
                     flame_state,
                     KIN_NONE,
                     scaler,
                     scaler);
-      kinend_time = GetHighResolutionTime();
+      kinend_time = getHighResolutionTime();
 
       KINGetNumFuncEvals(kinsol_ptr,&nfevals);
       KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-      if((flag==0 or flag==1) and fnorm != 0.0){
+      if((flag==0 || flag==1) && fnorm != 0.0){
         // Success
         pseudo_time += flame_params.dt_;
         if(my_pe==0) {printf("%5.3e   %5.3e   %5.3e  %d   %5.3e\n",
@@ -385,9 +414,11 @@ int main(int argc, char *argv[])
                              kinend_time-kinstart_time);}
 
         // Increase time step if it's converging quickly
-        if(nfevals < 6)
-          flame_params.dt_ *= 2.0;
-
+        if(nfevals <= 5 || pseudo_time == flame_params.dt_) {
+          flame_params.dt_ *= 3.0;
+        } else if (nfevals <= 10) {
+          flame_params.dt_ *= 1.3;
+        }
       } else {
         // Failure, reset state and decrease timestep
         for(int j=0; j<num_local_states; j++) {
@@ -415,7 +446,7 @@ int main(int argc, char *argv[])
 
   KINGetFuncNorm(kinsol_ptr, &fnorm);
 
-  if((flag==0 or flag==1) and fnorm != 0.0){
+  if((flag==0 || flag==1) && fnorm != 0.0){
     // Get KINSOL stats
     flag = KINGetNumFuncEvals(kinsol_ptr,&nfevals);
     flag = KINGetNumNonlinSolvIters(kinsol_ptr, &nsteps);
@@ -450,13 +481,13 @@ int main(int argc, char *argv[])
 
     }
     // Find maximum T-Twall and its location
-    max_temperature_jump = FindMaximumParallel(num_local_points,
-                                               &flame_params.z_[0],
-                                               1,
-                                               &temperature_jump[0],
-                                               1,
-                                               true, // use quadratic
-                                               &z_max_temperature_jump);
+    max_temperature_jump = FindMaximum(num_local_points,
+                                       &flame_params.z_[0],
+                                       1,
+                                       &temperature_jump[0],
+                                       1,
+                                       true, // use quadratic
+                                       &z_max_temperature_jump);
 
     // Get min/max of sum(Y_i) and velocity
     min_sum_mass_fraction = minSumMassFractions(flame_state_ptr,flame_params);
@@ -499,9 +530,16 @@ int main(int argc, char *argv[])
     } // if(my_pe==0)
 
     if(num_prints % flame_params.parser_->field_dt_multiplier() == 0) {
+#ifdef ZERORK_MPI
       WriteFieldParallel(1.0,
                          &flame_state_ptr[0],
                          flame_params);
+#else
+      WriteFieldSerial(1.0,
+                       &flame_state_ptr[0],
+                       flame_params);
+#endif
+
     }
   } // if(flag==0)
 
@@ -512,7 +550,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  loop_time = GetHighResolutionTime() - clock_time;
+  loop_time = getHighResolutionTime() - clock_time;
 
   // Clear before sens analysis?
   KINFree(&kinsol_ptr);
@@ -524,7 +562,7 @@ int main(int argc, char *argv[])
     // Perform flame speed sensitivity analysis
     if(my_pe==0) printf("Performing flame speed sensitivity analysis\n");
 
-    clock_time = GetHighResolutionTime();
+    clock_time = getHighResolutionTime();
     double multiplier = 2.0; //read from input file?
     rxnSens_t *rxnSensList;
     rxnSensList = new rxnSens_t[num_reactions];
@@ -645,7 +683,7 @@ int main(int argc, char *argv[])
       }
       fclose(sensFile);
     }
-    sensanal_time = GetHighResolutionTime() - clock_time;
+    sensanal_time = getHighResolutionTime() - clock_time;
 
 
   } //if flame_speed_sensitivity
@@ -659,10 +697,13 @@ int main(int argc, char *argv[])
   }
 
   /*------------------------------------------------------------------------*/
-
+#ifdef ZERORK_MPI
   N_VDestroy_Parallel(flame_state);
   N_VDestroy_Parallel(scaler);
-
+#else
+  N_VDestroy_Serial(flame_state);
+  N_VDestroy_Serial(scaler);
+#endif
   if(my_pe==0) {
     printf("# Simulation setup time   [s]: %12.5e\n",setup_time);
     printf("# Time in integrator loop [s]: %12.5e\n",loop_time);
@@ -676,19 +717,25 @@ int main(int argc, char *argv[])
   if(flame_params.integrator_type_ == 2) {
     if(flame_params.superlu_serial_) {
       flame_params.sparse_matrix_->SparseMatrixClean();
+#ifdef ZERORK_MPI
     } else {
       flame_params.sparse_matrix_dist_->SparseMatrixClean_dist();
+#endif
     }
+#ifdef ZERORK_MPI
     MPI_Finalize();
+#endif
   } else {
+#ifdef ZERORK_MPI
     MPI_Finalize();
+#endif
   }
   return 0;
 }
 
 
 // Find maximum and its location
-static double FindMaximumParallel(const size_t num_points,
+static double FindMaximum(const size_t num_points,
                           const double x[],
                           const size_t x_stride,
                           const double f[],
@@ -712,23 +759,28 @@ static double FindMaximumParallel(const size_t num_points,
     }
   }
 
+#ifdef ZERORK_MPI
   // Compute global maximum
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   in.index += myrank*num_points;
-
   MPI_Allreduce(&in,&out,1,MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-
+#else
+  out.index = in.index;
+  out.value = in.value;
+#endif
   *x_at_max = x[out.index];
 
   return out.value;
 }
 
+#ifdef ZERORK_MPI
 // Write state variables to binary file
 static void WriteFieldParallel(double t,
 			       const double state[],
 			       const FlameParams &params)
 {
   int num_grid_points = (int)params.z_.size();
+  int num_grid_points_ext = (int)params.z_.size() + 1; // left BC
   int num_local_points = (int)params.num_local_points_;
   int num_reactor_states = params.reactor_->GetNumStates();
   int my_pe, npes;
@@ -760,7 +812,7 @@ static void WriteFieldParallel(double t,
 
   // Write header
   if(my_pe == 0) {
-    MPI_File_write(output_file, &num_grid_points, 1, MPI_INT, MPI_STATUS_IGNORE);//num points
+    MPI_File_write(output_file, &num_grid_points_ext, 1, MPI_INT, MPI_STATUS_IGNORE);//num points
     MPI_File_write(output_file, &num_reactor_states, 1, MPI_INT, MPI_STATUS_IGNORE);//num variables
     MPI_File_write(output_file, &t, 1, MPI_DOUBLE, MPI_STATUS_IGNORE); //time
     for(int j=0; j<num_reactor_states; ++j) {
@@ -773,6 +825,20 @@ static void WriteFieldParallel(double t,
 
   // Write data for each variable
   for(int j=0; j<num_reactor_states; ++j) {
+    // Write left BC data
+    if(j==num_reactor_states-2) {
+      buffer[0] = params.inlet_relative_volume_;
+    } else if (j==num_reactor_states-1) {
+      buffer[0] = params.inlet_temperature_*params.ref_temperature_;
+    } else {
+      buffer[0] = params.inlet_mass_fractions_[j];
+    }
+    disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
+      + j*(npes*num_local_points+1)*sizeof(double);
+    MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
+    MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+    // Write interior data
     for (int k=0; k<num_local_points; ++k) {
       buffer[k] = state[k*num_reactor_states + j];
       if(j==num_reactor_states-2){
@@ -783,22 +849,103 @@ static void WriteFieldParallel(double t,
       }
     }
     disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
-      + j*npes*num_local_points*sizeof(double);
+      + sizeof(double)
+      + j*(npes*num_local_points+1)*sizeof(double);
     MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
     MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
   }
   // Write mass flux
+  // Left BC
+  buffer[0] = state[num_reactor_states-2]; //?
+  disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
+    + num_reactor_states*(npes*num_local_points+1)*sizeof(double);
+  MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
+  MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+  // Interior
   for (int k=0; k<num_local_points; ++k) {
     buffer[k] = state[k*num_reactor_states + num_reactor_states-2];
   }
   disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
-    + num_reactor_states*npes*num_local_points*sizeof(double);
+    + sizeof(double)
+    + num_reactor_states*(npes*num_local_points+1)*sizeof(double);
   MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
   MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
   MPI_File_close(&output_file);
 
   MPI_Type_free(&localarray);
+}
+#endif
+
+// Write state variables to binary file
+static void WriteFieldSerial(double t,
+			       const double state[],
+			       const FlameParams &params)
+{
+  int num_grid_points = (int)params.z_.size();
+  int num_grid_points_ext = (int)params.z_.size() + 1; // left BC
+  int num_local_points = (int)params.num_local_points_;
+  int num_reactor_states = params.reactor_->GetNumStates();
+  char filename[32], *basename;
+
+  int disp;
+  std::vector<double> buffer;
+  buffer.assign(num_local_points, 0.0);
+
+  ofstream output_file;
+
+  basename = "data_";
+  sprintf(filename, "%s%f", basename, t);
+
+  output_file.open(filename, ios::binary | ios::out);
+
+  // Write header
+  output_file.write((char*)&num_grid_points_ext, sizeof(int));
+  output_file.write((char*)&num_reactor_states, sizeof(int));
+  output_file.write((char*)&t, sizeof(double));
+  for(int j=0; j<num_reactor_states; j++) {
+    std::string state_name = params.reactor_->GetNameOfStateId(j);
+    char buf[64];
+    strcpy(buf, state_name.c_str());
+    output_file.write((char*)&buf, 64*sizeof(char));
+  }
+
+  // Write data for each variable
+  for(int j=0; j<num_reactor_states; ++j) {
+    // Write left BC data
+    if(j==num_reactor_states-2) {
+      buffer[0] = params.inlet_relative_volume_;
+    } else if (j==num_reactor_states-1) {
+      buffer[0] = params.inlet_temperature_*params.ref_temperature_;
+    } else {
+      buffer[0] = params.inlet_mass_fractions_[j];
+    }
+    output_file.write((char*)&buffer[0], sizeof(double));
+
+    // Write interior data
+    for (int k=0; k<num_local_points; ++k) {
+      buffer[k] = state[k*num_reactor_states + j];
+      if(j==num_reactor_states-2){
+	buffer[k] = params.rel_vol_[k];
+      }
+      if(j==num_reactor_states-1){
+	buffer[k] *= params.ref_temperature_;
+      }
+    }
+    output_file.write((char*)&buffer[0], num_local_points*sizeof(double));
+  }
+  // Write mass flux
+  // Left BC
+  buffer[0] = state[num_reactor_states-2]; //?
+  output_file.write((char*)&buffer[0], sizeof(double));
+
+  // Interior
+  for (int k=0; k<num_local_points; ++k) {
+    buffer[k] = state[k*num_reactor_states + num_reactor_states-2];
+  }
+  output_file.write((char*)&buffer[0], num_local_points*sizeof(double));
+  output_file.close();
 }
 
 
@@ -842,8 +989,12 @@ static double minSumMassFractions(const double state[],
       local_min = sum_mass_fraction;
     }
   }
-
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_min,&global_min,1,PVEC_REAL_MPI_TYPE,MPI_MIN,MPI_COMM_WORLD);
+#else
+  global_min = local_min;
+#endif
+
   return global_min;
 }
 static double maxSumMassFractions(const double state[],
@@ -866,8 +1017,11 @@ static double maxSumMassFractions(const double state[],
       local_max = sum_mass_fraction;
     }
   }
-
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&global_max,1,PVEC_REAL_MPI_TYPE,MPI_MAX,MPI_COMM_WORLD);
+#else
+  global_max = local_max;
+#endif
   return global_max;
 }
 static double minVelocity(const double state[],
@@ -886,8 +1040,11 @@ static double minVelocity(const double state[],
       local_min = velocity;
     }
   }
-
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_min,&global_min,1,PVEC_REAL_MPI_TYPE,MPI_MIN,MPI_COMM_WORLD);
+#else
+  global_min = local_min;
+#endif
   return global_min;
 }
 static double maxVelocity(const double state[],
@@ -906,8 +1063,11 @@ static double maxVelocity(const double state[],
       local_max = velocity;
     }
   }
-
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&global_max,1,PVEC_REAL_MPI_TYPE,MPI_MAX,MPI_COMM_WORLD);
+#else
+  global_max = local_max;
+#endif
   return global_max;
 }
 static double GetDensityFromYTP(const int grid_id,
@@ -979,13 +1139,13 @@ static int GetStateMaxima(const std::vector<int> &state_id,
 
   for(size_t j=0; j<state_id.size(); ++j) {
 
-    state_max = FindMaximumParallel(num_local_points,
-				    &params.z_[0],
-				    1,
-				    &state[state_id[j]],
-				    num_reactor_states,
-				    true, // use quadratic
-				    &state_max_position);
+    state_max = FindMaximum(num_local_points,
+                            &params.z_[0],
+                            1,
+                            &state[state_id[j]],
+                            num_reactor_states,
+                            true, // use quadratic
+                            &state_max_position);
     if(state_id[j] == num_reactor_states-1) {
       // temperature
       state_max*=params.ref_temperature_;
@@ -995,16 +1155,6 @@ static int GetStateMaxima(const std::vector<int> &state_id,
   }
 
   return 0;
-}
-
-static double GetHighResolutionTime()
-{
-    struct timeval time_of_day;
-
-    gettimeofday(&time_of_day, NULL);
-    double time_seconds =
-      (double) time_of_day.tv_sec + ((double) time_of_day.tv_usec / 1000000.0);
-    return time_seconds;
 }
 
 static int GetFuelSpeciesId(const FlameParams &params,

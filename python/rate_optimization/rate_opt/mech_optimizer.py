@@ -39,6 +39,11 @@ class mech_optimizer(object):
             if 'REAC' == line.strip().upper()[0:4]:
                 reaction_section=True
                 self.prelines.append(line)
+#                for token in line.strip().upper().split():
+#                    if token in self.e_unit_conversion_map:
+#                        self.e_unit_conversion = self.e_unit_conversion_map(token)
+#                        if self.e_unit_conversion is None:
+#                            raise ValueError("Unsupported energy units.")
                 continue
             if reaction_section:
                 if 'END' == line.strip().upper()[0:3]:

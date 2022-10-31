@@ -5,6 +5,7 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "set_initial_conditions.h"
 
@@ -43,7 +44,7 @@ void SetInitialComposition(FlameParams &flame_params, N_Vector yvec, double *tim
   MPI_Comm comm = flame_params.comm_;
 
   // Restart using binary file if provided
-  if(flame_params.parser_->restart_file() != std::string("/dev/null")) {
+  if(flame_params.parser_->restart_file() != std::string(zerork::utilities::null_filename)) {
     const char* filename1;//[32];
     char filename2[32];
     int num_points_file, num_vars_file;
@@ -71,7 +72,7 @@ void SetInitialComposition(FlameParams &flame_params, N_Vector yvec, double *tim
     MPI_File_read_all(restart_file, &time_file, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
     *time = time_file;
 
-    string file_state_names[num_vars_file];
+    std::vector<string> file_state_names(num_vars_file);
     for(int j=0; j<num_vars_file; ++j) {
       char buf[64];
       MPI_File_read_all(restart_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE);
@@ -83,10 +84,10 @@ void SetInitialComposition(FlameParams &flame_params, N_Vector yvec, double *tim
       y[k] = 0.0;
 
     for(int j=0; j<num_states; ++j) {
-      string state_name = flame_params.reactor_->GetNameOfStateId(j);
+      string state_name = zerork::utilities::GetLowerCase(flame_params.reactor_->GetNameOfStateId(j));
       for(int i=0; i<num_vars_file; ++i) {
-        //if(state_name == file_state_names[i]) {
-        if(strcasecmp(state_name.c_str(),file_state_names[i].c_str()) == 0 ) {
+        string file_state_name = zerork::utilities::GetLowerCase(file_state_names[i]);
+        if(state_name == file_state_name) {
           // Read restart_file
           disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
             + i*2*sizeof(double) // Left & right BCs from previous variables
@@ -195,7 +196,7 @@ void SetInitialComposition(FlameParams &flame_params, N_Vector yvec, double *tim
              comm);
 
   if(my_pe == 0) {
-    if(flame_params.flame_type_ == 0 or flame_params.flame_type_ == 2) {
+    if(flame_params.flame_type_ == 0 || flame_params.flame_type_ == 2) {
       // Find grid point closest to old stagnation point location
       int jStart;
       for(int j=0; j<num_points; j++) {

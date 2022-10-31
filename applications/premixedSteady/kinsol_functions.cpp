@@ -27,15 +27,21 @@ int ConstPressureFlameComm(int nlocal,
 			   void *user_data)
 {
   FlameParams *params = (FlameParams *)user_data;
-  double *y_ptr    = NV_DATA_P(y);
+#ifdef ZERORK_MPI
+  double *y_ptr = NV_DATA_P(y);
+#else
+  double *y_ptr = NV_DATA_S(y);
+#endif
   const int num_local_points = params->num_local_points_;
   const int num_states  = params->reactor_->GetNumStates();
   const int num_species = params->inlet_mass_fractions_.size();
   int my_pe = params->my_pe_;
   int npes  = params->npes_;
 
+#ifdef ZERORK_MPI
   MPI_Comm comm = params->comm_;
   MPI_Status status;
+#endif
   const int nover = params->nover_;
   long int dsize = num_states*nover;
   long int dsize_rel = nover;
@@ -60,6 +66,7 @@ int ConstPressureFlameComm(int nlocal,
   for (int j=0; j<num_local_points; ++j)
     params->rel_vol_ext_[nover+j] = params->rel_vol_[j];
 
+#ifdef ZERORK_MPI
   // MPI sendrecv
   int nodeDest = my_pe-1;
   if (nodeDest < 0) nodeDest = npes-1;
@@ -78,6 +85,7 @@ int ConstPressureFlameComm(int nlocal,
 	       &params->y_ext_[0], dsize, PVEC_REAL_MPI_TYPE, nodeFrom, 0, comm, &status);
   MPI_Sendrecv(&params->rel_vol_ext_[num_local_points], dsize_rel, PVEC_REAL_MPI_TYPE, nodeDest, 0,
   	       &params->rel_vol_ext_[0], dsize_rel, PVEC_REAL_MPI_TYPE, nodeFrom, 0, comm, &status);
+#endif
 
   return 0;
 }
@@ -88,16 +96,22 @@ int ConstPressureFlameLocal(int nlocal,
 			    void *user_data)
 {
   FlameParams *params = (FlameParams *)user_data;
+#ifdef ZERORK_MPI
   double *y_ptr    = NV_DATA_P(y);   // caution: assumes realtype == double
   double *ydot_ptr = NV_DATA_P(ydot); // caution: assumes realtype == double
-
+#else
+  double *y_ptr = NV_DATA_S(y);
+  double *ydot_ptr = NV_DATA_S(ydot);
+#endif
   const int num_local_points = params->num_local_points_;
   const int num_states  = params->reactor_->GetNumStates();
   const int num_species = params->inlet_mass_fractions_.size();
   const int num_local_states = num_local_points*num_states;
   const int convective_scheme_type = params->convective_scheme_type_;
 
+#ifdef ZERORK_MPI
   MPI_Comm comm = params->comm_;
+#endif
   int my_pe = params->my_pe_;
   int npes  = params->npes_;
 
@@ -318,7 +332,9 @@ int ConstPressureFlameLocal(int nlocal,
       e = 0;
     } else {
       printf("Undefined convective scheme \n");
+#ifdef ZERORK_MPI
       MPI_Finalize();
+#endif
       exit(0);
     }
 
@@ -439,13 +455,15 @@ int ConstPressureFlameLocal(int nlocal,
   // Parallel communication for finite difference jacobian
   // TO DO: Move to a separate function?
   if(params->integrator_type_ == 2 || params->integrator_type_ == 3) {
+#ifdef ZERORK_MPI
     MPI_Status status;
+#endif
     long int dsize = num_states*nover;
 
     // Copy y_ptr and ydot_ptr into larger arrays
     for (int j=0; j<num_states*num_local_points; ++j)
       params->rhs_ext_[num_states*nover + j] = ydot_ptr[j];
-
+#ifdef ZERORK_MPI
     // MPI sendrecv
     int nodeDest = my_pe-1;
     if (nodeDest < 0) nodeDest = npes-1;
@@ -461,6 +479,7 @@ int ConstPressureFlameLocal(int nlocal,
     if (nodeFrom < 0) nodeFrom = npes-1;
     MPI_Sendrecv(&params->rhs_ext_[num_states*num_local_points], dsize, PVEC_REAL_MPI_TYPE, nodeDest,
 		 0, &params->rhs_ext_[0], dsize, PVEC_REAL_MPI_TYPE, nodeFrom, 0, comm, &status);
+#endif
   }
 
   // -------------------------------------------------------------------------
@@ -476,7 +495,11 @@ int ConstPressureFlameLocal(int nlocal,
 	dzm[jext]/params->rel_vol_[j];
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_sum,&sum_omega_F,1,PVEC_REAL_MPI_TYPE,MPI_SUM,comm);
+#else
+  sum_omega_F = local_sum;
+#endif
   double sum_inlet_fuel_mass_fractions = 0.0;
   for(int k=0; k<num_fuel_species; ++k) {
     sum_inlet_fuel_mass_fractions += params->inlet_mass_fractions_[params->fuel_species_id_[k]];
@@ -494,7 +517,11 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = velocity;
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&params->max_velocity_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
+#else
+  params->max_velocity_ = local_max;
+#endif
 
   // Compute flame thick l_F = (T_max - T_min)/|gradT|_max
   double local_temperature;
@@ -506,8 +533,11 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = local_temperature;
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&params->max_temperature_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
-
+#else
+  params->max_temperature_ = local_max;
+#endif
   double gradT;
   local_max = 0.0;
   for(int j=0; j<num_local_points; ++j) {
@@ -518,7 +548,11 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = gradT;
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&params->flame_thickness_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
+#else
+  params->flame_thickness_ = local_max;
+#endif
   params->flame_thickness_ = (params->max_temperature_-params->inlet_temperature_)/
     params->flame_thickness_;
 
@@ -528,8 +562,9 @@ int ConstPressureFlameLocal(int nlocal,
     params->flame_thickness_alpha_ = params->thermal_conductivity_[0]/
       params->inlet_relative_volume_/params->mixture_specific_heat_[0]/params->flame_speed_;
   }
+#ifdef ZERORK_MPI
   MPI_Bcast(&params->flame_thickness_alpha_, 1, MPI_DOUBLE, 0, comm);
-
+#endif
 
   // compute the max thermal diffusivity using the average value of the
   // conductivity and the up and downstream interfaces
@@ -543,8 +578,11 @@ int ConstPressureFlameLocal(int nlocal,
       local_max = thermal_diffusivity;
     }
   }
+#ifdef ZERORK_MPI
   MPI_Allreduce(&local_max,&params->max_thermal_diffusivity_,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
-
+#else
+  params->max_thermal_diffusivity_ = local_max;
+#endif
   return 0;
 }
 
@@ -573,8 +611,13 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
   const int num_local_states = num_states*num_local_points;
   const int num_total_points = params->num_points_;
   const int num_total_states = num_states*num_total_points;
+#ifdef ZERORK_MPI
   double *y_ptr          = NV_DATA_P(y);
   double *ydot_ptr       = NV_DATA_P(ydot);
+#else
+  double *y_ptr = NV_DATA_S(y);
+  double *ydot_ptr = NV_DATA_S(ydot);
+#endif
   int error_flag = 0;
   double alpha = 1.0e-6;
   double beta = 1.0e-14;
@@ -650,6 +693,7 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
     ydot_ptr[j] = rhs_ext_saved[jext];
   }
 
+#ifdef ZERORK_MPI
   // Perform parallel communication of jacobian
   MPI_Comm comm = params->comm_;
   MPI_Status status;
@@ -667,6 +711,7 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
   nodeFrom = my_pe-1;
   if (nodeFrom < 0) nodeFrom = npes-1;
   MPI_Sendrecv(&jac_bnd[num_states*num_local_points*width], dsize_jac_bnd, PVEC_REAL_MPI_TYPE, nodeDest, 0, &jac_bnd[0], dsize_jac_bnd, PVEC_REAL_MPI_TYPE, nodeFrom, 0, comm, &status);
+#endif
 
   // Get pattern "manually" for now
   // TODO: find a cleaner way
@@ -712,6 +757,7 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
       error_flag =
 	params->sparse_matrix_->FactorSamePattern(&params->reactor_jacobian_dist_[0]);
     } //if first factor
+#ifdef ZERORK_MPI
   } else {
     if(params->sparse_matrix_dist_->IsFirstFactor_dist()) {
       error_flag =
@@ -726,6 +772,7 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
 							       &params->row_sum_[0],
 							       &params->reactor_jacobian_dist_[0]);
     } //if first factor
+#endif
   } // if superlu serial
 
   return error_flag;
@@ -751,13 +798,19 @@ int ReactorBBDSolve(N_Vector y, // [in] state vector
 {
 #endif
   FlameParams *params = (FlameParams *)user_data;
+#ifdef ZERORK_MPI
   double *solution = NV_DATA_P(vv);
+#else
+  double *solution = NV_DATA_S(vv);
+#endif
   int error_flag = 0;
 
   if(params->superlu_serial_) {
     error_flag = params->sparse_matrix_->Solve(&solution[0],&solution[0]);
+#ifdef ZERORK_MPI
   } else {
     error_flag = params->sparse_matrix_dist_->Solve_dist(&solution[0],&solution[0]);
+#endif
   }
 
   return error_flag;
@@ -792,7 +845,11 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
   const int num_total_points = params->num_points_;
   const int num_nonzeros_zerod = params->reactor_->GetJacobianSize();
   const int num_states_local = params->num_states_local_;
+#ifdef ZERORK_MPI
   double *y_ptr          = NV_DATA_P(y);
+#else
+  double *y_ptr = NV_DATA_S(y);
+#endif
   int error_flag = 0;
   bool Tfix = false;
   double constant = 1.0e6;//1.0e6
@@ -843,7 +900,9 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
       dp = -dz[jext+2]/dz[jext+1]/(dz[jext+1]+dz[jext+2]);
     } else {
       printf("Undefined convective scheme \n");
+#ifdef ZERORK_MPI
       MPI_Finalize();
+#endif
       exit(0);
     }
 
@@ -1132,6 +1191,7 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
     }
   }
 
+#ifdef ZERORK_MPI
   // Communications to solve banded transport Jacobian
   // Each processor handles the full grid for a subset of species
   MPI_Comm comm = params->comm_;
@@ -1144,17 +1204,22 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
     int jlocal = j % params->num_states_per_proc_;
     int start_band = j*(num_local_points*5);
     int start_band2 = jlocal*(num_total_points*5);
+    double* dest = params->my_pe_ == nodeDest ? &params->banded_jacobian2_[start_band2] : nullptr;
 
     MPI_Gather(&params->banded_jacobian_[start_band],
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
-    	       &params->banded_jacobian2_[start_band2],
+               dest,
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
 	       nodeDest,
     	       comm);
   }
-
+#else
+  for(int j=0; j<params->banded_jacobian2_.size(); j++) {
+    params->banded_jacobian2_[j] = params->banded_jacobian_[j];
+  }
+#endif
   // Reorder
   for(int j=0; j<num_states_local; ++j) {
     for(int i=0; i<num_total_points; ++i) {
@@ -1201,7 +1266,11 @@ int ReactorAFSolve(N_Vector y, // [in] state vector
 		   void *user_data) // [in/out]
 {
 #endif
+#ifdef ZERORK_MPI
   double *solution = NV_DATA_P(vv);
+#else
+  double *solution = NV_DATA_S(vv);
+#endif
   int error_flag = 0;
 
   error_flag = AFSolve(&solution[0], user_data);
@@ -1217,12 +1286,13 @@ void ErrorFunction(int error_code,
                    void *user_data)
 {
   FlameParams *params = (FlameParams *)user_data;
-  MPI_Comm comm = params->comm_;
+
 
   printf("Error: %s\n",msg);
-
+#ifdef ZERORK_MPI
+  MPI_Comm comm = params->comm_;
   MPI_Abort(comm, error_code);
-
+#endif
 }
 
 // Solve approximately factorized Jacobian
@@ -1250,7 +1320,9 @@ int AFSolve(double solution[],
 
   // Banded transport
   // Communications for banded_jacobian2
+#ifdef ZERORK_MPI
   MPI_Comm comm = params->comm_;
+#endif
   long int dsize = num_local_points;
   int nodeDest, nodeFrom;
 
@@ -1263,23 +1335,29 @@ int AFSolve(double solution[],
     for(int i=0; i<num_local_points; ++i)
       solution_species[j*num_local_points+i] = solution[j+i*num_states];
 
+#ifdef ZERORK_MPI
   // Gather all grid points for each species
   for(int j=0; j<num_states; ++j) {
     nodeDest = j/params->num_states_per_proc_;
     int jlocal = j % params->num_states_per_proc_;
     int start_id = j*num_local_points;
     int start_id2 = jlocal*num_total_points;
+    double* dest = params->my_pe_ == nodeDest ? &solution_allspecies[start_id2] : nullptr;
 
     MPI_Gather(&solution_species[start_id],
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
-    	       &solution_allspecies[start_id2],
+               dest,
     	       dsize,
     	       PVEC_REAL_MPI_TYPE,
 	       nodeDest,
     	       comm);
   }
-
+#else
+  for(int j=0; j<solution_allspecies.size(); j++) {
+    solution_allspecies[j] = solution_species[j];
+  }
+#endif
   // Solve banded matrix for each species
   int dim = num_total_points;
   int one = 1;
@@ -1301,15 +1379,16 @@ int AFSolve(double solution[],
     if(error_flag != 0)
       printf("AFSolve banded matrix error: %d\n", error_flag);
   }
-
+#ifdef ZERORK_MPI
   //Scatter back the solution vector for each species
   for(int j=0; j<num_states; ++j) {
     nodeFrom = j/params->num_states_per_proc_;
     int jlocal = j % params->num_states_per_proc_;
     int start_id = j*num_local_points;
     int start_id2 = jlocal*num_total_points;
+    double* source = params->my_pe_ == nodeFrom ? &solution_allspecies[start_id2] : nullptr;
 
-    MPI_Scatter(&solution_allspecies[start_id2],
+    MPI_Scatter(source,
     		dsize,
     		PVEC_REAL_MPI_TYPE,
     		&solution_species[start_id],
@@ -1318,7 +1397,10 @@ int AFSolve(double solution[],
     		nodeFrom,
     		comm);
   }
-
+#else
+  for(int j=0; j<solution_allspecies.size(); j++)
+    solution_species[j] = solution_allspecies[j];
+#endif
   // Reorder solution vector by grid points
   for(int j=0; j<num_states; ++j)
     for(int i=0; i<num_local_points; ++i)
@@ -1333,17 +1415,22 @@ int SensitivityAnalysis(N_Vector y,
 			void *user_data)
 {
   FlameParams *params = (FlameParams *)user_data;
+#ifdef ZERORK_MPI
   double *y_ptr    = NV_DATA_P(y);   // caution: assumes realtype == double
   double *ydot_ptr= NV_DATA_P(ydot);   // caution: assumes realtype == double
-
+#else
+  double *y_ptr = NV_DATA_S(y);
+  double *ydot_ptr = NV_DATA_S(ydot);
+#endif
   const int num_local_points = params->num_local_points_;
   const int num_states  = params->reactor_->GetNumStates();
   const int num_species = params->inlet_mass_fractions_.size();
   const int num_local_states = num_local_points*num_states;
   const int num_reactions = params->reactor_->GetNumReactions();
   const int num_steps = params->reactor_->GetNumSteps();
-
+#ifdef ZERORK_MPI
   MPI_Comm comm = params->comm_;
+#endif
   int my_pe = params->my_pe_;
 
   int error_flag = 0;
@@ -1415,8 +1502,11 @@ int SensitivityAnalysis(N_Vector y,
         local_high = fabs(sens_rhs[k*num_local_states + j*num_states+num_species+1]);
       }
     }
+#ifdef ZERORK_MPI
     MPI_Allreduce(&local_high,&high,1,PVEC_REAL_MPI_TYPE,MPI_MAX,comm);
-
+#else
+    high = local_high;
+#endif
     rxnSensList[k].relSens = high;
     rxnSensList[k].rxnId = k;
   }

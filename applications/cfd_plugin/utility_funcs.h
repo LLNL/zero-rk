@@ -12,8 +12,6 @@ std::vector<size_t> sort_indexes(const std::vector<T> &v);
 template <typename T>
 std::vector<size_t> sort_indexes_pointer(const size_t n, const T* v);
 
-double getHighResolutionTime(void);
-
 void print_sp_matrix(int m,int n, int* colSum, int* rowIdx, double* avals);
 void print_sp_matrix_csr(int m,int n, int* rowSum, int* colIdx, double* avals);
 

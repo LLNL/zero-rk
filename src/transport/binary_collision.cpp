@@ -1,3 +1,6 @@
+#ifdef WIN32
+#define _USE_MATH_DEFINES //for M_PI
+#endif
 #include "math.h"
 
 #include <zerork/constants.h>

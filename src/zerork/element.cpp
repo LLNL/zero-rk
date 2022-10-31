@@ -1,18 +1,11 @@
 #include <stdio.h>
-#include <stdlib.h> // needed for exit()
 #include <string.h>
+#include <assert.h>
 #include "element.h"
 #include "atomicMassDB.h"
 #include "utilities.h"
 
 namespace zerork {
-
-#ifdef EXIT_THROWS_EXCEPTION
-  // create a local function to overide the system exit and throw an exception
-  // with the status integer.
-  static void exit(int status) {throw status;}
-#endif // EXIT_THROWS_EXCEPTION
-
   
 element::element()
 {
@@ -23,6 +16,7 @@ element::element()
 
 element::element(const int num, const double m, const char *sym)
 {
+  assert(("Element out of range", num >=1 && num <= MAX_ATOMIC_NUM_DB));
   number = num;
   mass   = atomicMassDB[num-1];
   strncpy(symbol,sym,3);
@@ -33,56 +27,38 @@ element::element(const int num, const double m, const char *sym)
 // atomicMassDB.h
 element::element(const int num)
 {
-  if(num >= 1 && num <= MAX_ATOMIC_NUM_DB)
-    {
-      number = num;
-      mass   = atomicMassDB[num-1];
-      strcpy(symbol,atomicSymbolDB[num-1]);
-    }
-  else if(num > MAX_ATOMIC_NUM_DB)
-    {
-      printf("ERROR: You should not be playing with element %d\n",num);
-      exit(-1);   // replace hard quit with exception handling
-    }
-  else
-    {
-      printf("ERROR: element %d does not exist\n",num);
-      exit(-1);   // replace hard quit with exception handling
-    }
+  assert(("Element out of range", num >=1 && num <= MAX_ATOMIC_NUM_DB));
+  number = num;
+  mass   = atomicMassDB[num-1];
+  strcpy(symbol,atomicSymbolDB[num-1]);
 }
-void element::setElement(const int num, const double m, const char *sym)
+
+bool element::setElement(const int num, const double m, const char *sym)
 {
+  assert(("Element out of range", num >=1 && num <= MAX_ATOMIC_NUM_DB));
   number = num;
   mass   = atomicMassDB[num-1];
   strncpy(symbol,sym,3);
   symbol[2]='\0'; // ensure that the symbol character array is terminated
+  return true;
 }
 
 // set element using the atomic number with the weight and symbol defined
 // in atomicMassDB.h
-void element::setElement(const int num)
+bool element::setElement(const int num)
 {
-  if(num >= 1 && num <= MAX_ATOMIC_NUM_DB)
-    {
-      number = num;
-      mass   = atomicMassDB[num-1];
-      strcpy(symbol,atomicSymbolDB[num-1]);
-    }
-  else if(num > MAX_ATOMIC_NUM_DB)
-    {
-      printf("ERROR: You should not be playing with element %d\n",num);
-      exit(-1);   // replace hard quit with exception handling
-    }
-  else
-    {
-      printf("ERROR: element %d does not exist\n",num);
-      exit(-1);   // replace hard quit with exception handling
-    }
+  if(num < 1 && num > MAX_ATOMIC_NUM_DB) {
+    return false;
+  }
+  number = num;
+  mass   = atomicMassDB[num-1];
+  strcpy(symbol,atomicSymbolDB[num-1]);
+  return true;
 }
 
 // set element using the case insensitive symbol with the weight and atomic
 // number defined in atomicMassDB.h
-void element::setElement(const char *sym)
+bool element::setElement(const char *sym)
 {
   int j,foundNum;
   char lowerCaseSym[3],lowerCaseDB[3];
@@ -101,16 +77,14 @@ void element::setElement(const char *sym)
 	{foundNum=j+1;}
       j++;
     }
-  if(foundNum==0)
-    {
-      printf("ERROR: could not find element %s (%s) in the database\n",
-	     sym,lowerCaseSym);
-      exit(-1);
-    }
+  if(foundNum==0) {
+    return false;
+  }
   
   number = foundNum;
   mass   = atomicMassDB[foundNum-1];
   strcpy(symbol,atomicSymbolDB[foundNum-1]);  
+  return true;
 }
 
 element::~element()

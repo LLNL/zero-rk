@@ -1,0 +1,134 @@
+#!/bin/bash
+
+outputs_dir=outputs_gpu
+if [ -d ${outputs_dir} ]
+then
+  rm -r ${outputs_dir}
+fi
+mkdir ${outputs_dir}
+
+setYMLScalar()
+{
+  file=$1
+  scalar_name=$2
+  scalar_val=$3
+  sed "s|^\ *${scalar_name}\ *:\ *.*$|${scalar_name}: ${scalar_val}|" $file > ${outputs_dir}/tmp.yml
+  mv ${outputs_dir}/tmp.yml $file
+}
+
+runSims() {
+  name=$1
+  mechFile=$2
+  thermFile=$3
+  sparseThresh=$4
+  ignitionDelayTime=$5
+  dodense=$6
+
+  ignitionDelayTime=`echo ${ignitionDelayTime} | sed 's/[eE]/\\*10\\^/' | sed 's/+//'`
+  simTime=$(echo "scale=20; ${ignitionDelayTime} * 2" | bc)
+
+
+  initFuelMassFracs=`grep -v "^#" inputs/${name}_fracs.log | egrep -iv '^\<O2\>|^\<N2\>' | sed 's/$/,/'`
+  initFuelMassFracs=`echo $initFuelMassFracs`  #strip newlines
+  initOxidMassFracs=`grep -v "^#" inputs/${name}_fracs.log | egrep -i  '^\<O2\>|^\<N2\>' | sed 's/$/,/'`
+  initOxidMassFracs=`echo $initOxidMassFracs`  #strip newlines
+
+  infile=${outputs_dir}/${name}_input.yml
+  zrkfile=${outputs_dir}/${name}_zerork.yml
+  cp inputs/base_tester.yml $infile
+  cp inputs/base_plugin.yml $zrkfile
+
+  setYMLScalar $infile mechanism_file $mechFile
+  setYMLScalar $infile thermo_file $thermFile
+  setYMLScalar $infile solution_time $simTime
+  setYMLScalar $infile fuel_composition "{ $initFuelMassFracs }"
+  setYMLScalar $infile oxidizer_composition "{ $initOxidMassFracs }"
+  setYMLScalar $infile zerork_cfd_plugin_input $zrkfile
+  setYMLScalar $infile n_reactors 32 
+
+  setYMLScalar $zrkfile preconditioner_threshold $sparseThresh
+  setYMLScalar $zrkfile mechanism_parsing_log ${outputs_dir}/${name}.cklog
+
+  zerork_exe=@CMAKE_INSTALL_PREFIX@/bin/zerork_cfd_plugin_tester_gpu.x
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib
+  export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@CMAKE_INSTALL_PREFIX@/lib64
+
+  #Dense 
+  if [ "x"$dodense == "xY" ]
+  then
+    echo "Running ${name} Dense"
+    setYMLScalar $zrkfile gpu 0
+    setYMLScalar $zrkfile dense 1
+    setYMLScalar $zrkfile analytic 0
+    setYMLScalar $zrkfile iterative 0
+    setYMLScalar $zrkfile reactor_timing_log ${outputs_dir}/${name}_dense.log
+    setYMLScalar $infile reactor_history_file_prefix ${outputs_dir}/${name}_dense
+    $zerork_exe $infile >& ${outputs_dir}/${name}_dense.stdout
+  fi
+
+  #Sparse
+  echo "Running ${name} Sparse"
+  setYMLScalar $zrkfile gpu 0
+  setYMLScalar $zrkfile dense 0
+  setYMLScalar $zrkfile analytic 1
+  setYMLScalar $zrkfile iterative 1
+  setYMLScalar $zrkfile reactor_timing_log ${outputs_dir}/${name}_sparse.log
+  setYMLScalar $infile reactor_history_file_prefix ${outputs_dir}/${name}_sparse
+  $zerork_exe $infile >& ${outputs_dir}/${name}_sparse.stdout
+
+  ## GPU
+  setYMLScalar $infile n_reactors 2048
+
+  #Dense 
+  if [ "x"$dodense == "xY" ]
+  then
+    echo "Running ${name} Dense GPU"
+    setYMLScalar $zrkfile gpu 1
+    setYMLScalar $zrkfile dense 1
+    setYMLScalar $zrkfile analytic 0
+    setYMLScalar $zrkfile iterative 0
+    setYMLScalar $zrkfile reactor_timing_log ${outputs_dir}/${name}_dense_gpu.log
+    setYMLScalar $infile reactor_history_file_prefix ${outputs_dir}/${name}_dense_gpu
+    $zerork_exe $infile >& ${outputs_dir}/${name}_dense_gpu.stdout
+  fi
+
+  #Sparse
+  echo "Running ${name} Sparse GPU"
+  setYMLScalar $zrkfile gpu 1
+  setYMLScalar $zrkfile dense 0
+  setYMLScalar $zrkfile analytic 1
+  setYMLScalar $zrkfile iterative 1
+  setYMLScalar $zrkfile reactor_timing_log ${outputs_dir}/${name}_sparse_gpu.log
+  setYMLScalar $infile reactor_history_file_prefix ${outputs_dir}/${name}_sparse_gpu
+  $zerork_exe $infile >& ${outputs_dir}/${name}_sparse_gpu.stdout
+
+  rm $infile
+  rm $zrkfile
+}
+
+
+nm=h2
+mf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt
+tf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1a_therm.txt
+st=3.20e-5
+idt=8.2565998e-07
+
+runSims $nm $mf $tf $st $idt Y
+
+nm=dme
+mf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/dme/dme_24_mech.txt
+tf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/dme/dme_24_therm.txt
+st=6.40e-5
+idt=1.1e-05
+
+runSims $nm $mf $tf $st $idt Y
+
+nm=nc7h16-skel
+mf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-heptane_reduced/heptanesymp159_mec.txt
+tf=@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-heptane_reduced/heptanesymp_therm.txt
+st=1.28e-4
+idt=1.35e-05
+
+runSims $nm $mf $tf $st $idt N
+
+

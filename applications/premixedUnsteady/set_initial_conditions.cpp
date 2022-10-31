@@ -5,8 +5,11 @@
 #include <fstream>
 #include <utilities/string_utilities.h>
 #include <utilities/math_utilities.h>
+#include <utilities/file_utilities.h>
 
 #include "set_initial_conditions.h"
+
+using zerork::utilities::GetLowerCase;
 
 // Set all grid points to the inlet conditions including temperature
 void SetConstantInlet(FlameParams &flame_params, double *y)
@@ -141,7 +144,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
   // If initial_profile_file is provided, overwrite and
   // interpolate species and temperature profiles from FlameMaster solution
-  if(flame_params.parser_->initial_profile_file() != std::string("/dev/null")) {
+  if(flame_params.parser_->initial_profile_file() != std::string(zerork::utilities::null_filename)) {
     std::vector<double> file_position, file_temperature, file_density, file_fields;
     std::ifstream initial_profile_file;
     std::string line;
@@ -227,10 +230,10 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
     } // for k species
 
-  } // if initial_profile_file isn't "/dev/null"
+  } // if initial_profile_file isn't zerork::utilities::null_filename
 
   // If binary restart_file is provided, overwrite with that
-  if(flame_params.parser_->restart_file() != std::string("/dev/null")) {
+  if(flame_params.parser_->restart_file() != std::string(zerork::utilities::null_filename)) {
     const char* filename1;//[32];
     char filename2[32];
     int num_points_file, num_vars_file;
@@ -241,6 +244,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     buffer.assign(num_local_points, 0.0);
     double time_file = 0.0;
 
+#ifdef ZERORK_MPI
     MPI_File restart_file;
     npes = flame_params.npes_;
 
@@ -258,7 +262,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     MPI_File_read_all(restart_file, &time_file, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
     *time = time_file;
 
-    string file_state_names[num_vars_file];
+    std::vector<string> file_state_names(num_vars_file);
     for(int j=0; j<num_vars_file; ++j) {
       char buf[64];
       MPI_File_read_all(restart_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE);
@@ -272,11 +276,14 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
     // Read data for each variable
     for(int j=0; j<num_states; ++j) {
-      string state_name = flame_params.reactor_->GetNameOfStateId(j);
+      string state_name = GetLowerCase(flame_params.reactor_->GetNameOfStateId(j));
       for(int i=0; i<num_vars_file; ++i) {
-        if(strcasecmp(state_name.c_str(),file_state_names[i].c_str()) == 0 ) {
+        string file_state_name = GetLowerCase(file_state_names[i]);
+        if(file_state_name.compare(state_name) == 0 ) {
           // Read restart_file
           disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
+            + i*sizeof(double) //left BC from previous vars
+            + sizeof(double) //left BC from cur var
             + (my_pe + i*npes)*num_local_points*sizeof(double);
           MPI_File_set_view(restart_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
           MPI_File_read(restart_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
@@ -299,6 +306,8 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
     // Read mass flux
     disp = 2*sizeof(int) + sizeof(double) + num_vars_file*sizeof(char)*64
+      + num_vars_file*sizeof(double) //left BC from prev vars
+      + sizeof(double) // left BC from cur var
       + (my_pe + num_vars_file*npes)*num_local_points*sizeof(double);
     MPI_File_set_view(restart_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
     MPI_File_read(restart_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
@@ -308,7 +317,70 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     }
 
     MPI_File_close(&restart_file);
+#else
+    filename1 = flame_params.parser_->restart_file().c_str();
+    sprintf(filename2,"%s",filename1);
+    ifstream restart_file (filename2, ios::in | ios::binary);
 
+    restart_file.read((char*)&num_points_file, sizeof(int));
+    restart_file.read((char*)&num_vars_file, sizeof(int));
+    if(num_vars_file != num_states) {
+      cerr << "WARNING: restart file and mechanism have different number of species. Species not found will be initialized at 0.\n";
+    }
+    restart_file.read((char*)&time_file, sizeof(double));
+    *time = time_file;
+
+    std::vector<string> file_state_names(num_vars_file);
+    for(int j=0; j<num_vars_file; ++j) {
+      char buf[64];
+      restart_file.read((char*)&buf, 64*sizeof(char));
+      file_state_names[j] = string(buf);
+    }
+
+    // Initialize y to 0
+    for (int k=0; k<num_local_points*num_states; ++k) {
+      y[k] = 0.0;
+    }
+    double bc;
+
+    // Read data for each variable
+    for(int j=0; j<num_states; ++j) {
+      string state_name = GetLowerCase(flame_params.reactor_->GetNameOfStateId(j));
+      for(int i=0; i<num_vars_file; ++i) {
+        string file_state_name = GetLowerCase(file_state_names[i]);
+        if(file_state_name.compare(state_name) == 0 ) {
+          // Read restart_file
+          restart_file.read((char*)&bc, sizeof(double)); //read/skip BC
+          restart_file.read((char*)&buffer[0], num_local_points*sizeof(double));
+
+          // Set y values
+          for (int k=0; k<num_local_points; ++k) {
+            y[k*num_states + j] = buffer[k];
+            if(j==num_states-1){
+              y[k*num_states + j] /= flame_params.ref_temperature_;
+            }
+          }
+          // Exit i loop
+          break;
+        }
+        if (i==num_vars_file-1 && state_name != file_state_names[i]) {
+          // Variable not found
+          cerr << "WARNING: " << state_name << " not found in restart file.\n";
+        }
+      } // for i<num_vars_file
+    } // for j<num_states
+
+    // Read mass flux
+    restart_file.read((char*)&bc, sizeof(double)); //read/skip BC
+    restart_file.read((char*)&buffer[0], num_local_points*sizeof(double));
+
+    for (int k=0; k<num_local_points; ++k) {
+      flame_params.mass_flux_[k] = buffer[k];
+    }
+
+    restart_file.close();
+
+#endif
   } // if restart_file
 
 }
