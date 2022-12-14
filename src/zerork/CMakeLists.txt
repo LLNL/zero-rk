@@ -16,6 +16,10 @@ target_include_directories(zerork PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURC
                                          $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../>
                                          $<INSTALL_INTERFACE:include>)
 
+if(HAVE_ALIGNED_ALLOC)
+  target_compile_definitions(zerork PRIVATE "HAVE_ALIGNED_ALLOC")
+endif()
+
 set(public_headers atomicMassDB.h constants.h constants_api.h
    element.h elemental_composition.h external_funcs.h fast_exps.h
    info_net.h mechanism.h nasa_poly.h non_integer_reaction_network.h

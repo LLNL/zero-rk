@@ -10,7 +10,7 @@ superlu_manager_z::superlu_manager_z() :
   zCreate_Dense_Matrix(&m_X,1,1,NULL,1, SLU_DN,SLU_Z,SLU_GE);
   set_default_options(&m_options);
   m_options.ColPerm = MY_PERMC;
-  m_options.RowPerm = LargeDiag;
+  m_options.RowPerm = LargeDiag_MC64;
   m_options.Equil   = YES;
 
   StatInit(&m_stats);

@@ -32,8 +32,8 @@ To speed up the build process, parallel builds can be enabled for the build depe
 
 | package            |           versions          |
 | -------            |           --------          |
-| `sundials`         | 2.7.0, 3.2.1, 4.1.0, 5.3.0  |
-| `SuperLU`          | 5.2.1                       | 
+| `sundials`         | 2.7.0, 3.2.1, 4.1.0, 5.8.0  |
+| `SuperLU`          | 5.3.0                       | 
 | `SuperLU_DIST`     | 6.4.0                       | 
 
 Other versions may work, but have not been tested.  For older `sundials` versions the cmake variable `SUNDIALS_VERSION` needs to be set to the appropriate major version number (e.g. `cmake ../ -DSUNDIALS_VERSION=4`).

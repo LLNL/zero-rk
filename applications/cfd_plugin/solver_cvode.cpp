@@ -14,17 +14,21 @@
 #include <cvode/cvode_direct.h>
 #include <cvode/cvode_spils.h>
 #include <sunmatrix/sunmatrix_dense.h>
+#include <sunlinsol/sunlinsol_dense.h>
 #include <sunlinsol/sunlinsol_spgmr.h>
-#include <sunlinsol/sunlinsol_lapackdense.h>
 #elif SUNDIALS4
 #include <sunmatrix/sunmatrix_dense.h>
+#ifdef ZERORK_HAVE_SUNDIALS_LAPACK
 #include <sunlinsol/sunlinsol_lapackdense.h>
-#include <sunlinsol/sunlinsol_spgmr.h>
-#include <sunnonlinsol/sunnonlinsol_newton.h>
 #define ZERORK_USE_LAPACK_DENSE_MATRIX
 #ifdef ZERORK_USE_LAPACK_DENSE_MATRIX
 #include "interfaces/zrkmatrix/zrkmatrix_lapackdense.h"
 #endif
+#else
+#include <sunlinsol/sunlinsol_dense.h>
+#endif
+#include <sunlinsol/sunlinsol_spgmr.h>
+#include <sunnonlinsol/sunnonlinsol_newton.h>
 #endif
 
 #ifdef ZERORK_GPU
@@ -126,7 +130,7 @@ int CvodeSolver::Integrate(const double end_time) {
 #elif defined SUNDIALS3
       int NEQ = reactor_ref_.GetNumStateVariables();
       A = SUNDenseMatrix(NEQ, NEQ);
-      LS = SUNLinSol_LapackDense(state, A);
+      LS = SUNDenseLinearSolver(state, A);
       flag = CVDlsSetLinearSolver(cvode_mem, LS, A);
       check_cvode_flag(&flag, "CVDlsSetLinearSolver", 1);
       if(int_options_["analytic"]) {
@@ -138,12 +142,17 @@ int CvodeSolver::Integrate(const double end_time) {
       }
 #elif defined SUNDIALS4
       int NEQ = reactor_ref_.GetNumStateVariables();
+#ifdef ZERORK_HAVE_SUNDIALS_LAPACK
 #ifdef ZERORK_USE_LAPACK_DENSE_MATRIX
       A = ZRKDenseLapackMatrix(NEQ, NEQ);
 #else
       A = SUNDenseMatrix(NEQ, NEQ);
 #endif
       LS = SUNLinSol_LapackDense(state, A);
+#else
+      A = SUNDenseMatrix(NEQ, NEQ);
+      LS = SUNLinSol_Dense(state, A);
+#endif
       flag = CVodeSetLinearSolver(cvode_mem, LS, A);
       check_cvode_flag(&flag, "CVodeSetLinearSolver", 1);
       if(int_options_["analytic"]) {

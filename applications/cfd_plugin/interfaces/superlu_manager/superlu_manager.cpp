@@ -11,9 +11,9 @@ superlu_manager::superlu_manager() :
   dCreate_Dense_Matrix(&m_X,1,1,NULL,1,SLU_DN,SLU_D,SLU_GE);
   set_default_options(&m_options);
   m_options.ColPerm = MY_PERMC;
-  m_options.RowPerm = LargeDiag;
+  m_options.RowPerm = LargeDiag_MC64;
   m_options.Equil   = YES;
-  //m_options.DiagPivotThresh = 0.0;
+  m_options.DiagPivotThresh = 0.0;
 
   StatInit(&m_stats);
 }
@@ -33,10 +33,6 @@ superlu_manager::~superlu_manager()
 void superlu_manager::setup_memory(int n, int nnz, const int* indexes, const int* sums, const double* values) {
   m_M.nrow = n;
   m_M.ncol = n;
-  ((NCformat *)m_M.Store)->nnz = nnz;
-  ((NCformat *)m_M.Store)->nzval = const_cast<double*>(values);
-  ((NCformat *)m_M.Store)->rowind = const_cast<int*>(indexes);
-  ((NCformat *)m_M.Store)->colptr = const_cast<int*>(sums);
 
   m_colPermutation.assign(n,0);
   m_rowPermutation.assign(n,0);
@@ -78,6 +74,11 @@ int superlu_manager::factor(int n,
   if(nnz != m_last_factor_nnz || n != m_last_factor_n) {
     setup_memory(n, nnz, indexes, sums, values);
   }
+
+  ((NCformat *)m_M.Store)->nnz = nnz;
+  ((NCformat *)m_M.Store)->nzval = const_cast<double*>(values);
+  ((NCformat *)m_M.Store)->rowind = const_cast<int*>(indexes);
+  ((NCformat *)m_M.Store)->colptr = const_cast<int*>(sums);
 
   if(m_factored) {
     Destroy_SuperNode_Matrix(&m_L);

@@ -57,6 +57,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   //Manager Options
   int_options_["verbosity"] = 4;
   int_options_["sort_reactors"]= 1;
+  int_options_["load_balance_mem"] = 1;
 
   //Solver options
   int_options_["max_steps"] = 1000000;
@@ -139,6 +140,7 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
   //TODO: Don't over-ride if options file used default value?
   int_options_["verbosity"] = inputFileDB.verbosity();
   int_options_["sort_reactors"] = inputFileDB.sort_reactors();
+  int_options_["load_balance_mem"] = inputFileDB.load_balance_mem();
 
   int_options_["max_steps"] = inputFileDB.max_steps();
   int_options_["dense"] = inputFileDB.dense();
@@ -290,11 +292,7 @@ void ZeroRKReactorManager::AssignGpuId() {
 }
 #endif
 
-#ifndef USE_MPI
-int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
-  return 0;
-}
-#else
+#ifdef USE_MPI
 int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
   MPI_Status status;
   int n_recv_reactors;
@@ -327,13 +325,22 @@ int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
   mf_other_.resize(n_reactors_other_*num_species_);
 
   std::vector<double> recv_buf(tx_count_per_reactor_+extra_tx_count);
+  if(int_options_["load_balance_mem"] != 0) {
+    recv_buf.resize((tx_count_per_reactor_+extra_tx_count)*n_recv_reactors);
+    MPI_Recv(&recv_buf[0],(tx_count_per_reactor_+extra_tx_count)*n_recv_reactors,
+             MPI_DOUBLE, send_rank, EXCHANGE_SEND_TAG_,
+             MPI_COMM_WORLD, &status);
+  }
+  size_t buf_idx = 0;
   for(size_t i = 0; i < n_recv_reactors; ++i, ++recv_idx) {
      //Bring 'em in
-     MPI_Recv(&recv_buf[0],tx_count_per_reactor_+extra_tx_count,
-              MPI_DOUBLE, send_rank, EXCHANGE_SEND_TAG_,
-              MPI_COMM_WORLD, &status);
+     if(int_options_["load_balance_mem"] == 0) {
+       MPI_Recv(&recv_buf[0],tx_count_per_reactor_+extra_tx_count,
+                MPI_DOUBLE, send_rank, EXCHANGE_SEND_TAG_,
+                MPI_COMM_WORLD, &status);
+       buf_idx = 0;
+     }
      //Unpack 'em
-     size_t buf_idx = 0;
      memcpy(&mf_other_[recv_idx*num_species_], &recv_buf[buf_idx],
             sizeof(double)*num_species_);
      buf_idx += num_species_;
@@ -359,6 +366,7 @@ int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
      memcpy(&rc_other_[recv_idx], &recv_buf[buf_idx], sizeof(double));
      buf_idx += 1;
      memcpy(&temp_delta_other_[recv_idx], &recv_buf[buf_idx], sizeof(double));
+     buf_idx += 1;
   }
   if(reactor_ids_defined_) {
      reactor_ids_other_.resize(n_reactors_other_);
@@ -371,9 +379,7 @@ int ZeroRKReactorManager::RecvReactors(size_t send_rank) {
 #endif
 
 
-#ifndef USE_MPI
-void ZeroRKReactorManager::SendReactors(std::vector<size_t> send_reactor_idxs, size_t recv_rank) {}
-#else
+#ifdef USE_MPI
 void ZeroRKReactorManager::SendReactors(std::vector<size_t> send_reactor_idxs, size_t recv_rank) {
   int send_nreactors = (int) send_reactor_idxs.size();
   MPI_Send(&send_nreactors,1,
@@ -387,9 +393,17 @@ void ZeroRKReactorManager::SendReactors(std::vector<size_t> send_reactor_idxs, s
   if(dpdt_defined_) extra_tx_count+=1;
   if(e_src_defined_) extra_tx_count+=1;
   if(y_src_defined_) extra_tx_count+=num_species_;
-  std::vector<double> send_buf(tx_count_per_reactor_+extra_tx_count);
+  std::vector<double> send_buf;
+  if(int_options_["load_balance_mem"] == 0) {
+    send_buf.resize(tx_count_per_reactor_+extra_tx_count);
+  } else {
+    send_buf.resize((tx_count_per_reactor_+extra_tx_count)*send_nreactors);
+  }
+  int buf_idx = 0;
   for(int i = 0; i < send_nreactors; ++i) {
-    int buf_idx = 0;
+    if(int_options_["load_balance_mem"] == 0) {
+      buf_idx = 0;
+    }
     int send_idx = send_reactor_idxs[i];
     memcpy(&send_buf[buf_idx], &mf_self_[send_idx*num_species_stride_],
            sizeof(double)*num_species_);
@@ -416,7 +430,15 @@ void ZeroRKReactorManager::SendReactors(std::vector<size_t> send_reactor_idxs, s
     memcpy(&send_buf[buf_idx], &rc_self_[send_idx], sizeof(double));
     buf_idx += 1;
     memcpy(&send_buf[buf_idx], &temp_delta_self_[send_idx], sizeof(double));
-    MPI_Send(&send_buf[0], tx_count_per_reactor_+extra_tx_count,
+    buf_idx += 1;
+
+    if(int_options_["load_balance_mem"] == 0) {
+      MPI_Send(&send_buf[0], tx_count_per_reactor_+extra_tx_count,
+               MPI_DOUBLE, (int) recv_rank, EXCHANGE_SEND_TAG_, MPI_COMM_WORLD);
+    }
+  }
+  if(int_options_["load_balance_mem"] != 0) {
+    MPI_Send(&send_buf[0], send_nreactors*(tx_count_per_reactor_+extra_tx_count),
              MPI_DOUBLE, (int) recv_rank, EXCHANGE_SEND_TAG_, MPI_COMM_WORLD);
   }
   if(reactor_ids_defined_) {
@@ -1098,23 +1120,41 @@ zerork_status_t ZeroRKReactorManager::RedistributeResults()
       int send_nreactors = comm_mtx_reactors_[i];
       if(send_nreactors > 0)
       {
-        //TODO: send single buffer
+        std::vector<double> send_buf(6+num_species_);
+        if(int_options_["load_balance_mem"] != 0) {
+          send_buf.resize((6+num_species_)*send_nreactors);
+        }
+        int buf_idx = 0;
         for(int k = 0; k < send_nreactors; ++k) {
-          MPI_Send(&rg_other_[send_idx], 1, MPI_DOUBLE,
-                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
-          MPI_Send(&rc_other_[send_idx], 1, MPI_DOUBLE,
-                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
-          MPI_Send(&T_other_[send_idx], 1, MPI_DOUBLE,
-                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
-          MPI_Send(&P_other_[send_idx], 1, MPI_DOUBLE,
-                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
-          MPI_Send(&root_times_other_[send_idx], 1, MPI_DOUBLE,
-                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
-          MPI_Send(&temp_delta_other_[send_idx], 1, MPI_DOUBLE,
-                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
-          MPI_Send(&mf_other_[send_idx*num_species_], num_species_,
-                   MPI_DOUBLE, recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
+          if(int_options_["load_balance_mem"] == 0) {
+            buf_idx = 0;
+          }
+          send_buf[buf_idx] = rg_other_[send_idx];
+          buf_idx += 1;
+          send_buf[buf_idx] = rc_other_[send_idx];
+          buf_idx += 1;
+          send_buf[buf_idx] = T_other_[send_idx];
+          buf_idx += 1;
+          send_buf[buf_idx] = P_other_[send_idx];
+          buf_idx += 1;
+          send_buf[buf_idx] = root_times_other_[send_idx];
+          buf_idx += 1;
+          send_buf[buf_idx] = temp_delta_other_[send_idx];
+          buf_idx += 1;
+          for(int j = 0; j < num_species_; ++j) {
+            send_buf[buf_idx] = mf_other_[send_idx*num_species_+j];
+            buf_idx += 1;
+          }
+
+          if(int_options_["load_balance_mem"] == 0) {
+            MPI_Send(&send_buf[0], 6+num_species_, MPI_DOUBLE,
+                     recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
+          }
           send_idx += 1;
+        }
+        if(int_options_["load_balance_mem"] != 0) {
+          MPI_Send(&send_buf[0], (6+num_species_)*send_nreactors, MPI_DOUBLE,
+                   recv_rank, EXCHANGE_RETURN_TAG_,MPI_COMM_WORLD);
         }
       }
     }
@@ -1131,30 +1171,42 @@ zerork_status_t ZeroRKReactorManager::RedistributeResults()
         int recv_rank = sorted_deficit_idxs_[sorted_recv_rank];
         if(recv_rank == rank_) {
           int recv_nreactors = comm_mtx_reactors_[j];
-          for(int k = 0; k < recv_nreactors; ++k) {
-            recv_idx -= 1;
-            size_t sorted_recv_idx = sorted_reactor_idxs_[recv_idx];
-            MPI_Recv(&rg_self_[sorted_recv_idx], 1, MPI_DOUBLE,
-                     send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
-                     &status);
-            MPI_Recv(&rc_self_[sorted_recv_idx], 1, MPI_DOUBLE,
-                     send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
-                     &status);
-            MPI_Recv(&T_self_[sorted_recv_idx], 1, MPI_DOUBLE,
-                     send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
-                     &status);
-            MPI_Recv(&P_self_[sorted_recv_idx], 1, MPI_DOUBLE,
-                     send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
-                     &status);
-            MPI_Recv(&root_times_self_[sorted_recv_idx], 1, MPI_DOUBLE,
-                     send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
-                     &status);
-            MPI_Recv(&temp_delta_self_[sorted_recv_idx], 1, MPI_DOUBLE,
-                     send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
-                     &status);
-            MPI_Recv(&mf_self_[sorted_recv_idx*num_species_stride_], num_species_,
-                     MPI_DOUBLE, send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
-                     &status);
+          if(recv_nreactors > 0) {
+            std::vector<double> recv_buf(6+num_species_);
+            if(int_options_["load_balance_mem"] != 0) {
+              recv_buf.resize((6+num_species_)*recv_nreactors);
+              MPI_Recv(&recv_buf[0], (6+num_species_)*recv_nreactors, MPI_DOUBLE,
+                       send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
+                       &status);
+            }
+            int buf_idx = 0;
+            for(int k = 0; k < recv_nreactors; ++k) {
+              recv_idx -= 1;
+              size_t sorted_recv_idx = sorted_reactor_idxs_[recv_idx];
+              if(int_options_["load_balance_mem"] == 0) {
+                MPI_Recv(&recv_buf[0], 6+num_species_, MPI_DOUBLE,
+                         send_rank, EXCHANGE_RETURN_TAG_, MPI_COMM_WORLD,
+                         &status);
+
+                buf_idx = 0;
+              }
+              rg_self_[sorted_recv_idx] = recv_buf[buf_idx];
+              buf_idx += 1;
+              rc_self_[sorted_recv_idx] = recv_buf[buf_idx];
+              buf_idx += 1;
+              T_self_[sorted_recv_idx] = recv_buf[buf_idx];
+              buf_idx += 1;
+              P_self_[sorted_recv_idx] = recv_buf[buf_idx];
+              buf_idx += 1;
+              root_times_self_[sorted_recv_idx] = recv_buf[buf_idx];
+              buf_idx += 1;
+              temp_delta_self_[sorted_recv_idx] = recv_buf[buf_idx];
+              buf_idx += 1;
+              for(int kk = 0; kk < num_species_; ++kk) {
+                mf_self_[sorted_recv_idx*num_species_stride_+kk] = recv_buf[buf_idx];
+                buf_idx += 1;
+              }
+            }
           }
         }
       }
@@ -1341,7 +1393,7 @@ void ZeroRKReactorManager::UpdateRankWeights() {
 
       gpu_multiplier_ = 0.5*gpu_multiplier_ + 0.5*gpu_ratio*gpu_multiplier_;
 
-      double sum_weights;
+      double sum_weights = 0.0;
       for(int i = 0; i < nranks_; ++i) {
         if(rank_has_gpu_[i]) {
           rank_weights_[i] = gpu_multiplier_;

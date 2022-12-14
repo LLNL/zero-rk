@@ -7,22 +7,23 @@
 #include "constants.h"
 #include "fast_exps.h"
 
+#ifndef HAVE_ALIGNED_ALLOC
 #if defined(__APPLE__)
-//C11 aligned alloc not available in Mac OS X as of July 2020
 static inline void* aligned_alloc(size_t alignment, size_t size)
 {
         void* p;
         int flag = posix_memalign(&p, alignment, size);
         return (flag == 0) ? p : 0;
 }
-#define _aligned_free free
 #elif defined(WIN32)
 static inline void* aligned_alloc(size_t alignment, size_t size)
 {
         void* p = _aligned_malloc(size, alignment);
         return (p == nullptr) ? 0 : p;
 }
-#else
+#endif
+#endif
+#ifndef WIN32
 #define _aligned_free free
 #endif
 

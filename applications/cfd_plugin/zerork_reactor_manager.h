@@ -148,8 +148,10 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   static const int EXCHANGE_SEND_TAG_ = 42;
   static const int EXCHANGE_RETURN_TAG_ = 43;
 
+#if USE_MPI
   int RecvReactors(size_t send_rank);
   void SendReactors(std::vector<size_t> send_reactor_idxs, size_t recv_rank);
+#endif
 
   void ProcessPerformance();
 

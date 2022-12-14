@@ -19,7 +19,7 @@ set(COMMON_SRCS utility_funcs.cpp
        interfaces/seulex_cpp/seulex_cpp.cpp)
 
 
-if(${SUNDIALS_VERSION} EQUAL "4" OR ${SUNDIALS_VERSION} EQUAL "5")
+if(ZERORK_ENABLE_SUNDIALS_LAPACK)
   #In principle this should be somewhere higher up, but here is OK for now 
   include(FortranCInterface)
   FortranCInterface_HEADER(
@@ -43,12 +43,11 @@ endif()
 
 target_link_libraries(zerork_cfd_plugin zerork zerorkutilities superlu spify sundials_cvode
                       sundials_nvecserial)
-
-if(${SUNDIALS_VERSION} EQUAL "4" OR ${SUNDIALS_VERSION} EQUAL "5")
+if(${ZERORK_ENABLE_SUNDIALS_LAPACK})
   target_link_libraries(zerork_cfd_plugin sundials_sunlinsollapackdense)
 endif()
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
   target_link_options(zerork_cfd_plugin PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)
 endif()
 target_link_libraries(zerork_cfd_plugin_tester.x zerork_cfd_plugin)
@@ -102,7 +101,11 @@ if(${SUNDIALS_VERSION} EQUAL "5")
   target_include_directories(zerork_cfd_plugin_gpu PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
   target_link_libraries(zerork_cfd_plugin_gpu zerork_cuda zerork zerorkutilities superlu spify
-                        sundials_nveccuda sundials_cvode sundials_nvecserial sundials_sunlinsollapackdense cublas cusolver cudart)
+                        sundials_nveccuda sundials_cvode sundials_nvecserial cublas cusolver cudart)
+  if(${ZERORK_ENABLE_SUNDIALS_LAPACK})
+    target_link_libraries(zerork_cfd_plugin_gpu sundials_sunlinsollapackdense)
+  endif()
+
   if(${ZERORK_HAVE_MAGMA})
     target_link_libraries(zerork_cfd_plugin_gpu sundials_sunlinsolmagmadense sundials_sunmatrixmagmadense magma)
   endif()

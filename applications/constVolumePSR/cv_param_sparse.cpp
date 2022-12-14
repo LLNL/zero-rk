@@ -324,7 +324,7 @@ Jsparse * alloc_Jsparse(zerork::mechanism &mechInp, double tol,
      options.PivotGrowth = NO;
      options.ConditionNumber = NO;
      options.PrintStat = YES;
-     options.RowPerm = LargeDiag;
+     options.RowPerm = LargeDiag_MC64;
      options.ILU_DropTol = 1e-4;
      options.ILU_FillTol = 1e-2;
      options.ILU_FillFactor = 10.0;
@@ -344,7 +344,7 @@ Jsparse * alloc_Jsparse(zerork::mechanism &mechInp, double tol,
 //   w->optionSLU.ColPerm = COLAMD;
 //   w->optionSLU.ColPerm = MMD_ATA;
   w->optionSLU.ColPerm = MY_PERMC;
-  w->optionSLU.RowPerm = LargeDiag;
+  w->optionSLU.RowPerm = LargeDiag_MC64;
   w->optionSLU.Equil=YES;
 //   w->optionSLU.SymmetricMode = YES; //Small DiagPivotThresh and MMD_AT_PLUS_A
 

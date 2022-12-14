@@ -1,8 +1,15 @@
 
+set(SUNDIALS_VERSION "5" CACHE STRING "Sundials major version interface")
+set_property(CACHE SUNDIALS_VERSION PROPERTY STRINGS "2;3;4;5")
+
+cmake_dependent_option(ZERORK_ENABLE_SUNDIALS_LAPACK 
+                       "Enable LAPACK in Sundials; only for Sundials-5 on Linux/Mac"
+                       ON "SUNDIALS_VERSION EQUAL 5;NOT WIN32" OFF)
+
 set(sundials_libs nvecserial nvecparallel cvode cvodes kinsol ida arkode)
 
-if(NOT (${SUNDIALS_VERSION} EQUAL "2"))
-set(sundials_libs "${sundials_libs};sunlinsollapackdense")
+if(${ZERORK_ENABLE_SUNDIALS_LAPACK})
+  set(sundials_libs "${sundials_libs};sunlinsollapackdense")
 endif()
 
 set(SUNDIALS_IFACE_NUM ${SUNDIALS_VERSION})
@@ -70,6 +77,9 @@ foreach(LIBRARY ${sundials_libs})
   INTERFACE_COMPILE_DEFINITIONS SUNDIALS${SUNDIALS_IFACE_NUM})
   if(${ZERORK_HAVE_MAGMA})
     target_link_libraries(sundials_${LIBRARY} INTERFACE magma)
+  endif()
+  if(${ZERORK_ENABLE_SUNDIALS_LAPACK})
+    set_property(TARGET sundials_${LIBRARY} APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS ZERORK_HAVE_SUNDIALS_LAPACK)
   endif()
   ##target_compile_definitions(sundials_${LIBRARY} INTERFACE SUNDIALS${SUNDIALS_IFACE_NUM} JACOBIAN_SIZE_LONG_INT)
 endforeach()

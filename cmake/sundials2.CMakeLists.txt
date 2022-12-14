@@ -8,7 +8,6 @@ ExternalProject_Add(
   URL        https://github.com/LLNL/sundials/archive/v2.7.0.tar.gz
   URL_HASH   MD5=b1724826fe7289164264750377e52664
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${sundials_prefix}
-             -DLAPACK_ENABLE=ON
              -DEXAMPLES_ENABLE=OFF
              -DEXAMPLES_INSTALL=OFF
              -DMPI_ENABLE=${ENABLE_MPI}

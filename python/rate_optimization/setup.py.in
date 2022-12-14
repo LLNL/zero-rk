@@ -1,21 +1,5 @@
 from setuptools import setup
 
-
-setup(name='rate_opt',
-      version='0.0.1',
-      description='Chemkin-style Mechanism Rate Optimizer',
-      classifiers=[
-        'Programming Language :: Python :: 3.8',
-        'Intended Audience :: Science/Research',
-        'Topic :: Scientific/Engineering :: Chemistry',
-        'Topic :: Scientific/Engineering :: Physics',
-        'Topic :: Scientific/Engineering :: Combustion'
-      ],
-      keywords='zerork zeror-rk kinetics',
-      author='Russell Whitesides',
-      author_email='whitesides1@llnl.gov',
-      packages=['rate_opt'],
-      package_data={'rate_opt': ['data/*.yml']},
-      install_requires=[ 'ruamel.yaml', 'numpy', 'scipy', 'matplotlib' ],
+setup(package_data={'rate_opt': ['data/*.yml']},
       zip_safe=False)
 

@@ -1,0 +1,22 @@
+[project]
+name = "rate_opt"
+version = "0.0.1"
+authors = [
+  { name="Russell Whitesides", email="whitesides1@llnl.gov" },
+]
+description='Chemkin-style Mechanism Rate Optimizer'
+#readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    'Programming Language :: Python :: 3',
+    'Intended Audience :: Science/Research',
+    'Topic :: Scientific/Engineering :: Chemistry',
+    'Topic :: Scientific/Engineering :: Physics',
+    'Topic :: Scientific/Engineering :: Combustion'
+]
+keywords=['zerork', 'zeror-rk', 'kinetics']
+dependencies = [ 'ruamel.yaml', 'numpy', 'scipy', 'matplotlib' ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

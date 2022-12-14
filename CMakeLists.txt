@@ -17,6 +17,7 @@ if(POLICY CMP0091)
 endif()
 
 project(zerork LANGUAGES C CXX Fortran VERSION 3.0.8)
+include(CMakeDependentOption)
 
 find_package (Python3 REQUIRED COMPONENTS Interpreter)
 
@@ -35,16 +36,11 @@ if(NOT CMAKE_BUILD_TYPE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-option(ENABLE_GPU "Enable CUDA libraries and applications." OFF)
 option(ENABLE_SHARED_LIBS "" OFF)
 option(ENABLE_MPI "" ON)
 option(ENABLE_OPENMP "Enable OpenMP (currently only used in cfd_plugin_tester)" OFF)
 option(ZERORK_TESTS "Enable Zero-RK Tests" ON)
 option(ZERORK_EXP_LIBC "Use libc exponential function instead of MKL/FMATH" OFF)
-set(SUNDIALS_VERSION "5" CACHE STRING "Sundials major version interface")
-set_property(CACHE SUNDIALS_VERSION PROPERTY STRINGS "2;3;4;5")
-option(ENABLE_MAGMA "" OFF)
-set(ZERORK_HAVE_MAGMA OFF)
 
 if(WIN32)
   set(ZERORK_EXTERNALS_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "Build type for external dependencies built during config.")
@@ -52,14 +48,6 @@ else()
   set(ZERORK_EXTERNALS_BUILD_TYPE "Release" CACHE STRING "Build type for external dependencies built during config.")
 endif()
 set_property(CACHE ZERORK_EXTERNALS_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-
-
-if(${ENABLE_GPU})
-  set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-  enable_language(CUDA)
-  set(CMAKE_CUDA_STANDARD 14)
-  set(CMAKE_CUDA_ARCHITECTURES 60 61 75)
-endif()
 
 if(${ENABLE_SHARED_LIBS})
   set(BUILD_SHARED_LIBS ON CACHE INTERNAL "")
@@ -77,6 +65,7 @@ endif()
 
 include(cmake/platform.cmake)
 include(cmake/git.cmake)
+include(cmake/gpu.cmake)
 include(cmake/spify.cmake)
 include(cmake/blas.cmake)
 include(cmake/lapack.cmake)
@@ -84,10 +73,6 @@ include(cmake/superlu.cmake)
 if(${ENABLE_MPI})
   include(cmake/superlu_dist.cmake)
 endif()
-if(${ENABLE_GPU})
-  include(cmake/gpu.cmake)
-endif()
-
 include(cmake/sundials.cmake)
 
 add_subdirectory(src)

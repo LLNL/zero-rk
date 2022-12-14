@@ -208,6 +208,16 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"load_balance_mem",
+    'type':'int',
+    'shortDesc' : "Which load-balancing memory option to use. 0 uses less memory but is slower than 1",
+    'defaultValue' : 1,
+    'boundMin': 0
+}
+)
+
+spify_parser_params.append(
+{
     'name':"reactor_weight_mult",
     'type':'int',
     'shortDesc' : "Another parameter to improve load balance",
