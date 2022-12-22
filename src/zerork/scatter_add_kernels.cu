@@ -49,7 +49,7 @@ __global__ void scatterAdd_gpu_atomic_global(const int nOps,
   {
       int threadSrcId  = srcId[blockIdx.y]*nData+tid;
       int threadDestId = destId[blockIdx.y]*nData+tid;
-  
+
       double val = src[threadSrcId];
       atomicAdd(&dest[threadDestId],val);
   }
@@ -539,6 +539,55 @@ __global__ void scatterAdd_gpu_atomic_global_fused(
         double val = 0.0;
         for(int k = 0; k < nAdd; k++) {
           val += src[threadSrcId[k]+tid];
+        }
+        atomicAdd(&dest[threadDestId],val);
+      }
+      __syncthreads();
+      nAdd /= 2;
+    }
+  }
+}
+
+__global__ void multScatterAdd_gpu_atomic_global_fused(
+                                      const int nOps[],
+                                      const int srcId[],
+				      const int destId[], 
+				      const double srcMult[], 
+				      const int nData,
+				      const int srcSize,
+				      const double src[],
+				      const int destSize,
+				      double dest[])
+{
+  int tid = blockDim.x*blockIdx.x+threadIdx.x;
+  if(tid < nData)
+  {
+    int nAdd = 128;
+    __shared__ int threadSrcId[128];
+    for(int j = 7; j >= 0; j--) {
+      int nOpsCurr = (nOps[j] - nOps[j+1])/nAdd;
+      int threadDestId;
+
+      if(blockIdx.y < nOpsCurr) {
+        const int* srcIdCurr = &srcId[nOps[j+1]];
+        const int* destIdCurr = &destId[nOps[j+1]];
+
+        int counter = threadIdx.x;
+        int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+        while(counter < nAdd)
+        {
+            threadSrcId[counter] = srcIdCurr[nAdd*blockIdx.y+counter];
+            counter += stride;
+        }
+        threadDestId = destIdCurr[nAdd*blockIdx.y]*nData+tid;
+      }
+
+      __syncthreads();
+
+      if(blockIdx.y < nOpsCurr) {
+        double val = 0.0;
+        for(int k = 0; k < nAdd; k++) {
+          val += srcMult[nOps[j+1]+nAdd*blockIdx.y+k]*src[threadSrcId[k]*nData+tid];
         }
         atomicAdd(&dest[threadDestId],val);
       }

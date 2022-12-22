@@ -26,7 +26,7 @@ class perf_net_cuda : public perf_net
            double *netOut_dev, double *createOut_dev, double *destroyOut_dev,
      double *stepOut_dev);
   int reorderScatterAdd_by_ntuple(const int ntuple, const int nOps, const int srcSize,
-                     const int destSize, int srcId[], int destId[]);
+                     const int destSize, int srcId[], int destId[], double* srcMult=nullptr);
 
  private:
   int *reactantSpcIdxListUnwrapped;
@@ -44,6 +44,17 @@ class perf_net_cuda : public perf_net
   double *netOut_dev;
   double *Tmulti_dev;
 
+  double* rop_concentration_powers_dev;
+  int *niReactantSpcIdxList_dev;
+  int *niReactantStepIdxList_dev;
+  double *niReactantStoichNumList_dev;
+  int *niProductSpcIdxList_dev;
+  int* niProductStepIdxList_dev;
+  double *niProductStoichNumList_dev;
+  int* nOpsDestroy_ni_dev;
+  int* nOpsCreate_ni_dev;
+
+
   int scatterAddCount;
   cudaStream_t * scatterAddStreams;
   //scatter add starting indicies
@@ -51,6 +62,11 @@ class perf_net_cuda : public perf_net
   int sa64d,sa32d,sa16d,sa8d,sa4d,sa2d,sa1d;
   int maxOpsDestroy;
   int maxOpsCreate;
+
+  int sa64c_ni,sa32c_ni,sa16c_ni,sa8c_ni,sa4c_ni,sa2c_ni,sa1c_ni;
+  int sa64d_ni,sa32d_ni,sa16d_ni,sa8d_ni,sa4d_ni,sa2d_ni,sa1d_ni;
+  int maxOpsDestroy_ni;
+  int maxOpsCreate_ni;
 
   double gpuKTime,gpuStepTime,gpuProdTime,gpuNetTime,gpuTxTime;
 };

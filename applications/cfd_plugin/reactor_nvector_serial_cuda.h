@@ -166,10 +166,21 @@ class ReactorNVectorSerialCuda : public ReactorBase
 
   // non-integer reaction network
   int num_noninteger_jacobian_nonzeros_;
-  std::vector<double> noninteger_jacobian_;
   std::vector<int>* noninteger_sparse_id_ptr_;
   std::vector<int> noninteger_sparse_id_temperature_;
   std::vector<int> noninteger_sparse_id_no_temperature_;
+  // Only needed for GPU calculation of non-integer jacobian
+  int num_noninteger_jacobian_terms_;
+  thrust::device_vector<int>* noninteger_term_id_dev_ptr_;
+  thrust::device_vector<int> noninteger_term_id_temperature_dev_;
+  thrust::device_vector<int> noninteger_term_id_no_temperature_dev_;
+  thrust::device_vector<int> noninteger_concentration_id_dev_;
+  thrust::device_vector<int> noninteger_step_id_dev_;
+  thrust::device_vector<double> noninteger_multiplier_dev_;
+  // Only needed for CPU calculation of non-integer jacobian
+  std::vector<double> noninteger_jacobian_;
+  thrust::host_vector<double> jacobian_data_nonint_;
+  thrust::device_vector<double> jacobian_data_nonint_dev_;
 
   thrust::device_vector<int> destruction_terms_conc_indexes_dev_;
   thrust::device_vector<int> destruction_terms_reac_indexes_dev_;

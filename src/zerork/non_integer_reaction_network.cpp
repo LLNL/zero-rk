@@ -212,7 +212,6 @@ int NonIntegerReactionNetwork::GetCreationRates(const double rates_of_progress[]
       static_cast<int>(params_[j].product_species_ids_.size());
 
     for(int k=0; k<num_terms; ++k) {
-
       creation_rates[params_[j].product_species_ids_[k]] +=
         params_[j].product_stoich_num_[k]*
         rates_of_progress[params_[j].step_id_];
@@ -232,7 +231,6 @@ int NonIntegerReactionNetwork::GetDestructionRates(const double rates_of_progres
       static_cast<int>(params_[j].reactant_species_ids_.size());
 
     for(int k=0; k<num_terms; ++k) {
-
       destruction_rates[params_[j].reactant_species_ids_[k]] +=
         params_[j].reactant_stoich_num_[k]*
         rates_of_progress[params_[j].step_id_];
@@ -267,6 +265,137 @@ double NonIntegerReactionNetwork::GetThermoChangeOfStep(const int step_id, const
       species_thermo[params_[list_id].rop_species_ids_[j]];
   }
   return thermo_sum;
+}
+
+int NonIntegerReactionNetwork::GetProductIndexOfStep(const int step_id, const int prod_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetProductIndexOfStep(step_id, prod_id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning -1.\n");
+    fflush(stdout);
+    return -1;
+  }
+
+  const int num_products = params_[list_id].reverse_rop_species_ids_.size();
+  if(prod_id >= num_products) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetReactantIndexOfStep(step_id, prod_id),\n");
+    printf("#          product id = %d is greater than number of products in reaction (%d)\n", prod_id, num_products);
+    printf("#          Returning -1.\n");
+    fflush(stdout);
+    return -1;
+  }
+  return params_[list_id].reverse_rop_species_ids_[prod_id];
+}
+
+int NonIntegerReactionNetwork::GetReactantIndexOfStep(const int step_id, const int react_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetReactantIndexOfStep(step_id, react_id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning -1.\n");
+    fflush(stdout);
+    return -1;
+  }
+
+  const int num_reactants = params_[list_id].rop_species_ids_.size();
+  if(react_id >= num_reactants) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetReactantIndexOfStep(step_id, react_id),\n");
+    printf("#          reactant id = %d is greater than number of reactants in reaction (%d)\n", react_id, num_reactants);
+    printf("#          Returning -1.\n");
+    fflush(stdout);
+    return -1;
+  }
+  return params_[list_id].rop_species_ids_[react_id];
+}
+
+double NonIntegerReactionNetwork::GetProductPowerOfStep(const int step_id, const int prod_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetProductPowerOfStep(step_id, react_id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning 0.\n");
+    fflush(stdout);
+    return 0.0;
+  }
+
+  const int num_products = params_[list_id].reverse_rop_species_ids_.size();
+  if(prod_id >= num_products) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetReactantPowerOfStep(step_id, prod_id),\n");
+    printf("#          product id = %d is greater than number of products in reaction (%d)\n", prod_id, num_products);
+    printf("#          Returning 0.\n");
+    fflush(stdout);
+    return 0.0;
+  }
+  return params_[list_id].reverse_rop_concentration_powers_[prod_id];
+}
+
+double NonIntegerReactionNetwork::GetReactantPowerOfStep(const int step_id, const int react_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetReactantPowerOfStep(step_id, react_id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning -1.\n");
+    fflush(stdout);
+    return 0.0;
+  }
+
+  const int num_reactants = params_[list_id].rop_species_ids_.size();
+  if(react_id >= num_reactants) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetReactantPowerOfStep(step_id, react_id),\n");
+    printf("#          reactant id = %d is greater than number of reactants in reaction (%d)\n", react_id, num_reactants);
+    printf("#          Returning -1.\n");
+    fflush(stdout);
+    return 0.0;
+  }
+  return params_[list_id].rop_concentration_powers_[react_id];
+}
+
+int NonIntegerReactionNetwork::GetNumProductsOfStep(const int step_id) const
+{
+  const int list_id = GetListIndexOfStep(step_id);
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetNumProductsOfStep(step_id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning -1.\n");
+    fflush(stdout);
+    return -1;
+  }
+
+  return params_[list_id].reverse_rop_species_ids_.size();
+}
+
+int NonIntegerReactionNetwork::GetNumReactantsOfStep(const int step_id) const
+{
+  const int list_id = GetListIndexOfStep(step_id);
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork::GetNumReactantsOfStep(step_id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning -1.\n");
+    fflush(stdout);
+    return -1;
+  }
+
+  return params_[list_id].rop_species_ids_.size();
+}
+
+int NonIntegerReactionNetwork::GetJacobianParameters(int jacobian_term_indexes[],
+                                                     int jacobian_concentration_indexes[],
+                                                     int jacobian_step_indexes[],
+                                                     double jacobian_multipliers[]) const
+{
+  const int num_terms = process_step_id_.size();
+  for(int j=0; j<num_terms; ++j) {
+    jacobian_term_indexes[j] = process_jacobian_id_[j];
+    jacobian_concentration_indexes[j]   = process_concentration_id_[j];
+    jacobian_step_indexes[j]   = process_step_id_[j];
+    jacobian_multipliers[j]    = process_multiplier_[j];
+  }
+  return 0;
 }
 
 int NonIntegerReactionNetwork::GetSpeciesJacobian(
@@ -448,12 +577,91 @@ double NonIntegerReactionNetwork::GetNumReactantMolesOfStep(const int step_id) c
   return stoich_sum;
 }
 
+std::vector<double> NonIntegerReactionNetwork::GetRateOfProgressConcentrationPowersOfStep(const int step_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork:::GetRateOfProgressConcentrationPowersOfStep(id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning empty vector.\n");
+    fflush(stdout);
+    return std::vector<double>();
+  }
+  return params_[list_id].rop_concentration_powers_;
+}
+
+std::vector<int> NonIntegerReactionNetwork::GetReactantIndexesOfStep(const int step_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork:::GetReactantIndexesOfStep(id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning empty vector.\n");
+    fflush(stdout);
+    return std::vector<int>();
+  }
+  return params_[list_id].reactant_species_ids_;
+}
+
+std::vector<int> NonIntegerReactionNetwork::GetProductIndexesOfStep(const int step_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork:::GetProductStoichNumsOfStep(id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning empty vector.\n");
+    fflush(stdout);
+    return std::vector<int>();
+  }
+  return params_[list_id].product_species_ids_;
+}
+
+std::vector<double> NonIntegerReactionNetwork::GetReactantStoichNumsOfStep(const int step_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork:::GetReactantStoichNumsOfStep(id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning empty vector.\n");
+    fflush(stdout);
+    return std::vector<double>();
+  }
+  return params_[list_id].reactant_stoich_num_;
+}
+
+std::vector<double> NonIntegerReactionNetwork::GetProductStoichNumsOfStep(const int step_id) const
+{
+  int list_id = GetListIndexOfStep(step_id);
+
+  if(list_id < 0) {
+    printf("# WARNING: In NonIntegerReactionNetwork:::GetProductStoichNumsOfStep(id),\n");
+    printf("#          step id = %d not found in the NonIntegerReactionNetwork\n", step_id);
+    printf("#          parameter list.  Returning empty vector.\n");
+    fflush(stdout);
+    return std::vector<double>();
+  }
+  return params_[list_id].product_stoich_num_;
+}
+
 int NonIntegerReactionNetwork::GetNumJacobianNonzeros()
 {
   if(last_jacobian_step_count_ != num_non_integer_steps_) {
     BuildJacobian();
   }
   return num_jacobian_nonzeros_;
+}
+
+int NonIntegerReactionNetwork::GetNumJacobianTerms()
+{
+  if(last_jacobian_step_count_ != num_non_integer_steps_) {
+    BuildJacobian();
+  }
+  const int num_terms = process_step_id_.size();
+  return num_terms;
 }
 
 int NonIntegerReactionNetwork::GetJacobianPattern(int row_id[],

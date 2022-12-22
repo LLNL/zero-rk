@@ -69,6 +69,28 @@ class NonIntegerReactionNetwork
   // coefficients.  If the step index does not exist, zero is returned.
   double GetNumReactantMolesOfStep(const int step_id) const;
 
+  // Accessor functions so GPU rates can build it's own data structures
+  int GetNumReactantsOfStep(const int step_id) const;
+  int GetNumProductsOfStep(const int step_id) const;
+  double GetReactantPowerOfStep(const int step_id, const int react_id) const;
+  double GetProductPowerOfStep(const int step_id, const int prod_id) const;
+  int GetReactantIndexOfStep(const int step_id, const int react_id) const;
+  int GetProductIndexOfStep(const int step_id, const int prod_id) const;
+
+  // Accessor functions so GPU perf_net can build it's own data structures
+  std::vector<double> GetRateOfProgressConcentrationPowersOfStep(const int step_id) const;
+  std::vector<int> GetReactantIndexesOfStep(const int step_id) const;
+  std::vector<int> GetProductIndexesOfStep(const int step_id) const;
+  std::vector<double> GetReactantStoichNumsOfStep(const int step_id) const;
+  std::vector<double> GetProductStoichNumsOfStep(const int step_id) const;
+
+  // Accessor function so GPU reactors can build their own data structures
+  int GetNumJacobianTerms();
+  int GetJacobianParameters(int jacobian_term_indexes[],
+                            int jacobian_concentration_indexes[],
+                            int jacobian_step_indexes[],
+                            double jacobian_multipliers[]) const;
+
   // TODO: make constant by making the underlying structures mutable
   int GetNumJacobianNonzeros();
   int GetJacobianPattern(int row_id[], 

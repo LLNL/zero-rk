@@ -36,6 +36,8 @@ rate_const_cuda::~rate_const_cuda()
   cudaFree(fromKeq_prodIdx_dev);
   cudaFree(fromKeq_stepIdx_dev);
   cudaFree(fromKeq_nDelta_dev);
+  cudaFree(fromKeq_stoich_fwd_dev);
+  cudaFree(fromKeq_stoich_rev_dev);
 
   cudaFree(thirdBody_fwdStepIdx_dev);
   cudaFree(thirdBody_revStepIdx_dev);
@@ -94,32 +96,59 @@ void rate_const_cuda::setGpuParams()
   int fromKeq_prodIdx_tmp[nFromKeqStep*keqPadSize];
   int fromKeq_stepIdx_tmp[nFromKeqStep];
   double fromKeq_nDelta_tmp[nFromKeqStep];
+  double fromKeq_stoich_fwd_tmp[nFromKeqStep*keqPadSize];
+  double fromKeq_stoich_rev_tmp[nFromKeqStep*keqPadSize];
   for(j=0; j < nFromKeqStep; ++j)
   {
-      logAfact_tmp[fromKeqStepList[j].stepIdx]=logAfact_tmp[fromKeqStepList[j].fwdStepIdx];
-      Tpow_tmp[fromKeqStepList[j].stepIdx]=Tpow_tmp[fromKeqStepList[j].fwdStepIdx];
-      Tact_tmp[fromKeqStepList[j].stepIdx]=Tact_tmp[fromKeqStepList[j].fwdStepIdx];
+      const int fwdStepIdx = fromKeqStepList[j].fwdStepIdx;
+      logAfact_tmp[fromKeqStepList[j].stepIdx]=logAfact_tmp[fwdStepIdx];
+      Tpow_tmp[fromKeqStepList[j].stepIdx]=Tpow_tmp[fwdStepIdx];
+      Tact_tmp[fromKeqStepList[j].stepIdx]=Tact_tmp[fwdStepIdx];
 
       fromKeq_stepIdx_tmp[j] = fromKeqStepList[j].stepIdx;
       fromKeq_nDelta_tmp[j] = fromKeqStepList[j].nDelta;
-      for(k = 0; k < fromKeqStepList[j].nReac; ++k)
-      {
-          fromKeq_reacIdx_tmp[j*keqPadSize + k] = fromKeqStepList[j].reacSpcIdx[k];
-      }
-      for(k = fromKeqStepList[j].nReac; k < keqPadSize; ++k)
-      {
-          fromKeq_reacIdx_tmp[j*keqPadSize + k] = nSpc;
-      }
-      for(k = 0; k < fromKeqStepList[j].nProd; ++k)
-      {
-          fromKeq_prodIdx_tmp[j*keqPadSize + k] = fromKeqStepList[j].prodSpcIdx[k];
-      }
-      for(k = fromKeqStepList[j].nProd; k < keqPadSize; ++k)
-      {
+      if(!non_integer_network_.HasStep(fwdStepIdx)){ 
+        for(k = 0; k < fromKeqStepList[j].nReac; ++k)
+        {
+            fromKeq_reacIdx_tmp[j*keqPadSize + k] = fromKeqStepList[j].reacSpcIdx[k];
+            fromKeq_stoich_fwd_tmp[j*keqPadSize + k] =  1.0;
+        }
+        for(k = fromKeqStepList[j].nReac; k < keqPadSize; ++k)
+        {
+            fromKeq_reacIdx_tmp[j*keqPadSize + k] = nSpc;
+            fromKeq_stoich_fwd_tmp[j*keqPadSize + k] =  0.0;
+        }
+        for(k = 0; k < fromKeqStepList[j].nProd; ++k)
+        {
+            fromKeq_prodIdx_tmp[j*keqPadSize + k] = fromKeqStepList[j].prodSpcIdx[k];
+            fromKeq_stoich_rev_tmp[j*keqPadSize + k] =  1.0;
+        }
+        for(k = fromKeqStepList[j].nProd; k < keqPadSize; ++k)
+        {
+            fromKeq_prodIdx_tmp[j*keqPadSize + k] = nSpc;
+            fromKeq_stoich_rev_tmp[j*keqPadSize + k] =  0.0;
+        }
+      } else {
+        const int num_prod = non_integer_network_.GetNumProductsOfStep(fwdStepIdx);
+        for(k = 0; k < num_prod; ++k) {
+          fromKeq_prodIdx_tmp[j*keqPadSize + k] = non_integer_network_.GetProductIndexOfStep(fwdStepIdx,k);
+          fromKeq_stoich_rev_tmp[j*keqPadSize + k] =  non_integer_network_.GetProductPowerOfStep(fwdStepIdx,k);
+        }
+        for(k = num_prod; k < keqPadSize; ++k) {
           fromKeq_prodIdx_tmp[j*keqPadSize + k] = nSpc;
+          fromKeq_stoich_rev_tmp[j*keqPadSize + k] =  0.0;
+        }
+        const int num_reac = non_integer_network_.GetNumReactantsOfStep(fwdStepIdx);
+        for(k = 0; k < num_reac; ++k) {
+          fromKeq_reacIdx_tmp[j*keqPadSize + k] = non_integer_network_.GetReactantIndexOfStep(fwdStepIdx,k);
+          fromKeq_stoich_fwd_tmp[j*keqPadSize + k] =  non_integer_network_.GetReactantPowerOfStep(fwdStepIdx,k);
+        }
+        for(k = num_reac; k < keqPadSize; ++k) {
+          fromKeq_reacIdx_tmp[j*keqPadSize + k] = nSpc;
+          fromKeq_stoich_fwd_tmp[j*keqPadSize + k] =  0.0;
+        }
       }
   }
-
 
   //Third body rates on GPU
   maxThirdBodySpc = 0;
@@ -400,10 +429,22 @@ void rate_const_cuda::setGpuParams()
      cudaMalloc((void**)&fromKeq_nDelta_dev,sizeof(double)*nFromKeqStep),
      "cudaMalloc(... fromKeq_nDelta_dev ...)"
   );
+  checkCudaError
+  (
+     cudaMalloc((void**)&fromKeq_stoich_fwd_dev,sizeof(double)*(nFromKeqStep*keqPadSize)),
+     "cudaMalloc(... fromKeq_stoich_fwd_dev ...)"
+  );
+  checkCudaError
+  (
+     cudaMalloc((void**)&fromKeq_stoich_rev_dev,sizeof(double)*(nFromKeqStep*keqPadSize)),
+     "cudaMalloc(... fromKeq_stoich_rev_dev ...)"
+  );
   cudaMemcpy(fromKeq_reacIdx_dev,fromKeq_reacIdx_tmp,nFromKeqStep*keqPadSize*sizeof(int),cudaMemcpyHostToDevice);
   cudaMemcpy(fromKeq_prodIdx_dev,fromKeq_prodIdx_tmp,nFromKeqStep*keqPadSize*sizeof(int),cudaMemcpyHostToDevice);
   cudaMemcpy(fromKeq_stepIdx_dev,fromKeq_stepIdx_tmp,nFromKeqStep*sizeof(int),cudaMemcpyHostToDevice);
   cudaMemcpy(fromKeq_nDelta_dev,fromKeq_nDelta_tmp,nFromKeqStep*sizeof(double),cudaMemcpyHostToDevice);
+  cudaMemcpy(fromKeq_stoich_fwd_dev,fromKeq_stoich_fwd_tmp,nFromKeqStep*keqPadSize*sizeof(double),cudaMemcpyHostToDevice);
+  cudaMemcpy(fromKeq_stoich_rev_dev,fromKeq_stoich_rev_tmp,nFromKeqStep*keqPadSize*sizeof(double),cudaMemcpyHostToDevice);
 
 
   checkCudaError
@@ -589,9 +630,16 @@ void rate_const_cuda::updateK_CUDA_mr
           K_dev, PLogStream);
 
   //N.B. Keq is done in default stream which is synchronous across all streams
-  rate_const_updateFromKeqStep_CUDA_mr(nReactors, nSpc, nStep, nFromKeqStep, keqPadSize,
-          fromKeq_reacIdx_dev, fromKeq_prodIdx_dev, fromKeq_stepIdx_dev,
-          fromKeq_nDelta_dev, Gibbs_RT_dev, K_dev, T_dev, (cudaStream_t) 0);
+  if(!use_non_integer_network_) {
+    rate_const_updateFromKeqStep_CUDA_mr(nReactors, nSpc, nStep, nFromKeqStep, keqPadSize,
+            fromKeq_reacIdx_dev, fromKeq_prodIdx_dev, fromKeq_stepIdx_dev,
+            fromKeq_nDelta_dev, Gibbs_RT_dev, K_dev, T_dev, (cudaStream_t) 0);
+  } else {
+    rate_const_updateFromKeqStepNI_CUDA_mr(nReactors, nSpc, nStep, nFromKeqStep, keqPadSize,
+            fromKeq_reacIdx_dev, fromKeq_prodIdx_dev, fromKeq_stepIdx_dev,
+            fromKeq_nDelta_dev, fromKeq_stoich_fwd_dev, fromKeq_stoich_rev_dev,
+            Gibbs_RT_dev, K_dev, T_dev, (cudaStream_t) 0);
+  }
   if(nFromKeqStep == 0) {
     cudaStreamSynchronize(arrhStream);
     cudaStreamSynchronize(PLogStream);

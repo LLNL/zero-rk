@@ -146,6 +146,61 @@ void __global__ updateFromKeqStep_CUDA_mr
   }
 }
 
+void __global__ updateFromKeqStepNI_CUDA_mr
+(
+    const int nReactors,
+    const int nSpc,
+    const int nStep,
+    const int nFromKeqStep,
+    const int nSpcPerStep,
+    const int *fromKeq_reacIdx_dev,
+    const int *fromKeq_prodIdx_dev,
+    const int *fromKeq_stepIdx_dev,
+    const double *fromKeq_nDelta_dev,
+    const double *stoich_fwd_dev,
+    const double *stoich_rev_dev,
+    const double *Gibbs_RT_dev,
+    double *K_dev,
+    const double *Tmulti_dev 
+)
+{
+  int tid = blockIdx.x*blockDim.x + threadIdx.x;
+  int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
+  if(tid < nFromKeqStep)
+  {
+      if(reactorid < nReactors)
+      {
+          double log_e_PatmInvRuT = log(P_ATM/(NIST_RU*Tmulti_dev[reactorid]));
+          double gibbs_net = 0.0;
+
+          extern int __shared__ reac_prodIdxs[];
+          int *reacIdxs = &reac_prodIdxs[0];
+          int *prodIdxs = &reac_prodIdxs[blockDim.x*nSpcPerStep];
+          //TODO: Consider packing stoich as well.  Need more shared mem for that
+          if(threadIdx.y == 0)
+          {
+              for(int j=0; j<nSpcPerStep; ++j )
+              {
+                  reacIdxs[threadIdx.x*nSpcPerStep + j] = fromKeq_reacIdx_dev[tid*nSpcPerStep+j];
+                  prodIdxs[threadIdx.x*nSpcPerStep + j] = fromKeq_prodIdx_dev[tid*nSpcPerStep+j];
+	      }
+          }
+          __syncthreads();
+
+          for(int j=0; j<nSpcPerStep; ++j)
+          {
+              const int arrIdx = threadIdx.x*nSpcPerStep+j;
+              const int currReacIdx = reacIdxs[arrIdx]*nReactors+reactorid;
+              gibbs_net -= stoich_fwd_dev[tid*nSpcPerStep+j]*Gibbs_RT_dev[currReacIdx];
+              const int currProdIdx = prodIdxs[arrIdx]*nReactors+reactorid;
+              gibbs_net += stoich_rev_dev[tid*nSpcPerStep+j]*Gibbs_RT_dev[currProdIdx];
+          }
+
+          K_dev[reactorid + nReactors*fromKeq_stepIdx_dev[tid]] *= exp(gibbs_net-fromKeq_nDelta_dev[tid]*log_e_PatmInvRuT);
+      }
+  }
+}
+
 void __global__ updateThirdBody_CUDA
 (
     const int nThirdBodyRxn,
@@ -365,55 +420,46 @@ void __global__ updateFalloff_CUDA_mr
           if(falloff_falloffType_dev[tid]==TROE_FOUR_PARAMS)
           {
               // Troe - 4 parameter fit
-              Fcenter=(1.0-falloff_param_dev[tid*nFalloffParams+3])
-                        *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4])
-                     +falloff_param_dev[tid*nFalloffParams+3]
-                        *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+5])
-                     +exp(-falloff_param_dev[tid*nFalloffParams+6]*invTcurrent);
+              //Fcenter=(1.0-falloff_param_dev[tid*nFalloffParams+3])
+              //          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4])
+              //       +falloff_param_dev[tid*nFalloffParams+3]
+              //          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+5])
+              //       +exp(-falloff_param_dev[tid*nFalloffParams+6]*invTcurrent);
+              Fcenter = 0.0;
+              if(falloff_param_dev[tid*nFalloffParams+4]!=0) {
+                Fcenter += (1.0-falloff_param_dev[tid*nFalloffParams+3])
+                          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4]);
+              }
+              if(falloff_param_dev[tid*nFalloffParams+5]!=0) {
+                Fcenter += falloff_param_dev[tid*nFalloffParams+3]
+                          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+5]);
+              }
+              Fcenter += exp(-falloff_param_dev[tid*nFalloffParams+6]*invTcurrent);
 
-//              if(falloff_param_dev[tid*nFalloffParams+4] < 0.0)
-//                {Fcenter = -falloff_param_dev[tid*nFalloffParams+4];} // Fcenter = T***
-//              if(falloff_param_dev[tid*nFalloffParams+3] < 0.0)
-//              { // Fcenter = |alpha| + T*(T***)
-//                  Fcenter =fabs(falloff_param_dev[tid*nFalloffParams+3])
-//                          +falloff_param_dev[tid*nFalloffParams+4]*Tcurrent;
-//              }
-//              if(falloff_param_dev[tid*nFalloffParams+3] == 0.0 && 
-//                 falloff_param_dev[tid*nFalloffParams+5]  < 0.0)
-//               { // Fcenter = exp(-T/T***) -(T*)*exp(-T**/T)
-//                   Fcenter=exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4])
-//                          -falloff_param_dev[tid*nFalloffParams+5]
-//                             *exp(-falloff_param_dev[tid*nFalloffParams+6]*invTcurrent);
-//                   if(Fcenter < 1.0e-300)
-//                     {Fcenter=1.0e-300;}
-//                   fTerm=log10(Fcenter);
-//                   nTerm=0.75-1.27*fTerm;
-//                   // log_10_Pr-=(0.4+0.67*fTerm); // no shift
-//                   log_10_Pr=log_10_Pr/nTerm;
-//                   log_10_Pr*=log_10_Pr;
-//                   fTerm/=(1.0+log_10_Pr);
-//                   fTerm=pow(10.,fTerm);
-//               }
-//               else
-               {
-                   if(Fcenter < 1.0e-300)
-                     {Fcenter=1.0e-300;}
-                   fTerm=log10(Fcenter);
-                   nTerm=0.75-1.27*fTerm;
-                   log_10_Pr-=(0.4+0.67*fTerm);
-                   log_10_Pr=log_10_Pr/(nTerm-0.14*log_10_Pr);
-                   log_10_Pr*=log_10_Pr;
-                   fTerm/=(1.0+log_10_Pr);
-                   fTerm=pow(10.,fTerm);
-               }
-          }
-          else if(falloff_falloffType_dev[tid]==TROE_THREE_PARAMS)
-          {
+              if(Fcenter < 1.0e-300)
+                {Fcenter=1.0e-300;}
+              fTerm=log10(Fcenter);
+              nTerm=0.75-1.27*fTerm;
+              log_10_Pr-=(0.4+0.67*fTerm);
+              log_10_Pr=log_10_Pr/(nTerm-0.14*log_10_Pr);
+              log_10_Pr*=log_10_Pr;
+              fTerm/=(1.0+log_10_Pr);
+              fTerm=pow(10.,fTerm);
+          } else if(falloff_falloffType_dev[tid]==TROE_THREE_PARAMS) {
               // Troe - 3 parameter fit
-              Fcenter=(1.0-falloff_param_dev[tid*nFalloffParams+3])
-                        *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4])
-                     +falloff_param_dev[tid*nFalloffParams+3]
-                        *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+5]);
+              //Fcenter=(1.0-falloff_param_dev[tid*nFalloffParams+3])
+              //          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4])
+              //       +falloff_param_dev[tid*nFalloffParams+3]
+              //          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+5]);
+              Fcenter = 0.0;
+              if(falloff_param_dev[tid*nFalloffParams+4]!=0) {
+                Fcenter += (1.0-falloff_param_dev[tid*nFalloffParams+3])
+                          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4]);
+              }
+              if(falloff_param_dev[tid*nFalloffParams+5]!=0) {
+                Fcenter += falloff_param_dev[tid*nFalloffParams+3]
+                          *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+5]);
+              }
 
               if(Fcenter < 1.0e-300)
                 {Fcenter=1.0e-300;}
@@ -697,6 +743,43 @@ void rate_const_updateFromKeqStep_CUDA_mr(const int nReactors, const int nSpc, c
       fromKeq_prodIdx_dev,
       fromKeq_stepIdx_dev,
       fromKeq_nDelta_dev,
+      Gibbs_RT_dev,
+      K_dev,
+      T_dev
+  );
+#ifdef ZERORK_FULL_DEBUG
+  cudaDeviceSynchronize();
+  checkCudaError(cudaGetLastError(),"updateFromKeq_CUDA_mr");
+#endif
+}
+
+void rate_const_updateFromKeqStepNI_CUDA_mr(const int nReactors, const int nSpc, const int nStep,
+          const int nFromKeqStep, const int keqPadSize, const int *fromKeq_reacIdx_dev,
+          const int * fromKeq_prodIdx_dev, const int *fromKeq_stepIdx_dev,
+          const double *fromKeq_nDelta_dev, const double *fromKeq_stoich_fwd_dev,
+          const double *fromKeq_stoich_rev_dev, const double *Gibbs_RT_dev, double *K_dev,
+          const double *T_dev, cudaStream_t kEqStream)
+{
+  if( nFromKeqStep == 0 ) return;
+  int threadsX = 1;
+  int threadsY = std::min(nReactors,MAX_THREADS_PER_BLOCK/threadsX);
+  dim3 nThreads2D(threadsX,threadsY);
+  dim3 nBlocks2D;
+  nBlocks2D.x = (nFromKeqStep+threadsX-1)/threadsX;
+  nBlocks2D.y = (nReactors+threadsY-1)/threadsY;
+  updateFromKeqStepNI_CUDA_mr<<<nBlocks2D,nThreads2D, nThreads2D.x*keqPadSize*2*sizeof(int),kEqStream>>>
+  (
+      nReactors,
+      nSpc,
+      nStep,
+      nFromKeqStep,
+      keqPadSize,
+      fromKeq_reacIdx_dev,
+      fromKeq_prodIdx_dev,
+      fromKeq_stepIdx_dev,
+      fromKeq_nDelta_dev,
+      fromKeq_stoich_fwd_dev,
+      fromKeq_stoich_rev_dev,
       Gibbs_RT_dev,
       K_dev,
       T_dev

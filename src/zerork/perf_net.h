@@ -80,6 +80,8 @@ class perf_net
   int totProd;
   int totReac;
   int maxReactants;
+  int niTotProd;
+  int niTotReac;
 
   // index storage arrays
   int *reactantSpcIdxList;
@@ -87,6 +89,12 @@ class perf_net
   int *productSpcIdxList;
   int *productStepIdxList;
 
+  std::vector<int> niReactantSpcIdxList;
+  std::vector<int> niReactantStepIdxList;
+  std::vector<double> niReactantStoichNumList;
+  std::vector<int> niProductSpcIdxList;
+  std::vector<int> niProductStepIdxList;
+  std::vector<double> niProductStoichNumList;
 
   // working arrays:
   double *stepRate;

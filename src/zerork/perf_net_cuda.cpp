@@ -15,7 +15,7 @@ namespace zerork {
 
 static double getHighResolutionTime(void)
 {
-    struct timeval tod; 
+    struct timeval tod;
 
     gettimeofday(&tod, NULL);
     double time_seconds = (double) tod.tv_sec + ((double) tod.tv_usec / 1000000.0);
@@ -35,15 +35,27 @@ perf_net_cuda::perf_net_cuda(info_net &netobj, rate_const &Kobj)
   rCtrU = 0; // reactant species counter (for unwrapped list)
   for(j=0; j<nStep; j++)
   {
-    for(k=0; k<netobj.getOrderOfStep(j); k++) 
-    {    
-      reactantSpcIdxListUnwrapped[rCtrU]  = netobj.getSpecIdxOfStepReactant(j,k);
-      ++rCtrU;
-    }    
-    for(k=netobj.getOrderOfStep(j); k < maxReactants; k++) 
-    {    
-      reactantSpcIdxListUnwrapped[rCtrU]  = nSpc;
-      ++rCtrU;
+    if(non_integer_network_.HasStep(j)) {
+      const int num_reac = non_integer_network_.GetNumReactantsOfStep(j);
+      for(k = 0; k < num_reac; ++k) {
+        reactantSpcIdxListUnwrapped[rCtrU] = non_integer_network_.GetReactantIndexOfStep(j,k);
+        ++rCtrU;
+      }
+      for(k = num_reac; k < maxReactants; ++k) {
+        reactantSpcIdxListUnwrapped[rCtrU]  = nSpc;
+        ++rCtrU;
+      }
+    } else {
+      for(k=0; k<netobj.getOrderOfStep(j); k++)
+      {
+        reactantSpcIdxListUnwrapped[rCtrU]  = netobj.getSpecIdxOfStepReactant(j,k);
+        ++rCtrU;
+      }
+      for(k=netobj.getOrderOfStep(j); k < maxReactants; k++)
+      {
+        reactantSpcIdxListUnwrapped[rCtrU]  = nSpc;
+        ++rCtrU;
+      }
     }
   }
   assert(rCtrU == nStep*maxReactants);
@@ -249,6 +261,213 @@ perf_net_cuda::perf_net_cuda(info_net &netobj, rate_const &Kobj)
      "cudaMalloc(... Tmulti_dev ...)"
   );
 
+  rop_concentration_powers_dev = nullptr;
+  if(use_non_integer_network_) {
+    std::vector<double> rop_concentration_powers(nStep*maxReactants, 1.0);
+    for(j=0; j<nStep; j++)
+    {
+      if(non_integer_network_.HasStep(j)) {
+        std::vector<double> step_rop_concentration_powers = non_integer_network_.GetRateOfProgressConcentrationPowersOfStep(j);
+        const int rop_size = step_rop_concentration_powers.size();
+        for(k=0; k<rop_size; k++)
+        {
+          rop_concentration_powers[j*maxReactants+k] = step_rop_concentration_powers[k];
+        }
+        for(k=rop_size; k<maxReactants; k++)
+        {
+          rop_concentration_powers[j*maxReactants+k] = 0.0;
+        }
+      } else {
+        for(k=infoPtr->getOrderOfStep(j); k<maxReactants; k++)
+        {
+          rop_concentration_powers[j*maxReactants+k] = 0.0;
+        }
+      }
+    }
+
+    checkCudaError
+    (
+       cudaMalloc((void**)&rop_concentration_powers_dev,sizeof(double)*nStep*maxReactants),
+       "cudaMalloc(... rop_concentration_powers_dev ...)"
+    );
+    cudaMemcpy(rop_concentration_powers_dev,&rop_concentration_powers[0],sizeof(double)*nStep*maxReactants,cudaMemcpyHostToDevice);
+
+    //Reorder non_integer scatter add operations to reduce atomic races in production rate calcs.
+    sa64c_ni=reorderScatterAdd_by_ntuple(128, niTotProd, nStep, nSpc,
+                                         &niProductStepIdxList[0],
+                                         &niProductSpcIdxList[0],
+                                         &niProductStoichNumList[0]);
+    maxOpsCreate_ni = std::max(sa64c_ni/128,0);
+
+    sa64d_ni=reorderScatterAdd_by_ntuple(128, niTotReac, nStep, nSpc,
+                                         &niReactantStepIdxList[0],
+                                         &niReactantSpcIdxList[0],
+                                         &niReactantStoichNumList[0]);
+    maxOpsDestroy_ni = std::max(sa64d_ni/128,0);
+
+    sa32c_ni=reorderScatterAdd_by_ntuple(64, niTotProd-sa64c_ni, nStep, nSpc,
+                                         &niProductStepIdxList[sa64c_ni],
+                                         &niProductSpcIdxList[sa64c_ni],
+                                         &niProductStoichNumList[sa64c_ni]);
+    maxOpsCreate_ni = std::max(sa32c_ni/64,maxOpsCreate_ni);
+    sa32c_ni+=sa64c_ni;
+
+    sa32d_ni=reorderScatterAdd_by_ntuple(64, niTotReac-sa64d_ni, nStep, nSpc,
+                                         &niReactantStepIdxList[sa64d_ni],
+                                         &niReactantSpcIdxList[sa64d_ni],
+                                         &niReactantStoichNumList[sa64d_ni]);
+    maxOpsDestroy_ni = std::max(sa32d_ni/64,maxOpsDestroy_ni);
+    sa32d_ni+=sa64d_ni;
+
+    sa16c_ni=reorderScatterAdd_by_ntuple(32, niTotProd-sa32c_ni, nStep, nSpc,
+                                         &niProductStepIdxList[sa32c_ni],
+                                         &niProductSpcIdxList[sa32c_ni],
+                                         &niProductStoichNumList[sa32c_ni]);
+    maxOpsCreate_ni = std::max(sa16c_ni/32,maxOpsCreate_ni);
+    sa16c_ni+=sa32c_ni;
+
+    sa16d_ni=reorderScatterAdd_by_ntuple(32, niTotReac-sa32d_ni, nStep, nSpc,
+                                         &niReactantStepIdxList[sa32d_ni],
+                                         &niReactantSpcIdxList[sa32d_ni],
+                                         &niReactantStoichNumList[sa32d_ni]);
+    maxOpsDestroy_ni = std::max(sa16d_ni/32,maxOpsDestroy_ni);
+    sa16d_ni+=sa32d_ni;
+
+    sa8c_ni=reorderScatterAdd_by_ntuple(16, niTotProd-sa16c_ni, nStep, nSpc,
+                                         &niProductStepIdxList[sa16c_ni],
+                                         &niProductSpcIdxList[sa16c_ni],
+                                         &niProductStoichNumList[sa16c_ni]);
+    maxOpsCreate_ni = std::max(sa8c_ni/16,maxOpsCreate_ni);
+    sa8c_ni+=sa16c_ni;
+
+    sa8d_ni=reorderScatterAdd_by_ntuple(16, niTotReac-sa16d_ni, nStep, nSpc,
+                                         &niReactantStepIdxList[sa16d_ni],
+                                         &niReactantSpcIdxList[sa16d_ni],
+                                         &niReactantStoichNumList[sa16d_ni]);
+    maxOpsDestroy_ni = std::max(sa8d_ni/16,maxOpsDestroy_ni);
+    sa8d_ni+=sa16d_ni;
+
+    sa4c_ni=reorderScatterAdd_by_ntuple(8, niTotProd-sa8c_ni, nStep, nSpc,
+                                         &niProductStepIdxList[sa8c_ni],
+                                         &niProductSpcIdxList[sa8c_ni],
+                                         &niProductStoichNumList[sa8c_ni]);
+    maxOpsCreate_ni = std::max(sa4c_ni/8,maxOpsCreate_ni);
+    sa4c_ni+=sa8c_ni;
+
+    sa4d_ni=reorderScatterAdd_by_ntuple(8, niTotReac-sa8d_ni, nStep, nSpc,
+                                         &niReactantStepIdxList[sa8d_ni],
+                                         &niReactantSpcIdxList[sa8d_ni],
+                                         &niReactantStoichNumList[sa8d_ni]);
+    maxOpsDestroy_ni = std::max(sa4d_ni/8,maxOpsDestroy_ni);
+    sa4d_ni+=sa8d_ni;
+
+    sa2c_ni=reorderScatterAdd_by_ntuple(4, niTotProd-sa4c_ni, nStep, nSpc,
+                                         &niProductStepIdxList[sa4c_ni],
+                                         &niProductSpcIdxList[sa4c_ni],
+                                         &niProductStoichNumList[sa4c_ni]);
+    maxOpsCreate_ni = std::max(sa2c_ni/4,maxOpsCreate_ni);
+    sa2c_ni+=sa4c_ni;
+
+    sa2d_ni=reorderScatterAdd_by_ntuple(4, niTotReac-sa4d_ni, nStep, nSpc,
+                                         &niReactantStepIdxList[sa4d_ni],
+                                         &niReactantSpcIdxList[sa4d_ni],
+                                         &niReactantStoichNumList[sa4d_ni]);
+    maxOpsDestroy_ni = std::max(sa2d_ni/4,maxOpsDestroy_ni);
+    sa2d_ni+=sa4d_ni;
+
+    sa1c_ni=reorderScatterAdd_by_ntuple(2, niTotProd-sa2c_ni, nStep, nSpc,
+                                         &niProductStepIdxList[sa2c_ni],
+                                         &niProductSpcIdxList[sa2c_ni],
+                                         &niProductStoichNumList[sa2c_ni]);
+    maxOpsCreate_ni = std::max(sa1c_ni/2,maxOpsCreate_ni);
+    sa1c_ni+=sa2c_ni;
+
+    sa1d_ni=reorderScatterAdd_by_ntuple(2, niTotReac-sa2d_ni, nStep, nSpc,
+                                         &niReactantStepIdxList[sa2d_ni],
+                                         &niReactantSpcIdxList[sa2d_ni],
+                                         &niReactantStoichNumList[sa2d_ni]);
+    maxOpsDestroy_ni = std::max(sa1d_ni/2,maxOpsDestroy_ni);
+    sa1d_ni+=sa2d_ni;
+
+    maxOpsCreate_ni  = std::max(niTotProd-sa1c_ni,maxOpsCreate_ni);
+    maxOpsDestroy_ni = std::max(niTotReac-sa1d_ni,maxOpsDestroy_ni);
+
+    std::vector<int> nOpsDestroy_ni(9);
+    nOpsDestroy_ni[8] = 0;
+    nOpsDestroy_ni[7] = sa64d_ni;
+    nOpsDestroy_ni[6] = sa32d_ni;
+    nOpsDestroy_ni[5] = sa16d_ni;
+    nOpsDestroy_ni[4] = sa8d_ni;
+    nOpsDestroy_ni[3] = sa4d_ni;
+    nOpsDestroy_ni[2] = sa2d_ni;
+    nOpsDestroy_ni[1] = sa1d_ni;
+    nOpsDestroy_ni[0] = niTotReac;
+
+    std::vector<int> nOpsCreate_ni(9);
+    nOpsCreate_ni[8] = 0;
+    nOpsCreate_ni[7] = sa64c_ni;
+    nOpsCreate_ni[6] = sa32c_ni;
+    nOpsCreate_ni[5] = sa16c_ni;
+    nOpsCreate_ni[4] = sa8c_ni;
+    nOpsCreate_ni[3] = sa4c_ni;
+    nOpsCreate_ni[2] = sa2c_ni;
+    nOpsCreate_ni[1] = sa1c_ni;
+    nOpsCreate_ni[0] = niTotProd;
+
+    checkCudaError
+    (
+       cudaMalloc((void**)&niReactantSpcIdxList_dev,sizeof(int)*niTotReac),
+       "cudaMalloc(... niReactantSpcIdxList_dev ...)"
+    );
+    cudaMemcpy(niReactantSpcIdxList_dev,&niReactantSpcIdxList[0],sizeof(int)*niTotReac,cudaMemcpyHostToDevice);
+    checkCudaError
+    (
+       cudaMalloc((void**)&niReactantStepIdxList_dev,sizeof(int)*niTotReac),
+       "cudaMalloc(... niReactantStepIdxList_dev ...)"
+    );
+    cudaMemcpy(niReactantStepIdxList_dev,&niReactantStepIdxList[0],sizeof(int)*niTotReac,cudaMemcpyHostToDevice);
+    checkCudaError
+    (
+       cudaMalloc((void**)&niReactantStoichNumList_dev,sizeof(double)*niTotReac),
+       "cudaMalloc(... niReactantStoichNumList_dev ...)"
+    );
+    cudaMemcpy(niReactantStoichNumList_dev,&niReactantStoichNumList[0],sizeof(double)*niTotReac,cudaMemcpyHostToDevice);
+
+
+    checkCudaError
+    (
+       cudaMalloc((void**)&niProductSpcIdxList_dev,sizeof(int)*niTotProd),
+       "cudaMalloc(... niProductSpcIdxList_dev ...)"
+    );
+    cudaMemcpy(niProductSpcIdxList_dev,&niProductSpcIdxList[0],sizeof(int)*niTotProd,cudaMemcpyHostToDevice);
+    checkCudaError
+    (
+       cudaMalloc((void**)&niProductStepIdxList_dev,sizeof(int)*niTotProd),
+       "cudaMalloc(... niProductStepIdxList_dev ...)"
+    );
+    cudaMemcpy(niProductStepIdxList_dev,&niProductStepIdxList[0],sizeof(int)*niTotProd,cudaMemcpyHostToDevice);
+    checkCudaError
+    (
+       cudaMalloc((void**)&niProductStoichNumList_dev,sizeof(double)*niTotProd),
+       "cudaMalloc(... niProductStoichNumList_dev ...)"
+    );
+    cudaMemcpy(niProductStoichNumList_dev,&niProductStoichNumList[0],sizeof(double)*niTotProd,cudaMemcpyHostToDevice);
+
+    checkCudaError
+    (
+       cudaMalloc((void**)&nOpsDestroy_ni_dev,sizeof(int)*9),
+       "cudaMalloc(... nOpsDestroy_ni_dev ...)"
+    );
+    cudaMemcpy(nOpsDestroy_ni_dev, &nOpsDestroy_ni[0],sizeof(int)*9,cudaMemcpyHostToDevice);
+
+    checkCudaError
+    (
+       cudaMalloc((void**)&nOpsCreate_ni_dev,sizeof(int)*9),
+       "cudaMalloc(... nOpsCreate_ni_dev ...)"
+    );
+    cudaMemcpy(nOpsCreate_ni_dev, &nOpsCreate_ni[0],sizeof(int)*9,cudaMemcpyHostToDevice);
+  } //use_non_integer_network_
+
   //Initialize gpu timing data
   gpuKTime = gpuStepTime = gpuProdTime = gpuNetTime = gpuTxTime = 0.0;
 }
@@ -279,6 +498,17 @@ perf_net_cuda::~perf_net_cuda()
   cudaFree(reactantSpcIdxList_dev);
   cudaFree(reactantStepIdxList_dev);
   cudaFree(Tmulti_dev);
+  if(use_non_integer_network_) {
+    cudaFree(rop_concentration_powers_dev);
+    cudaFree(niReactantSpcIdxList_dev);
+    cudaFree(niReactantStepIdxList_dev);
+    cudaFree(niReactantStoichNumList_dev);
+    cudaFree(niProductSpcIdxList_dev);
+    cudaFree(niProductStepIdxList_dev);
+    cudaFree(niProductStoichNumList_dev);
+    cudaFree(nOpsDestroy_ni_dev);
+    cudaFree(nOpsCreate_ni_dev);
+  }
   for(int j = 0; j < scatterAddCount; ++j)
   {
       cudaStreamDestroy( scatterAddStreams[j] );
@@ -314,7 +544,7 @@ void perf_net_cuda::calcRatesFromTC_CUDA(const double T, const double C[],
     cudaEventCreate(&endTxNet);
 #endif
 
-    // reaction-species link lists are kept on device with work arrays for 
+    // reaction-species link lists are kept on device with work arrays for
     // rxn, creation, destruction, and net species rates
 #ifdef ZERORK_CUDA_EVENTS
     cudaEventRecord(startTxC);
@@ -603,7 +833,7 @@ void perf_net_cuda::calcRatesFromTC_CUDA(const double T, const double C[],
       {destroyOut[reactantSpcIdxList[j]]+=stepOut[reactantStepIdxList[j]];}
 
     // compute the species creation rate by adding each steps rate of progress
-    // to the sum for each product species found 
+    // to the sum for each product species found
     for(int j=0; j<totProd; ++j)
       {createOut[productSpcIdxList[j]]+=stepOut[productStepIdxList[j]];}
     gpuProdTime += getHighResolutionTime() - startTime;
@@ -699,7 +929,7 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
                 C_tp[transIdx] = C[origIdx];
             }
         }
-        // reaction-species link lists are kept on device with work arrays for 
+        // reaction-species link lists are kept on device with work arrays for
         // rxn, creation, destruction, and net species rates
         cudaEventRecord(startTxC);
         cudaMemcpy(C_dev,C_tp,cpySpcSize,cudaMemcpyHostToDevice);
@@ -722,8 +952,12 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
     cudaEventRecord(endK);
 
     cudaEventRecord(startStep);
-    perf_net_cuda_rxn_conc_mult_mr(nReactors, nSpc, nStep,
-        maxReactants, reactantSpcIdxListUnwrapped_dev, C_dev, stepOut_dev);
+//    perf_net_cuda_rxn_conc_mult_mr(nReactors, nSpc, nStep,
+//        maxReactants, reactantSpcIdxListUnwrapped_dev, nullptr, C_dev, stepOut_dev);
+    //  Currently if non-integer reactions exist all reactions are processed as
+    //  if they are non-integer.
+    perf_net_cuda_rxn_conc_mult_mr(nReactors, nSpc, nStep, maxReactants,
+        reactantSpcIdxListUnwrapped_dev, rop_concentration_powers_dev, C_dev, stepOut_dev);
     cudaEventRecord(endStep);
 
     cudaEventRecord(startTxStep);
@@ -895,6 +1129,30 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
              nSpc,
              createOut_dev, scatterAddStreams[15]);
 
+    if(use_non_integer_network_) {
+        perf_net_multScatterAdd_gpu_atomic_global_fused
+          (maxOpsDestroy_ni, nOpsDestroy_ni_dev,
+           &niReactantStepIdxList_dev[0],
+           &niReactantSpcIdxList_dev[0],
+           &niReactantStoichNumList_dev[0],
+           nReactors,
+           nStep,
+           stepOut_dev,
+           nSpc,
+           destroyOut_dev, scatterAddStreams[0]);
+
+        perf_net_multScatterAdd_gpu_atomic_global_fused
+          (maxOpsCreate_ni, nOpsCreate_ni_dev,
+           &niProductStepIdxList_dev[0],
+           &niProductSpcIdxList_dev[0],
+           &niProductStoichNumList_dev[0],
+           nReactors,
+           nStep,
+           stepOut_dev,
+           nSpc,
+           createOut_dev, scatterAddStreams[8]);
+    }
+
     cudaEventRecord(endProd);
 
     cudaEventRecord(startTxProd);
@@ -917,7 +1175,7 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
     cudaEventSynchronize(endTxProd);
     cudaEventSynchronize(endTxNet);
     if(transposeInOut)
-    {    
+    {
         for(j=0; j < nReactors; ++j)
         {
             for(k=0;k<nSpc;++k)
@@ -941,7 +1199,7 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
                 }
             }
         }
-    }    
+    }
 
 
     cudaEventSynchronize(endProd);
@@ -1037,8 +1295,10 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr_dev(const int nReactors, const doubl
     cudaEventRecord(startStep);
 #endif
     //N.B. this happens in default stream so we don't need to sync the streams
+    //  Currently if non-integer reactions exist all reactions are processed as
+    //  if they are non-integer.
     perf_net_cuda_rxn_conc_mult_mr(nReactors, nSpc, nStep, maxReactants,
-        reactantSpcIdxListUnwrapped_dev, C_dev, stepOut_out_dev);
+        reactantSpcIdxListUnwrapped_dev, rop_concentration_powers_dev, C_dev, stepOut_out_dev);
 #ifdef ZERORK_CUDA_EVENTS
     cudaEventRecord(endStep);
 #endif
@@ -1231,6 +1491,31 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr_dev(const int nReactors, const doubl
            createOut_out_dev, scatterAddStreams[8]);
 #endif
 
+    if(use_non_integer_network_) {
+        perf_net_multScatterAdd_gpu_atomic_global_fused
+          (maxOpsDestroy_ni, nOpsDestroy_ni_dev,
+           &niReactantStepIdxList_dev[0],
+           &niReactantSpcIdxList_dev[0],
+           &niReactantStoichNumList_dev[0],
+           nReactors,
+           nStep,
+           stepOut_out_dev,
+           nSpc,
+           destroyOut_out_dev, scatterAddStreams[0]);
+
+        perf_net_multScatterAdd_gpu_atomic_global_fused
+          (maxOpsCreate_ni, nOpsCreate_ni_dev,
+           &niProductStepIdxList_dev[0],
+           &niProductSpcIdxList_dev[0],
+           &niProductStoichNumList_dev[0],
+           nReactors,
+           nStep,
+           stepOut_out_dev,
+           nSpc,
+           createOut_out_dev, scatterAddStreams[8]);
+    }
+
+
 #ifdef ZERORK_CUDA_EVENTS
     cudaEventRecord(endProd);
 
@@ -1304,11 +1589,18 @@ typedef struct
   int y_index;
 } indexPair;
 
+typedef struct
+{
+  int x_index;
+  int y_index;
+  double z;
+} indexTriple;
+
 
 // int compareXthenY(void *a, void *b);
 //
 // A comparison function supplied to qsort() that compares the index pairs
-// 'a' and 'b' and returns -1, 0 or 1 if 'a' is less than, equal to, or 
+// 'a' and 'b' and returns -1, 0 or 1 if 'a' is less than, equal to, or
 // greater than 'b'.  The comparison is first done on the x index and then
 // the y index.
 int compareXthenY(const void *a, const void *b)
@@ -1332,7 +1624,7 @@ int compareXthenY(const void *a, const void *b)
 // int compareYthenX(void *a, void *b);
 //
 // A comparison function supplied to qsort() that compares the index pairs
-// 'a' and 'b' and returns -1, 0 or 1 if 'a' is less than, equal to, or 
+// 'a' and 'b' and returns -1, 0 or 1 if 'a' is less than, equal to, or
 // greater than 'b'.  The comparison is first done on the y index and then
 // the x index.
 static int compareYthenX(const void *a, const void *b)
@@ -1372,11 +1664,11 @@ static void indexPairSort(const int len,
   for(j=0; j<len; j++)
     {
       tmpList[j].x_index=x[j];
-      tmpList[j].y_index=y[j];      
+      tmpList[j].y_index=y[j];
     }
 
   // perform a quick sort on the index pairs
-  if(firstComp == 'y' || firstComp == 'Y') 
+  if(firstComp == 'y' || firstComp == 'Y')
     { // sort by the y_index first
       qsort((void *)&tmpList[0],
 	    len,
@@ -1395,9 +1687,110 @@ static void indexPairSort(const int len,
   for(j=0; j<len; j++)
     {
       x[j]=tmpList[j].x_index;
-      y[j]=tmpList[j].y_index;      
+      y[j]=tmpList[j].y_index;
     }
 
+}
+
+int compareXthenYthenZ(const void *a, const void *b)
+{
+  indexTriple *aptr = (indexTriple *)a;
+  indexTriple *bptr = (indexTriple *)b;
+  if(aptr->x_index < bptr->x_index)
+    {return -1;}  // a < b
+  if(aptr->x_index > bptr->x_index)
+    {return 1;}   // a < b
+
+  // x_index is equal, now compare y_index
+  if(aptr->y_index < bptr->y_index)
+    {return -1;}  // a < b
+  if(aptr->y_index > bptr->y_index)
+    {return 1;}   // a < b
+
+  // y_index is equal, now compare z
+  if(aptr->z< bptr->z)
+    {return -1;}  // a < b
+  if(aptr->z> bptr->z)
+    {return 1;}   // a < b
+
+  return 0;
+}
+
+// int compareYthenXthenZ(void *a, void *b);
+static int compareYthenXthenZ(const void *a, const void *b)
+{
+  indexTriple *aptr = (indexTriple *)a;
+  indexTriple *bptr = (indexTriple *)b;
+  if(aptr->y_index < bptr->y_index)
+    {return -1;}  // a < b
+  if(aptr->y_index > bptr->y_index)
+    {return 1;}   // a < b
+
+  // y_index is equal, now compare x_index
+  if(aptr->x_index < bptr->x_index)
+    {return -1;}  // a < b
+  if(aptr->x_index > bptr->x_index)
+    {return 1;}   // a < b
+
+  // y_index is equal, now compare x_index
+  if(aptr->z< bptr->z)
+    {return -1;}  // a < b
+  if(aptr->z> bptr->z)
+    {return 1;}   // a < b
+
+  return 0;
+}
+
+// void indexTripleSort(const int len,
+//                      const char firstComp,
+//                      int x[],
+//                      int y[],
+//                      int z[])
+//
+// Sort the index lists x, y, and z as triplets sorting them first by x or y
+// depending on the character string provided as firstComp.  If firstComp is
+// not equal to 'y' or 'Y', then the x-first sort will be used. z is always
+// sorted last.
+static void indexTripleSort(const int len,
+		   const char firstComp,
+		   int x[],
+		   int y[],
+		   double z[])
+{
+  int j;
+  std::vector<indexTriple> tmpList(len);
+
+  // store the values of x and y into the index pair list
+  for(j=0; j<len; j++)
+    {
+      tmpList[j].x_index=x[j];
+      tmpList[j].y_index=y[j];
+      tmpList[j].z=z[j];
+    }
+
+  // perform a quick sort on the index pairs
+  if(firstComp == 'y' || firstComp == 'Y')
+    { // sort by the y_index first
+      qsort((void *)&tmpList[0],
+	    len,
+	    sizeof(indexTriple),
+	    compareYthenXthenZ);
+    }
+  else
+    { // sort by the x_index first (default)
+      qsort((void *)&tmpList[0],
+	    len,
+	    sizeof(indexTriple),
+	    compareXthenYthenZ);
+    }
+
+  // copy the sorted result back in the original x and y arrays
+  for(j=0; j<len; j++)
+    {
+      x[j]=tmpList[j].x_index;
+      y[j]=tmpList[j].y_index;
+      z[j]=tmpList[j].z;
+    }
 }
 
 // re-order the source and destination index pairs in n-tuples by identical
@@ -1409,25 +1802,32 @@ int perf_net_cuda::reorderScatterAdd_by_ntuple(const int ntuple,
 			     const int srcSize,
 			     const int destSize,
 			     int srcId[],
-			     int destId[])
+			     int destId[],
+                             double* srcMult)
 {
   int j,k;
   int remId,groupId,nRem,nGroup;
   int ntupleCount;
   int *destCount;
   int *newSrcId,*newDestId;
+  double *newSrcMult;
 
   destCount = (int *)malloc(sizeof(int)*destSize);
   newSrcId  = (int *)malloc(sizeof(int)*nOps);
   newDestId = (int *)malloc(sizeof(int)*nOps);
+  newSrcMult = (double *)malloc(sizeof(double)*nOps);
 
   // sort the oepration pairs (destId, srcId) by the destId first
-  indexPairSort(nOps,'x',&destId[0],&srcId[0]);
+  if(srcMult != nullptr) {
+    indexTripleSort(nOps,'x',&destId[0],&srcId[0],srcMult);
+  } else {
+    indexPairSort(nOps,'x',&destId[0],&srcId[0]);
+  }
 
   // initialize the counter array for the destination indexes
   for(j=0; j<destSize; j++)
     {destCount[j]=0;}
-  
+
   // count the distribution of destination indexes
   for(j=0; j<nOps; j++)
     {destCount[destId[j]]++;}
@@ -1436,7 +1836,7 @@ int perf_net_cuda::reorderScatterAdd_by_ntuple(const int ntuple,
   ntupleCount=0;
   for(j=0; j<destSize; j++)
     {ntupleCount+=(destCount[j]/ntuple);}
-  
+
   // regroup the sorted index pairs so that all the complete n-tuples
   // are located at the beginning and all the partial n-tuple remainders
   // are at the end
@@ -1453,10 +1853,13 @@ int perf_net_cuda::reorderScatterAdd_by_ntuple(const int ntuple,
       nRem    = destCount[destId[j]]-nGroup;
 
       // place the n-tuple groups
-      for(k=0; k<nGroup; k++) 
+      for(k=0; k<nGroup; k++)
 	{
 	  newDestId[groupId] = destId[j];
 	  newSrcId[groupId]  = srcId[j];
+          if(srcMult != nullptr) {
+            newSrcMult[groupId] =srcMult[j];
+          }
 	  ++j; ++groupId;
 	}
       // place the remainders
@@ -1464,30 +1867,37 @@ int perf_net_cuda::reorderScatterAdd_by_ntuple(const int ntuple,
 	{
 	  newDestId[remId] = destId[j];
 	  newSrcId[remId]  = srcId[j];
+          if(srcMult != nullptr) {
+            newSrcMult[remId] =srcMult[j];
+          }
 	  ++j; ++remId;
 	}
     }
 
-  // copy the regrouped index pairsback to the 
+  // copy the regrouped index pairsback to the
   for(j=0; j<nOps; j++)
     {
-      destId[j] = newDestId[j];
-      srcId[j]  = newSrcId[j];
+      destId[j]  = newDestId[j];
+      srcId[j]   = newSrcId[j];
+      if(srcMult != nullptr) {
+        srcMult[j] = newSrcMult[j];
+      }
     }
 
   //  for(j=0; j<nOps; j++)
   //{
   //  printf("op list %5d: (dest = %5d, src = %5d)\n",
   // 	     j,destId[j],srcId[j]);
-  //} 
+  //}
 //  printf("# %d-tuple fraction: %8.6f (count %d)\n",
 //	 ntuple,
 //	 (double)(ntuple*ntupleCount)/(double)nOps,
 //	 ntuple*ntupleCount);
-	 
-    
+	
+
   free(newDestId);
   free(newSrcId);
+  free(newSrcMult);
   free(destCount);
 
   return ntuple*ntupleCount;

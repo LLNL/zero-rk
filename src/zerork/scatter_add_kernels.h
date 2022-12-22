@@ -76,6 +76,18 @@ __global__ void scatterAdd_gpu_atomic_global_fused(
 				      const double src[],
 				      const int destSize,
 				      double dest[]);
+
+__global__ void multScatterAdd_gpu_atomic_global_fused(
+                                      const int nOps[],
+                                      const int srcId[],
+				      const int destId[], 
+				      const double srcMult[], 
+				      const int nData,
+				      const int srcSize,
+				      const double src[],
+				      const int destSize,
+				      double dest[]);
+
 } // namespace zerork
 
 #endif

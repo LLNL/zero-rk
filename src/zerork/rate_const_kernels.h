@@ -43,6 +43,13 @@ void rate_const_updateFromKeqStep_CUDA_mr(const int nReactors, const int nSpc, c
           const double *fromKeq_nDelta_dev, const double *Gibbs_RT_dev, double *K_dev,
           const double *T_dev, cudaStream_t kEqStream);
 
+void rate_const_updateFromKeqStepNI_CUDA_mr(const int nReactors, const int nSpc, const int nStep,
+          const int nFromKeqStep, const int keqPadSize, const int *fromKeq_reacIdx_dev,
+          const int * fromKeq_prodIdx_dev, const int *fromKeq_stepIdx_dev,
+          const double *fromKeq_nDelta_dev, const double *fromKeq_stoich_fwd_dev,
+          const double *fromKeq_stoich_rev_dev, const double *Gibbs_RT_dev, double *K_dev,
+          const double *T_dev, cudaStream_t kEqStream);
+
 void rate_const_updateThirdBody_CUDA_mr(const int nReactors, const int nSpc, const int nStep, 
     const int nThirdBodyRxn, const int maxThirdBodySpc, const int *thirdBody_nEnhanced_dev,
     const int *thirdBody_etbSpcIdx_dev, const int *thirdBody_fwdStepIdx_dev,

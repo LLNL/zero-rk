@@ -46,10 +46,6 @@ mechanism_cuda::mechanism_cuda(const char *mechFileName,
   }
 
   initialize_ptrs_cuda(&ckrobj,nReactorsMax);
-
-  if(non_integer_network_.GetNumNonIntegerReactions() > 0) {
-      throw std::runtime_error("zerork::mechanism_cuda::mechanism_cuda() Unable to handle non-integer reactions.");
-  }
 }
 
 mechanism_cuda::~mechanism_cuda()

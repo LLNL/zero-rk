@@ -388,7 +388,11 @@ int MixAvg::GetSpeciesMassFlux(const MassTransportInput &input,
 	  }
 
 	} // l species loop
-	Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+        if(den != 0.0) {
+          Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+        } else {
+          Dmass[k] = rho/invDij[k*num_species + k];
+        }
 	// Compute Lewis numbers from DMass_k
 	lewisnumbers[k] = conductivity_mix/(specific_heat_cp_mass*Dmass[k]);
 
@@ -534,7 +538,11 @@ int MixAvg::GetSpeciesMassFluxUncorrected(const MassTransportInput &input,
 	  }
 
 	} // l species loop
-	Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+        if(den != 0.0) {
+	  Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+        } else {
+          Dmass[k] = rho/invDij[k*num_species + k];
+        }
 	// Compute Lewis numbers from DMass_k
 	lewisnumbers[k] = conductivity_mix/(specific_heat_cp_mass*Dmass[k]);
 
@@ -649,7 +657,11 @@ int MixAvg::GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
 	  }
 
 	} // l species loop
-	Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+        if(den != 0.0) {
+          Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+        } else {
+          Dmass[k] = rho/invDij[k*num_species + k];
+        }
 	// Compute Lewis numbers from DMass_k
 	lewisnumbers[k] = conductivity_mix/(specific_heat_cp_mass*Dmass[k]);
 

@@ -903,11 +903,11 @@ void rate_const::updateFalloffRxn(const double C[])
 
       // Troe 3 and 4-parameter fits
       Fcenter = 0.0;
-      if(falloffRxnList[j].param[4]>0) {
+      if(falloffRxnList[j].param[4]!=0) {
         Fcenter += (1.0-falloffRxnList[j].param[3])
                    *exp(-Tcurrent/falloffRxnList[j].param[4]);
       }
-      if(falloffRxnList[j].param[5]>0) {
+      if(falloffRxnList[j].param[5]!=0) {
         Fcenter+=falloffRxnList[j].param[3]
                  *exp(-Tcurrent/falloffRxnList[j].param[5]);
       }

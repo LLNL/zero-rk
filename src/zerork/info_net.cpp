@@ -431,28 +431,38 @@ void info_net::setReactionFlags(ckr::CKReader *ckrobj)
       }
     }
 
-    isNonIntegerStoich[j] = 0;
-    double count;
-    int int_count;
-    // scan the reactants for non-integer stoichiometric coefficients
-    for(k=0; k<(int)ckrobj->reactions[j].reactants.size(); ++k) {
-      count = ckrobj->reactions[j].reactants[k].number;
-      int_count = (int)(count + 0.5);
-      if(fabs(count-(double)int_count) > STOICH_TOL) {
-        // set flag that a non-integer stoichiometric coefficient is found
-        isNonIntegerStoich[j] = 1;
-        break;
-      }
+    const char * all_non_integer_char = getenv("ZERORK_ALL_NON_INTEGER");
+    int all_non_integer = 0;
+    if (all_non_integer_char != NULL)
+    {
+       all_non_integer = atoi(all_non_integer_char);
     }
-    if(isNonIntegerStoich[j] == 0) {
-      // scan the products for non-integer stoichiometric coefficients
-      for(k=0; k<(int)ckrobj->reactions[j].products.size(); ++k) {
-        count = ckrobj->reactions[j].products[k].number;
+    if( all_non_integer != 0 ) {
+      isNonIntegerStoich[j] = 1;
+    } else {
+      isNonIntegerStoich[j] = 0;
+      double count;
+      int int_count;
+      // scan the reactants for non-integer stoichiometric coefficients
+      for(k=0; k<(int)ckrobj->reactions[j].reactants.size(); ++k) {
+        count = ckrobj->reactions[j].reactants[k].number;
         int_count = (int)(count + 0.5);
         if(fabs(count-(double)int_count) > STOICH_TOL) {
           // set flag that a non-integer stoichiometric coefficient is found
           isNonIntegerStoich[j] = 1;
           break;
+        }
+      }
+      if(isNonIntegerStoich[j] == 0) {
+        // scan the products for non-integer stoichiometric coefficients
+        for(k=0; k<(int)ckrobj->reactions[j].products.size(); ++k) {
+          count = ckrobj->reactions[j].products[k].number;
+          int_count = (int)(count + 0.5);
+          if(fabs(count-(double)int_count) > STOICH_TOL) {
+            // set flag that a non-integer stoichiometric coefficient is found
+            isNonIntegerStoich[j] = 1;
+            break;
+          }
         }
       }
     }

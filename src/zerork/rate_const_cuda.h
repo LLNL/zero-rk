@@ -34,6 +34,8 @@ class rate_const_cuda : public rate_const
   int *fromKeq_stepIdx_dev;
   int *fromKeq_fwdStepIdx_dev;
   double *fromKeq_nDelta_dev;
+  double *fromKeq_stoich_fwd_dev;
+  double *fromKeq_stoich_rev_dev;
 
   //Third body rates on GPU
   int maxThirdBodySpc; //max of both third body-only and falloff rxns

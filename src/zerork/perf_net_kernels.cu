@@ -93,6 +93,42 @@ void __global__ cuda_rxn_conc_mult_mr
     }
 }
 
+void __global__ cuda_rxn_conc_mult_ni_mr
+(
+    const int nReactors,
+    const int nSpc,
+    const int nStep,
+    const int nReacsPerStep,
+    const int *reactantSpcIdxListUnwrapped_dev,
+    const double *rop_concentration_powers_dev,
+    const double *C_dev,
+    double *stepOut_dev
+)
+{
+    int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
+    if(tid < nStep)
+    {
+        if(reactorid < nReactors)
+        {
+            double accum = 1.0;
+            for(int j = 0; j < nReacsPerStep; ++j)
+            { //TODO: re-order reactantSpcIdxListUnwrapped_dev.
+                const int currConcIdx = reactantSpcIdxListUnwrapped_dev[tid*nReacsPerStep+j]*nReactors + reactorid;
+                //const int currPowIdx = reactantSpcIdxListUnwrapped_dev[tid*nReacsPerStep+j];
+                const double species_concentration = C_dev[currConcIdx];
+                const double power = rop_concentration_powers_dev[tid*nReacsPerStep+j];
+                double val = pow(fabs(species_concentration),power);
+                if(species_concentration < 0) {
+                  val *= -1; 
+                }
+                accum *= val;
+            }
+            stepOut_dev[nReactors*tid+reactorid] *= accum;
+        }
+    }
+}
+
 void __global__ cuda_production_rates
 (
     const int nSpc,
@@ -180,7 +216,9 @@ void perf_net_cuda_rxn_conc_mult(const int nStep, const int maxReactants,
 
 void perf_net_cuda_rxn_conc_mult_mr(const int nReactors, const int nSpc,
         const int nStep, const int maxReactants,
-        const int *reactantSpcIdxListUnwrapped_dev, const double *C_dev,
+        const int *reactantSpcIdxListUnwrapped_dev,
+        const double *rop_concentration_powers_dev,
+        const double *C_dev,
         double *stepOut_dev)
 {
     int threadsX = 1;
@@ -192,16 +230,30 @@ void perf_net_cuda_rxn_conc_mult_mr(const int nReactors, const int nSpc,
     dim3 nBlocks2D(nBlocksX,nBlocksY);
 
     //Scatter multiplication kernel
-    cuda_rxn_conc_mult_mr<<< nBlocks2D, nThreads2D >>>
-    (
-        nReactors,
-        nSpc,
-        nStep,
-        maxReactants,
-        reactantSpcIdxListUnwrapped_dev,
-        C_dev,
-        stepOut_dev
-    );
+    if(rop_concentration_powers_dev == nullptr) {
+      cuda_rxn_conc_mult_mr<<< nBlocks2D, nThreads2D >>>
+      (
+          nReactors,
+          nSpc,
+          nStep,
+          maxReactants,
+          reactantSpcIdxListUnwrapped_dev,
+          C_dev,
+          stepOut_dev
+      );
+    } else {
+      cuda_rxn_conc_mult_ni_mr<<< nBlocks2D, nThreads2D >>>
+      (
+          nReactors,
+          nSpc,
+          nStep,
+          maxReactants,
+          reactantSpcIdxListUnwrapped_dev,
+          rop_concentration_powers_dev,
+          C_dev,
+          stepOut_dev
+      );
+    }
 #ifdef ZERORK_FULL_DEBUG
     cudaDeviceSynchronize();
     checkCudaError(cudaGetLastError(),"perf_net_cuda_rxn_conc_mult_mr");
@@ -383,6 +435,27 @@ void perf_net_scatterAdd_gpu_atomic_global_fused(const int maxOps,
 
     scatterAdd_gpu_atomic_global_fused<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
+#ifdef ZERORK_FULL_DEBUG
+    cudaDeviceSynchronize();
+    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_fused");
+#endif
+}
+
+void perf_net_multScatterAdd_gpu_atomic_global_fused(const int maxOps,
+    const int nOps[],
+    const int srcId[], const int destId[], const double srcMult[], const int nData,
+    const int srcSize, const double src[], const int destSize,
+    double dest[], cudaStream_t cuStream)
+{
+    if( maxOps == 0 ) return;
+    int nThreads = std::min(MAX_THREADS_PER_BLOCK,nData);
+    dim3 gridBlk;
+    gridBlk.x = (nData+nThreads-1)/nThreads;
+    gridBlk.y = maxOps;
+    gridBlk.z = 1;
+
+    multScatterAdd_gpu_atomic_global_fused<<<gridBlk, nThreads, 0, cuStream >>>
+        (nOps, srcId, destId, srcMult, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
     cudaDeviceSynchronize();
     checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_fused");

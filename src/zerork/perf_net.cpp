@@ -64,11 +64,46 @@ perf_net::perf_net(info_net &netobj, rate_const &Kobj)
   assert(pCtr == totProd);
   assert(rCtr == totReac);
 
+
   non_integer_network_ = netobj.getNonIntegerReactionNetwork();
+  niReactantSpcIdxList.clear();
+  niReactantStepIdxList.clear();
+  niReactantStoichNumList.clear();
+  niProductSpcIdxList.clear();
+  niProductStepIdxList.clear();
+  niProductStoichNumList.clear();
   use_non_integer_network_ = true;
   if(non_integer_network_.GetNumNonIntegerSteps() == 0) {
     use_non_integer_network_ = false;
+  } else {
+    for(j=0; j<nStep; j++)
+    {
+      if(non_integer_network_.HasStep(j))
+      {
+        std::vector<int> step_reactant_indexes = non_integer_network_.GetReactantIndexesOfStep(j);
+        std::vector<double> step_reactant_stoich_nums = non_integer_network_.GetReactantStoichNumsOfStep(j);
+        const int num_reactants = step_reactant_indexes.size();
+        if(num_reactants > maxReactants) maxReactants = num_reactants;
+        for(k=0; k<num_reactants; k++) 
+        {
+          niReactantSpcIdxList.push_back(step_reactant_indexes[k]);
+          niReactantStoichNumList.push_back(step_reactant_stoich_nums[k]);
+          niReactantStepIdxList.push_back(j);
+        }
+        std::vector<int> step_product_indexes = non_integer_network_.GetProductIndexesOfStep(j);
+        std::vector<double> step_product_stoich_nums = non_integer_network_.GetProductStoichNumsOfStep(j);
+        const int num_products = step_product_indexes.size();
+        for(k=0; k<num_products; k++)
+        {
+          niProductSpcIdxList.push_back(step_product_indexes[k]);
+          niProductStoichNumList.push_back(step_product_stoich_nums[k]);
+          niProductStepIdxList.push_back(j);
+        }
+      }
+    }
   }
+  niTotProd = niProductSpcIdxList.size();
+  niTotReac = niReactantSpcIdxList.size();;
 
   //Initialize timing data
   cpuKTime = cpuStepTime = cpuProdTime = cpuNetTime = 0.0;

@@ -14,6 +14,8 @@
 
 #define ZERORK_ODE_THREADS 512
 
+//#define ZERORK_REACTOR_NON_INTEGER_JACOBIAN_CPU
+
 ReactorNVectorSerialCuda::ReactorNVectorSerialCuda(std::shared_ptr<zerork::mechanism_cuda> mech_ptr) : 
     ReactorBase(),
     mech_ptr_(mech_ptr),
@@ -28,6 +30,7 @@ ReactorNVectorSerialCuda::ReactorNVectorSerialCuda(std::shared_ptr<zerork::mecha
     destruction_terms_sparse_indexes_dev_ptr_(&destruction_terms_sparse_indexes_temperature_dev_),
     creation_terms_sparse_indexes_dev_ptr_(&creation_terms_sparse_indexes_temperature_dev_),
     noninteger_sparse_id_ptr_(&noninteger_sparse_id_temperature_),
+    noninteger_term_id_dev_ptr_(&noninteger_term_id_temperature_dev_),
     unit_diagonal_dev_ptr_(&unit_diagonal_temperature_dev_)
 {
   num_species_ = mech_ptr_->getNumSpecies();
@@ -160,7 +163,7 @@ void ReactorNVectorSerialCuda::SetSolveTemperature(bool value) {
 
       jacobian_row_sums_dev_ptr_ = &jacobian_row_sums_temperature_dev_;  
       jacobian_column_indexes_dev_ptr_ = &jacobian_column_indexes_temperature_dev_;  
-      //noninteger_sparse_id_dev_ptr_ = &noninteger_sparse_id_temperature_dev_;
+      noninteger_term_id_dev_ptr_ = &noninteger_term_id_temperature_dev_;
       destruction_terms_sparse_indexes_dev_ptr_ = &destruction_terms_sparse_indexes_temperature_dev_;
       creation_terms_sparse_indexes_dev_ptr_ = &creation_terms_sparse_indexes_temperature_dev_;
       unit_diagonal_dev_ptr_ = &unit_diagonal_temperature_dev_;
@@ -176,7 +179,7 @@ void ReactorNVectorSerialCuda::SetSolveTemperature(bool value) {
 
       jacobian_row_sums_dev_ptr_ = &jacobian_row_sums_no_temperature_dev_;  
       jacobian_column_indexes_dev_ptr_ = &jacobian_column_indexes_no_temperature_dev_;  
-      //noninteger_sparse_id_dev_ptr_ = noninteger_sparse_id_no_temperature_dev_;
+      noninteger_term_id_dev_ptr_ = &noninteger_term_id_no_temperature_dev_;
       destruction_terms_sparse_indexes_dev_ptr_ = &destruction_terms_sparse_indexes_no_temperature_dev_;
       creation_terms_sparse_indexes_dev_ptr_ = &creation_terms_sparse_indexes_no_temperature_dev_;
       unit_diagonal_dev_ptr_ = &unit_diagonal_no_temperature_dev_;
@@ -280,10 +283,6 @@ void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
 
   // non-integer reaction network
   if(num_noninteger_jacobian_nonzeros_ > 0) {
-    noninteger_jacobian_.assign(num_noninteger_jacobian_nonzeros_,0.0);
-    noninteger_sparse_id_temperature_.assign(num_noninteger_jacobian_nonzeros_,0);
-    noninteger_sparse_id_no_temperature_.assign(num_noninteger_jacobian_nonzeros_,0);
-
     noninteger_row_id.assign(num_noninteger_jacobian_nonzeros_, 0);
     noninteger_column_id.assign(num_noninteger_jacobian_nonzeros_, 0);
 
@@ -291,10 +290,8 @@ void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
        &noninteger_row_id[0],&noninteger_column_id[0]);
 
     for(int j=0; j<num_noninteger_jacobian_nonzeros_; ++j) {
-
       int dense_id = noninteger_row_id[j]+noninteger_column_id[j]*num_variables_;
       isNonZero[dense_id]=1;
-
     }
   } // end if(num_noninteger_jacobian_nonzeros_ > 0)
 
@@ -374,11 +371,47 @@ void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
   creation_terms_sparse_indexes_no_temperature_dev_ = creation_terms_sparse_indexes_no_temperature;
 
 
-  for(int j=0; j<num_noninteger_jacobian_nonzeros_; ++j) {
-    int dense_id = noninteger_row_id[j]+noninteger_column_id[j]*num_variables_;
-    int nzAddr=isNonZero[dense_id];
-    noninteger_sparse_id_temperature_[j] = nzAddr-1;
-    noninteger_sparse_id_no_temperature_[j] = nzAddr-1 - noninteger_row_id[j];
+
+  if(num_noninteger_jacobian_nonzeros_ > 0) {
+    noninteger_jacobian_.assign(num_noninteger_jacobian_nonzeros_,0.0);
+    noninteger_sparse_id_temperature_.assign(num_noninteger_jacobian_nonzeros_,0);
+    noninteger_sparse_id_no_temperature_.assign(num_noninteger_jacobian_nonzeros_,0);
+
+    for(int j=0; j<num_noninteger_jacobian_nonzeros_; ++j) {
+      int dense_id = noninteger_row_id[j]+noninteger_column_id[j]*num_variables_;
+      int nzAddr=isNonZero[dense_id];
+      noninteger_sparse_id_temperature_[j] = nzAddr-1;
+      noninteger_sparse_id_no_temperature_[j] = nzAddr-1 - noninteger_row_id[j];
+    }
+
+#ifndef ZERORK_REACTOR_NON_INTEGER_JACOBIAN_CPU
+    num_noninteger_jacobian_terms_ = mech_ptr_->getNonIntegerReactionNetwork()->GetNumJacobianTerms();
+    //Only need temporary copies of these on host
+    thrust::host_vector<int> noninteger_internal_term_id(num_noninteger_jacobian_terms_);
+    thrust::host_vector<int> noninteger_term_id_temperature(num_noninteger_jacobian_terms_);
+    thrust::host_vector<int> noninteger_term_id_no_temperature(num_noninteger_jacobian_terms_);
+    thrust::host_vector<int> noninteger_concentration_id(num_noninteger_jacobian_terms_);
+    thrust::host_vector<int> noninteger_step_id(num_noninteger_jacobian_terms_);
+    thrust::host_vector<double> noninteger_multiplier(num_noninteger_jacobian_terms_);
+
+    mech_ptr_->getNonIntegerReactionNetwork()->GetJacobianParameters(
+       &noninteger_internal_term_id[0],
+       &noninteger_concentration_id[0],
+       &noninteger_step_id[0],
+       &noninteger_multiplier[0]);
+
+    for(int j=0; j<num_noninteger_jacobian_terms_; ++j) {
+      const int int_idx = noninteger_internal_term_id[j];
+      noninteger_term_id_temperature[j] = noninteger_sparse_id_temperature_[int_idx];
+      noninteger_term_id_no_temperature[j] = noninteger_sparse_id_no_temperature_[int_idx];
+    }
+
+    noninteger_term_id_temperature_dev_ = noninteger_term_id_temperature;
+    noninteger_term_id_no_temperature_dev_ = noninteger_term_id_no_temperature;
+    noninteger_concentration_id_dev_ = noninteger_concentration_id;
+    noninteger_step_id_dev_ = noninteger_step_id;
+    noninteger_multiplier_dev_ = noninteger_multiplier;
+#endif
   }
 
   //Make the unit_diagonal array to form preconditioner on device
@@ -1081,6 +1114,33 @@ void __global__ kernel_fwd_create_fused
   }
 }
 
+void __global__ kernel_noninteger_terms
+(
+  const int num_reactors,
+  const int num_terms,
+  const int nnz,
+  const int* sparse_indexes,
+  const int* conc_indexes,
+  const int* rxn_indexes,
+  const double* multipliers,
+  const double *inv_conc,
+  const double *rop,
+  double *jacobian_data
+)
+{
+  int tid = blockIdx.x*blockDim.x + threadIdx.x;
+  const int stride = gridDim.x*blockDim.x;
+  for( ; tid < num_reactors*num_terms; tid += stride) {
+     const int termid =    tid / num_reactors;
+     const int reactorid = tid % num_reactors;
+
+     const int conc_idx_loc    = conc_indexes[termid]*num_reactors + reactorid;
+     const int rxn_idx_loc     = rxn_indexes[termid]*num_reactors + reactorid;
+     const int sparse_idx_loc  = reactorid*nnz + sparse_indexes[termid];
+     atomicAdd(&jacobian_data[sparse_idx_loc], multipliers[termid]*rop[rxn_idx_loc]*inv_conc[conc_idx_loc]);
+  }
+}
+
 void __global__ kernel_convert_concentration_to_mf
 (
   const int num_reactors,
@@ -1256,45 +1316,85 @@ int ReactorNVectorSerialCuda::SetupJacobianSparseDevice(realtype t, N_Vector y, 
 
   // process the forward destruction terms
   int n_destruction_terms = destruction_terms_sparse_indexes_dev_ptr_->size(); 
-  nthreads = std::min(num_reactors_*n_destruction_terms, 512);
-  nblocks = (num_reactors_*n_destruction_terms + nthreads - 1)/nthreads;
-  kernel_fwd_destroy_fused<<<nblocks, nthreads>>>(num_reactors_, n_destruction_terms, nnz_, 
-                                            thrust::raw_pointer_cast(&(*destruction_terms_sparse_indexes_dev_ptr_)[0]),
-                                            thrust::raw_pointer_cast(&destruction_terms_conc_indexes_dev_[0]),
-                                            thrust::raw_pointer_cast(&destruction_terms_reac_indexes_dev_[0]),
-                                            tmp2_ptr_dev, thrust::raw_pointer_cast(&forward_rates_of_production_dev_[0]),
-                                            thrust::raw_pointer_cast(&jacobian_data_dev_[0]));
+  if(n_destruction_terms > 0) {
+    nthreads = std::min(num_reactors_*n_destruction_terms, 512);
+    nblocks = (num_reactors_*n_destruction_terms + nthreads - 1)/nthreads;
+    kernel_fwd_destroy_fused<<<nblocks, nthreads>>>(num_reactors_, n_destruction_terms, nnz_, 
+                                              thrust::raw_pointer_cast(&(*destruction_terms_sparse_indexes_dev_ptr_)[0]),
+                                              thrust::raw_pointer_cast(&destruction_terms_conc_indexes_dev_[0]),
+                                              thrust::raw_pointer_cast(&destruction_terms_reac_indexes_dev_[0]),
+                                              tmp2_ptr_dev, thrust::raw_pointer_cast(&forward_rates_of_production_dev_[0]),
+                                              thrust::raw_pointer_cast(&jacobian_data_dev_[0]));
+  }
 
   // process the forward creation terms
   int n_creation_terms = creation_terms_sparse_indexes_dev_ptr_->size(); 
-  nthreads = std::min(num_reactors_*n_creation_terms, 512);
-  nblocks = (num_reactors_*n_creation_terms + nthreads - 1)/nthreads;
-  kernel_fwd_create_fused<<<nblocks, nthreads>>>(num_reactors_, n_creation_terms, nnz_, 
-                                            thrust::raw_pointer_cast(&(*creation_terms_sparse_indexes_dev_ptr_)[0]),
-                                            thrust::raw_pointer_cast(&creation_terms_conc_indexes_dev_[0]),
-                                            thrust::raw_pointer_cast(&creation_terms_reac_indexes_dev_[0]),
-                                            tmp2_ptr_dev, thrust::raw_pointer_cast(&forward_rates_of_production_dev_[0]),
-                                            thrust::raw_pointer_cast(&jacobian_data_dev_[0]));
+  if(n_creation_terms > 0) {
+    nthreads = std::min(num_reactors_*n_creation_terms, 512);
+    nblocks = (num_reactors_*n_creation_terms + nthreads - 1)/nthreads;
+    kernel_fwd_create_fused<<<nblocks, nthreads>>>(num_reactors_, n_creation_terms, nnz_, 
+                                              thrust::raw_pointer_cast(&(*creation_terms_sparse_indexes_dev_ptr_)[0]),
+                                              thrust::raw_pointer_cast(&creation_terms_conc_indexes_dev_[0]),
+                                              thrust::raw_pointer_cast(&creation_terms_reac_indexes_dev_[0]),
+                                              tmp2_ptr_dev, thrust::raw_pointer_cast(&forward_rates_of_production_dev_[0]),
+                                              thrust::raw_pointer_cast(&jacobian_data_dev_[0]));
+  }
 
-  
   // process the non-integer Jacobian information
   if(num_noninteger_jacobian_nonzeros_ > 0) {
-    assert(false); //shouldn't get here, but just in case...
+#ifdef ZERORK_REACTOR_NON_INTEGER_JACOBIAN_CPU
+    //copy inverse concentrations and rates of progress to host
+    forward_rates_of_production_ = forward_rates_of_production_dev_;
+    N_VCopyFromDevice_Cuda(tmp2_);
+    double* tmp2_ptr = N_VGetHostArrayPointer_Cuda(tmp2_);
+
+    //These hold transposed data for call to host non-integer routine
+    std::vector<double> fwd_rop_trans(num_steps_);
+    std::vector<double> inv_concentrations_trans(num_species_);
+
+    jacobian_data_nonint_.assign(nnz_*num_reactors_, 0.0);   
     const int num_noninteger_jacobian_nonzeros =
       num_noninteger_jacobian_nonzeros_;
 
-    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-      noninteger_jacobian_[j] = 0.0;
-    }
+    for(int k=0; k<num_reactors_; ++k) { 
+      for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+        noninteger_jacobian_[j] = 0.0;
+      }
+      for(int j = 0; j < num_steps_; ++j) {
+        fwd_rop_trans[j] = forward_rates_of_production_[j*num_reactors_+k];
+      }
+      for(int j = 0; j < num_species_; ++j) {
+        inv_concentrations_trans[j] = tmp2_ptr[j*num_reactors_+k];
+      }
 
-    mech_ptr_->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
-      tmp2_ptr_dev,
-      &forward_rates_of_production_[0],
-      &noninteger_jacobian_[0]);
+      mech_ptr_->getNonIntegerReactionNetwork()->GetSpeciesJacobian(
+        &inv_concentrations_trans[0],
+        &fwd_rop_trans[0],
+        &noninteger_jacobian_[0]);
 
-    for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
-      jacobian_data_[(*noninteger_sparse_id_ptr_)[j]] += noninteger_jacobian_[j];
+      for(int j=0; j<num_noninteger_jacobian_nonzeros; ++j) {
+        jacobian_data_nonint_[k*nnz_+ (*noninteger_sparse_id_ptr_)[j]] += noninteger_jacobian_[j];
+      }
     }
+    //copy host non_integer terms to device
+    jacobian_data_nonint_dev_ = jacobian_data_nonint_;
+    //add non_integer to full jacobian
+    thrust::transform(jacobian_data_dev_.begin(), jacobian_data_dev_.end(),
+                      jacobian_data_nonint_dev_.begin(),
+                      jacobian_data_dev_.begin(),
+                      thrust::plus<double>());
+    
+#else
+    nthreads = std::min(num_reactors_*num_noninteger_jacobian_terms_, 512);
+    nblocks = (num_reactors_*num_noninteger_jacobian_terms_ + nthreads - 1)/nthreads;
+    kernel_noninteger_terms<<<nblocks, nthreads>>>(num_reactors_, num_noninteger_jacobian_terms_, nnz_,
+                                                   thrust::raw_pointer_cast(&(*noninteger_term_id_dev_ptr_)[0]),
+                                                   thrust::raw_pointer_cast(&noninteger_concentration_id_dev_[0]),
+                                                   thrust::raw_pointer_cast(&noninteger_step_id_dev_[0]),
+                                                   thrust::raw_pointer_cast(&noninteger_multiplier_dev_[0]),
+                                                   tmp2_ptr_dev, thrust::raw_pointer_cast(&forward_rates_of_production_dev_[0]),
+                                                   thrust::raw_pointer_cast(&jacobian_data_dev_[0]));
+#endif
   }
 
   if(solve_temperature_) {
