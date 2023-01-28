@@ -20,3 +20,4 @@ add_subdirectory(counterflowSteady)
 add_subdirectory(lewisGenerator)
 
 add_subdirectory(cfd_plugin)
+add_subdirectory(flame_api)

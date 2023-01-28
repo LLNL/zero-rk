@@ -1,5 +1,5 @@
 
-app=premixed_steady_flame_solver.x
+app=premixed_steady_flame_solver_mpi.x
 inp=input.yml
 
 "@MPIEXEC_EXECUTABLE@" @MPIEXEC_NUMPROC_FLAG@ \

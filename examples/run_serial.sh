@@ -12,7 +12,8 @@ for d in \
   variable_volume/rcm \
   variable_volume_batch \
   cfd_plugin_tester \
-  rate_optimization
+  rate_optimization \
+  flame_api_tester
 do
   cd $d
   echo "Running test $d ..."

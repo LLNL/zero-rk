@@ -1,0 +1,44 @@
+#Chemkin Format Mechansim File [input]
+#Type: string
+mechanism_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_mech.txt
+
+#Chemkin Format Thermodynamics File [input]
+#Type: string
+therm_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_therm.txt
+
+#Transport File [input]
+#Type: string
+transport_file: @CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/n-dodecane/NC12H26_Hybrid_transport.txt
+
+#Transport model
+#Only 'ConstantLewis' is supported with
+#the steady flame solver
+transport_model: 'ConstantLewis'
+#transport_model: 'MixAvg'
+#transport_model: 'MixAvgSoret'
+
+#Mechanism parser log file
+#Type: string
+#Optional with default value '/dev/null'
+log_file: 'mechanism_parser.log'
+
+#Lewis number file, only used with ConstantLewis transport model
+#Type: string
+Lewis_file: Lewis_file
+
+flame_speed: 0.67
+
+pressure: 100000.0
+
+flame_start_profile: flame_profile_start.txt
+flame_end_profile: flame_profile_end.txt
+
+relative_tolerance: 1.0e-8
+absolute_tolerance: 1.0e-20
+
+verbosity: 0
+
+step_limiter: 1.0e300
+
+pseudo_unsteady: 0
+pseudo_unsteady_dt: 1.0e-3

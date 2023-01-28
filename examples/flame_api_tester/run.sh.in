@@ -1,0 +1,16 @@
+
+ascii_output=flame_profile_start.txt
+if [ ! -e $ascii_output ]
+then
+  #create ascii input from premixed_steady 
+  #binary input
+  binary_input=../premixed_steady_flame_solver/dataunsteady
+  length=0.015
+  "@Python3_EXECUTABLE@" convert.py ${binary_input} ${ascii_output} ${length}
+fi
+
+app=zerork_flame_api_tester.x
+inp=input.yml
+
+"@CMAKE_INSTALL_PREFIX@/bin/$app" $inp
+

@@ -1,2 +1,2 @@
 
-python3 -u sweep_pseudounsteady.py
+"@Python3_EXECUTABLE@" -u sweep_pseudounsteady.py

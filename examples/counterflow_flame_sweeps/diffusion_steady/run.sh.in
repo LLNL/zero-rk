@@ -6,5 +6,5 @@ then
   exit 0
 fi
 
-python3 sweep_steady.py
+"@Python3_EXECUTABLE@" sweep_steady.py
 

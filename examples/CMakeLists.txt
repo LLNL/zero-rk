@@ -21,7 +21,10 @@ set(INPUT_FILES constVolumeWSR/hydrogen_TSweep.yml.in
   cfd_plugin_tester/run_gpu.sh.in
   rate_optimization/make_env.sh.in
   rate_optimization/run.sh.in
-  rate_optimization/optimize_rate_h2_simple.py.in)
+  rate_optimization/optimize_rate_h2_simple.py.in
+  flame_api_tester/input.yml.in
+  flame_api_tester/run.sh.in
+  )
 
 if(ENABLE_MPI)
 get_filename_component(MPIEXEC_NAME ${MPIEXEC_EXECUTABLE} NAME)
@@ -72,7 +75,8 @@ set(INPUT_FILES ${INPUT_FILES}
   counterflow_flame_sweeps/diffusion_steady/run.sh.in
   perturbAFactorGSA/perturbAFactorGSA_example.yml.in
   perturbAFactorGSA/run.sh.in
-  variable_volume_gsa/run.sh.in)
+  variable_volume_gsa/run.sh.in
+  flame_api_tester/run_parallel.sh.in)
 
 install(FILES run_all.sh DESTINATION share/zerork/examples)
 endif(ENABLE_MPI)

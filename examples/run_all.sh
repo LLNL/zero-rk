@@ -27,7 +27,8 @@ for d in \
   counterflow_flame_sweeps/premixed_unsteady \
   thermo_check \
   cfd_plugin_tester \
-  rate_optimization
+  rate_optimization \
+  flame_api_tester
 do
   cd $d
   echo "Running test $d ..."

@@ -13,7 +13,7 @@ sed -i 's/oh+h2 = h+h2o   2.160E+08   1.51  3.430E+03/oh+h2 = h+h2o   1.800E+08 
 sed -i 's/h2o2+h = h2+ho2   6.025E+13   0.00  7.950E+03/h2o2+h = h2+ho2   4.025E+13   0.00  7.850E+03/' h2_v1b_mech_mod.txt
 
 echo "rate_opt: running optimization"
-python3 -u optimize_rate_h2_simple.py >& optimization.log
+"@Python3_EXECUTABLE@" -u optimize_rate_h2_simple.py >& optimization.log
 
 echo "rate_opt: comparing mechanism ignition delays"
 orig="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt"

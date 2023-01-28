@@ -97,16 +97,22 @@ int main(int argc, char *argv[])
   double clock_time = getHighResolutionTime();
   double setup_time, loop_time, sensanal_time;
 
-  if(argc < 2) {
-    printf("# ERROR: Incorrect command line usage.\n");
-    printf("#        use %s <input parameters>\n",argv[0]);
-    exit(-1);
-  }
-
+  int my_pe = 0;
+  int npes = 1;
   // MPI
 #ifdef ZERORK_MPI
   MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_pe);
+  MPI_Comm_size(MPI_COMM_WORLD, &npes);
 #endif
+
+  if(argc < 2) {
+    if(my_pe == 0) {
+      printf("# ERROR: Incorrect command line usage.\n");
+      printf("#        use %s <input parameters>\n",argv[0]);
+    }
+    exit(-1);
+  }
 
   // KINSOL memory pointer and linear solver
   void *kinsol_ptr = NULL;
@@ -161,8 +167,6 @@ int main(int argc, char *argv[])
   std::vector<double> temperature_jump;
   std::vector<int> track_max_state_id;
   std::vector<double> state_maxima, state_maxima_positions;
-
-  int my_pe = flame_params.my_pe_;
 
   // allocate KINSOL data structures
 #ifdef ZERORK_MPI
@@ -246,8 +250,10 @@ int main(int argc, char *argv[])
   } else if(flame_params.integrator_type_ == 3){
     flag = KINSpilsSetPreconditioner(kinsol_ptr, ReactorAFSetup, ReactorAFSolve);
   } else {
-    printf("integrator_type == %d not currently supported\n",
-           flame_params.integrator_type_);
+    if(my_pe == 0) {
+      printf("integrator_type == %d not currently supported\n",
+             flame_params.integrator_type_);
+    }
     flag = -1;
   }
 #elif SUNDIALS3
@@ -262,9 +268,11 @@ int main(int argc, char *argv[])
   } else if(flame_params.integrator_type_ == 3){
     flag = KINSpilsSetPreconditioner(kinsol_ptr, ReactorAFSetup, ReactorAFSolve);
   } else {
-    printf("integrator_type == %d not currently supported\n",
-           flame_params.integrator_type_);
-    flag = -1;
+    if(my_pe == 0) {
+      printf("integrator_type == %d not currently supported\n",
+             flame_params.integrator_type_);
+      flag = -1;
+    }
   }
 #elif SUNDIALS4
   // Initialize Linear Solver
@@ -278,8 +286,10 @@ int main(int argc, char *argv[])
   } else if(flame_params.integrator_type_ == 3){
     flag = KINSetPreconditioner(kinsol_ptr, ReactorAFSetup, ReactorAFSolve);
   } else {
-    printf("integrator_type == %d not currently supported\n",
-           flame_params.integrator_type_);
+    if(my_pe == 0) {
+      printf("integrator_type == %d not currently supported\n",
+             flame_params.integrator_type_);
+    }
     flag = -1;
   }
 
@@ -376,7 +386,11 @@ int main(int argc, char *argv[])
 
     // Pseudo-unsteady
   if(flame_params.pseudo_unsteady_) {
-    flag = KINSetPrintLevel(kinsol_ptr, 0);
+    if(my_pe == 0) {
+       flag = KINSetPrintLevel(kinsol_ptr, 1);
+    } else {
+       flag = KINSetPrintLevel(kinsol_ptr, 0);
+    }
     flag = KINSetNumMaxIters(kinsol_ptr, 80);
     if(my_pe==0) {
       printf("# begin pseudo time-stepping\n");
@@ -437,7 +451,11 @@ int main(int argc, char *argv[])
 
   // Solve system
   flame_params.pseudo_unsteady_ = false;
-  flag = KINSetPrintLevel(kinsol_ptr, 1);
+  if(my_pe == 0) {
+    flag = KINSetPrintLevel(kinsol_ptr, 1);
+  } else {
+    flag = KINSetPrintLevel(kinsol_ptr, 0);
+  }
   flag = KINSol(kinsol_ptr,
 		flame_state,
 		KIN_NONE,
