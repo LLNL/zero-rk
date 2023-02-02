@@ -20,6 +20,7 @@ static zerork_flame_handle zf_handle;
 
 void check_status(zerork_flame_status_t status) {
   if(status != ZERORK_FLAME_STATUS_SUCCESS) {
+    printf("flame_api returned error : %d\n", status);
     exit(2);
   }
 }
@@ -51,11 +52,15 @@ int main(int argc, char *argv[])
 
   zf_handle = zerork_flame_init();
 
+  check_status(zerork_flame_read_options_file(argv[1], zf_handle));
   check_status(zerork_flame_set_int_option("verbosity", inputFileDB.verbosity(), zf_handle));
   check_status(zerork_flame_set_double_option("relative_tolerance", inputFileDB.relative_tolerance(), zf_handle));
   check_status(zerork_flame_set_double_option("absolute_tolerance", inputFileDB.absolute_tolerance(), zf_handle));
   check_status(zerork_flame_set_int_option("pseudo_unsteady", inputFileDB.pseudo_unsteady(), zf_handle));
   check_status(zerork_flame_set_double_option("pseudo_unsteady_dt", inputFileDB.pseudo_unsteady_dt(), zf_handle));
+  check_status(zerork_flame_set_int_option("integrator_type", inputFileDB.integrator_type(), zf_handle));
+  check_status(zerork_flame_set_int_option("convective_scheme_type", inputFileDB.convective_scheme_type(), zf_handle));
+  check_status(zerork_flame_set_string_option("transport_model", inputFileDB.transport_model().c_str(), zf_handle));
   check_status(zerork_flame_set_input_files(mechfilename, thermfilename, transfilename, zf_handle));
   check_status(zerork_flame_load_mechanism(zf_handle));
 

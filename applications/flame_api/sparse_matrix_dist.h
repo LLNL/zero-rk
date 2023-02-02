@@ -20,12 +20,12 @@ class SparseMatrix_dist
   MPI_Comm comm_;
   int my_pe_,npes_;
 
-  int FactorNewPatternCCS_dist(const int new_num_nonzeros,
+  int FactorNewPatternCRS_dist(const int new_num_nonzeros,
 			       const int new_col_id[],
 			       const int new_row_sum[],
 			       const double matrix[]);
 
-  int FactorSamePatternCCS_dist(const int new_num_nonzeros,
+  int FactorSamePatternCRS_dist(const int new_num_nonzeros,
 			       const int new_col_id[],
 			       const int new_row_sum[],
 			       const double matrix[]);

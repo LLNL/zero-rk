@@ -32,6 +32,8 @@
 #include "zerork/utilities.h"
 #include "file_utilities.h"
 
+#include "ZeroRKFlameAPITesterIFP.h"
+
 ZeroRKFlameManager::ZeroRKFlameManager() {
   reactor_   = nullptr;
   transport_ = nullptr;
@@ -42,7 +44,6 @@ ZeroRKFlameManager::ZeroRKFlameManager() {
   //Default options
   int_options_["verbosity"] = 0;
   double_options_["reference_temperature"] = 1000.0;
-  double_options_["pressure"] = 1.01325e5;
   string_options_["mechanism_filename"] = std::string("mech.dat");
   string_options_["therm_filename"] = std::string("therm.dat");
   string_options_["transport_filename"] = std::string("tran.dat");
@@ -52,40 +53,53 @@ ZeroRKFlameManager::ZeroRKFlameManager() {
   int_options_["integrator_type"] = 3;
   int_options_["store_jacobian"]  = 1;
   int_options_["convective_scheme_type"] = 2;
-  int_options_["max_subiterations"] = 2;
-  double_options_["relative_tolerance"] = 1.0e-8;
+  int_options_["max_subiterations"] = 10;
+  int_options_["steady_max_iterations"] = 100;
+  double_options_["relative_tolerance"] = 1.0e-2;
   double_options_["absolute_tolerance"] = 1.0e-20;
   double_options_["step_limiter"] = 1.0e300;
   int_options_["pseudo_unsteady"] = 0;
   double_options_["pseudo_unsteady_dt"] = 1.0e-3;
+  int_options_["pseudo_unsteady_max_iterations"] = 80;
+  double_options_["pseudo_unsteady_time"] = 0.05;
 
   //File-output Options
-  string_options_["reactor_timing_log_filename"] = std::string(zerork::utilities::null_filename);
   string_options_["mechanism_parsing_log_filename"] = std::string(zerork::utilities::null_filename);
   string_options_["transport_parsing_log_filename"] = std::string(zerork::utilities::null_filename);
 }
 
 zerork_flame_status_t ZeroRKFlameManager::ReadOptionsFile(const std::string& options_filename) {
-/*
-  std::unique_ptr<ZeroRKFlameApiIFP> inputFileDBptr;
+  std::unique_ptr<ZeroRKFlameAPITesterIFP> inputFileDBptr;
   try {
-    inputFileDBptr = std::make_unique<ZeroRKFlameApiIFP>(options_filename);
+    inputFileDBptr = std::make_unique<ZeroRKFlameAPITesterIFP>(options_filename);
   } catch (const std::runtime_error& e) {
     return ZERORK_FLAME_STATUS_FAILED_OPTIONS_PARSE;
   }
-  const ZeroRKFlameApiIFP& inputFileDB(*inputFileDBptr);
+  const ZeroRKFlameAPITesterIFP& inputFileDB(*inputFileDBptr);
 
   //TODO: Don't over-ride if options file used default value?
+  int_options_["verbosity"] = inputFileDB.verbosity();
+  int_options_["steady_max_iterations"] = inputFileDB.steady_max_iterations();
   int_options_["max_subiterations"] = inputFileDB.max_subiterations();
-  double_options_["abs_tol"] = inputFileDB.absolute_tolerance();
-  double_options_["rel_tol"] = inputFileDB.relative_tolerance();
+  int_options_["integrator_type"] = inputFileDB.integrator_type();
+  int_options_["store_jacobian"]  = inputFileDB.store_jacobian();
+  int_options_["convective_scheme_type"] = inputFileDB.convective_scheme_type();
+  int_options_["pseudo_unsteady"] = inputFileDB.pseudo_unsteady();
+  int_options_["pseudo_unsteady_max_iterations"] = inputFileDB.pseudo_unsteady_max_iterations();
 
+  double_options_["absolute_tolerance"] = inputFileDB.absolute_tolerance();
+  double_options_["relative_tolerance"] = inputFileDB.relative_tolerance();
   double_options_["reference_temperature"] = inputFileDB.reference_temperature();
+  double_options_["pseudo_unsteady_dt"] = inputFileDB.pseudo_unsteady_dt();
+  double_options_["pseudo_unsteady_time"] = inputFileDB.pseudo_unsteady_time();
+  double_options_["step_limiter"] = inputFileDB.step_limiter();
 
-  string_options_["reactor_timing_log_filename"] = inputFileDB.reactor_timing_log();
   string_options_["mechanism_parsing_log_filename"] = inputFileDB.mechanism_parsing_log();
   string_options_["transport_parsing_log_filename"] = inputFileDB.transport_parsing_log();
-*/
+  string_options_["mechanism_filename"] = inputFileDB.mechanism_file();
+  string_options_["therm_filename"] = inputFileDB.therm_file();
+  string_options_["transport_filename"] = inputFileDB.transport_file();
+  string_options_["transport_model"] = inputFileDB.transport_model();
   return ZERORK_FLAME_STATUS_SUCCESS;
 }
 
@@ -95,7 +109,7 @@ zerork_flame_status_t ZeroRKFlameManager::LoadMechanism() {
                                         string_options_["therm_filename"].c_str(),
                                         string_options_["mechanism_parsing_log_filename"].c_str(),
                                         COMPRESSED_COL_STORAGE,
-                                        double_options_["pressure"]);
+                                        101325.0);
   } catch (const std::runtime_error& e) {
     reactor_ = nullptr;
     return ZERORK_FLAME_STATUS_FAILED_MECHANISM_PARSE;
@@ -144,16 +158,8 @@ zerork_flame_status_t ZeroRKFlameManager::FinishInit() {
 zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const double* grid_points, double P,
                                                 double* flame_speed, double* T, double* mass_fractions)
 {
-    //TODO: check_inputs()
-    //TODO: check_options()
-    //if (check_inputs != ZERORK_FLAME_STATUS_SUCCESS) return
-//  if(num_local_points_ < nover_ ) {
-//    printf("Need at least two grid points per processor for second order discretization \n");
-//    exit(-1);
-//  }
-//  integrator_type == 2 || integrator_type == 3
-  const int integrator_type = int_options_["integrator_type"];
   const int num_species     = reactor_->GetNumSpecies();
+  const int integrator_type = int_options_["integrator_type"];
 
   std::vector<double> grid(grid_points, grid_points+num_grid_points);
 
@@ -166,6 +172,10 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
 #else
   FlameParams flame_params(reactor_.get(), transport_.get(), grid, *flame_speed, T, mass_fractions, P, *this);
 #endif
+  if(flame_params.error_status_ != 0) {
+    // We may want to add some status'es for more information on what/why FlameParams errored
+    return ZERORK_FLAME_STATUS_FAILED_SOLVE;
+  }
 
   //Declare variables
   int maxl, maxlrst;
@@ -199,10 +209,6 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
   // Initialize KINSOL module with RHS function and state vector
   int kinsol_flag = KINInit(kinsol_ptr, ConstPressureFlame, flame_state);
 
-  // Set function to handle errors and exit cleanly
-  // TODO: 
-  //kinsol_flag = KINSetErrHandlerFn(kinsol_ptr, FlameManagerErrorFunction, &flame_params);
-
   // Set user data
   kinsol_flag = KINSetUserData(kinsol_ptr, &flame_params);
 
@@ -213,9 +219,8 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
   kinsol_flag = KINSetScaledStepTol(kinsol_ptr, double_options_["absolute_tolerance"]);
 
   // Setup KINSol
-  // max Krylov dimension
-  maxl = 1000; //TODO: set it from input file
-  maxlrst = 0;
+  maxl = 1000; // max Krylov dimension
+  maxlrst = 0; // max linear solver restarts
 
 #ifdef SUNDIALS2
   // Initialize Linear Solver
@@ -253,10 +258,6 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
   }
 #endif
 
-  //TODO: configurable
-  int maxiter = 100;
-  kinsol_flag = KINSetNumMaxIters(kinsol_ptr, maxiter);
-
   //0 for default, 1 for exact Newton, > 1 for modified Newton
   kinsol_flag = KINSetMaxSetupCalls(kinsol_ptr, int_options_["max_subiterations"]);
 
@@ -275,14 +276,12 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
 
     // Pseudo-unsteady
   if(flame_params.pseudo_unsteady_) {
-    //TODO: configurable
-    kinsol_flag = KINSetNumMaxIters(kinsol_ptr, 80);
+    kinsol_flag = KINSetNumMaxIters(kinsol_ptr, int_options_["pseudo_unsteady_max_iterations"]);
     double pseudo_time = 0.0;
     double kinstart_time, kinend_time;
     flame_params.dt_ = double_options_["pseudo_unsteady_dt"]*0.5; //Half the timestep for first iteration
 
-    //TODO: configurable
-    while(pseudo_time < 0.05) {
+    while(pseudo_time < double_options_["pseudo_unsteady_time"]) {
       N_VScale(1.0, flame_state, flame_state_old);
 
       // Solve system
@@ -321,12 +320,8 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
   // Solve system with pure steady RHS
   flame_params.pseudo_unsteady_ = false;
 
-//  if(flame_params.my_pe_ == 0) {
-//    // 0 for no info, 1 for scaled l2 norm, 3 for additional linear solver info
-//    kinsol_flag = KINSetPrintLevel(kinsol_ptr, int_options_["verbosity"]);
-//  } else {
-//    kinsol_flag = KINSetPrintLevel(kinsol_ptr, 0);
-//  }
+  kinsol_flag = KINSetNumMaxIters(kinsol_ptr, int_options_["steady_max_iterations"]);
+
 
   kinsol_flag = KINSol(kinsol_ptr,
                        flame_state,

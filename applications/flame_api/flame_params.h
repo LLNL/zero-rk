@@ -37,6 +37,7 @@ class FlameParams : Optionable
 #ifdef ZERORK_MPI
   MPI_Comm comm_;
 #endif
+  int error_status_;
   int my_pe_,npes_;
   int num_procs_;
   int num_local_points_;
@@ -86,6 +87,12 @@ class FlameParams : Optionable
 
   // data structures setup by SetMemory()
   transport::MassTransportInput transport_input_;
+  //Containers for MassTransportInput 
+  std::vector<double> mti_mf_;        // size = num_species_
+  std::vector<double> mti_mf_grad_;   // size = num_species_
+  std::vector<double> mti_temp_grad_; // size = num_dim
+  std::vector<double> mti_pres_grad_; // size = num_dim
+
   std::vector<double> inv_molecular_mass_;     // size = num_species
   std::vector<double> species_specific_heats_; // size = num_species
   std::vector<double> species_mass_flux_;      // size = num_species

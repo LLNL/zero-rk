@@ -158,10 +158,10 @@ int SparseMatrix::FactorSamePattern(const double matrix[])
   double ferr[1],berr[1]; // length is the number of RHS
 
   if(is_first_factor_) {
-    printf("ERROR: SparseMatrix::FactorSamePattern(...)\n");
-    printf("       can not be used for the first factorization\n");
-    fflush(stdout);
-    return -1; // TODO: add error codes
+//    printf("ERROR: SparseMatrix::FactorSamePattern(...)\n");
+//    printf("       can not be used for the first factorization\n");
+//    fflush(stdout);
+    return -1;
   }
 
   // You must destroy the L and U before each new factorization, or
@@ -402,10 +402,10 @@ int SparseMatrix::Solve(const double rhs[], double solution[])
   double ferr[1],berr[1]; // length is the number of RHS
 
   if(is_first_factor_) {
-    printf("ERROR: SparseMatrix::Solve(...)\n");
-    printf("       can not be used before the first factorization\n");
-    fflush(stdout);
-    return -1; // TODO: add error codes
+//    printf("ERROR: SparseMatrix::Solve(...)\n");
+//    printf("       can not be used before the first factorization\n");
+//    fflush(stdout);
+    return -1;
   }
 
   options_slu_.Fact = FACTORED;

@@ -38,10 +38,9 @@ SparseMatrix_dist::SparseMatrix_dist(const int num_rows_loc, const int max_nonze
   //nprow_  = 1;
   //npcol_  = npes_;
 
-  printf("nprow_= %d, npcol_=%d\n", nprow_, npcol_);
-
-  printf("npes_: %d, my_pe: %d, num_rows_: %d, fst_row_: %d\n", npes_, my_pe_, num_rows_, fst_row_);
-  printf("num_rows_locs_: %d, max_nonzeros_loc_: %d, num_nonzeros_loc_: %d, ldb_: %d\n", num_rows_loc_, max_nonzeros_loc_, num_nonzeros_loc_, ldb_);
+//  printf("nprow_= %d, npcol_=%d\n", nprow_, npcol_);
+//  printf("npes_: %d, my_pe: %d, num_rows_: %d, fst_row_: %d\n", npes_, my_pe_, num_rows_, fst_row_);
+//  printf("num_rows_locs_: %d, max_nonzeros_loc_: %d, num_nonzeros_loc_: %d, ldb_: %d\n", num_rows_loc_, max_nonzeros_loc_, num_nonzeros_loc_, ldb_);
 
   row_sum_            = (int *)malloc(sizeof(int)*(num_rows_loc+1));
   col_id_             = (int *)malloc(sizeof(int)*max_nonzeros_loc);
@@ -71,7 +70,7 @@ SparseMatrix_dist::SparseMatrix_dist(const int num_rows_loc, const int max_nonze
   options_slu_.lookahead_etree = NO;
   options_slu_.num_lookaheads = 0;
   options_slu_.SymPattern = NO;
-  options_slu_.PrintStat = YES;
+  options_slu_.PrintStat = NO;
   options_slu_.ParSymbFact = NO;
   options_slu_.ColPerm = MMD_AT_PLUS_A;
 
@@ -112,13 +111,13 @@ void SparseMatrix_dist::SetupFirstFactor_dist()
   superlu_gridinit(comm_, nprow_, npcol_, &grid_);
 
   int iam = grid_.iam;
-  if ( !iam ) {
-    int v_major, v_minor, v_bugfix;
-    superlu_dist_GetVersionNumber(&v_major, &v_minor, &v_bugfix);
-    printf("Library version:\t%d.%d.%d\n", v_major, v_minor, v_bugfix);
-    printf("Process grid:\t\t%d X %d\n", (int)grid_.nprow, (int)grid_.npcol);
-    fflush(stdout);
-  }
+//  if ( !iam ) {
+//    int v_major, v_minor, v_bugfix;
+//    superlu_dist_GetVersionNumber(&v_major, &v_minor, &v_bugfix);
+//    printf("Library version:\t%d.%d.%d\n", v_major, v_minor, v_bugfix);
+//    printf("Process grid:\t\t%d X %d\n", (int)grid_.nprow, (int)grid_.npcol);
+//    fflush(stdout);
+//  }
 
   dCreate_CompRowLoc_Matrix_dist(&A_,//SuperMatrix
 				 num_rows_, //number of global rows
@@ -148,10 +147,10 @@ int SparseMatrix_dist::FactorSamePattern_dist(const double matrix[])
   double berr[1];
 
   if(is_first_factor_) {
-    printf("ERROR: SparseMatrix::FactorSamePattern(...)\n");
-    printf("       can not be used for the first factorization\n");
-    fflush(stdout);
-    return -1; // TODO: add error codes
+//    printf("ERROR: SparseMatrix::FactorSamePattern(...)\n");
+//    printf("       can not be used for the first factorization\n");
+//    fflush(stdout);
+    return -1;
   }
 
   // You must destroy the L and U before each new factorization, or
@@ -194,7 +193,7 @@ int SparseMatrix_dist::FactorSamePattern_dist(const double matrix[])
   return 0;
 }
 
-int SparseMatrix_dist::FactorNewPatternCCS_dist(const int new_num_nonzeros,
+int SparseMatrix_dist::FactorNewPatternCRS_dist(const int new_num_nonzeros,
 						const int new_col_id[],
 						const int new_row_sum[],
 						const double matrix[])
@@ -260,7 +259,7 @@ int SparseMatrix_dist::FactorNewPatternCCS_dist(const int new_num_nonzeros,
   return 0;
 }
 
-int SparseMatrix_dist::FactorSamePatternCCS_dist(const int new_num_nonzeros,
+int SparseMatrix_dist::FactorSamePatternCRS_dist(const int new_num_nonzeros,
 						const int new_col_id[],
 						const int new_row_sum[],
 						const double matrix[])
@@ -335,10 +334,10 @@ int SparseMatrix_dist::Solve_dist(const double rhs[], double solution[])
   double berr[1];
 
   if(is_first_factor_) {
-    printf("ERROR: SparseMatrix::Solve(...)\n");
-    printf("       can not be used before the first factorization\n");
-    fflush(stdout);
-    return -1; // TODO: add error codes
+//    printf("ERROR: SparseMatrix::Solve(...)\n");
+//    printf("       can not be used before the first factorization\n");
+//    fflush(stdout);
+    return -1;
   }
 
   options_slu_.Fact = FACTORED;

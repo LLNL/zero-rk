@@ -80,12 +80,6 @@ int ReactorAFSolve(N_Vector y, // [in] ODE state vector
 		   void *params); // [in/out]
 #endif
 
-void ErrorFunction(int error_code,
-                   const char *module,
-                   const char *function,
-                   char *msg,
-                   void *user_data);
-
 // Approximate factorization preconditioner solve
 int AFSolve(double solution[],
             void *user_data);

@@ -33,7 +33,7 @@ pressure: 100000.0
 flame_start_profile: flame_profile_start.txt
 flame_end_profile: flame_profile_end.txt
 
-relative_tolerance: 1.0e-8
+relative_tolerance: 1.0e-2
 absolute_tolerance: 1.0e-20
 
 verbosity: 0

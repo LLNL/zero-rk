@@ -35,6 +35,7 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
   Optionable(options),
   mechanism_(reactor->GetMechanism())
 {
+  error_status_ = 0;
   npes_ = 1;
   my_pe_ = 0;
 #ifdef ZERORK_MPI
@@ -46,26 +47,36 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
 #ifdef ZERORK_MPI
   sparse_matrix_dist_ = NULL;
 #endif
-  sparse_matrix_chem_.clear();
   valid_jacobian_structure_ = true;
 
   integrator_type_ = int_options_["integrator_type"];
-  store_jacobian_  = int_options_["store_jacobian"];
-
+  if(integrator_type_ < 2 || integrator_type_ > 3) {
+    error_status_ = 1;
+  }
   convective_scheme_type_ = int_options_["convective_scheme_type"];
-
+  if(convective_scheme_type_ < 0  || convective_scheme_type_ > 2) {
+    error_status_ = 1;
+  }
+  store_jacobian_  = int_options_["store_jacobian"] != 0;
   reference_temperature_ =  double_options_["reference_temperature"];
-
   step_limiter_.assign(reactor_->GetNumSteps(), double_options_["step_limiter"]);
-
   pseudo_unsteady_ = int_options_["pseudo_unsteady"];
   dt_ = double_options_["pseudo_unsteady_dt"];
+  if(dt_ <= 0.0) {
+    error_status_ = 1;
+  }
 
   deltaTfix_ = 250.0;
 
-  SetInitialCondition(flame_speed,T,mass_fractions);
-  SetGrid();
-  SetMemory();
+  if(error_status_ == 0) {
+    SetInitialCondition(flame_speed,T,mass_fractions);
+  }
+  if(error_status_ == 0) {
+    SetGrid();
+  }
+  if(error_status_ == 0) {
+    SetMemory();
+  }
 }
 
 FlameParams::~FlameParams()
@@ -103,8 +114,8 @@ void FlameParams::SetInitialCondition(double flame_speed, const double* T, const
   num_local_points_ = num_points_/npes_;
   int remainder = num_points_ % npes_;
   if(remainder != 0) {
-    printf("Number of grid points must divide evenly over MPI ranks.\n");
-    exit(1);
+    error_status_ = 1;
+    return;
   }
   if(my_pe_ < remainder) {
     num_local_points_ += 1;
@@ -171,7 +182,6 @@ void FlameParams::SetInitialCondition(double flame_speed, const double* T, const
   for(int j = 0; j < num_local_points_; ++j) {
     y_[j*num_states_ + num_species_] = mass_flux_;
   }
-
 } // void FlameParams::SetInlet()
 
 // Set the grid
@@ -187,7 +197,10 @@ void FlameParams::SetGrid()
   dz_.assign(num_points_, 1.0);
   dzm_.assign(num_points_, 1.0);
 
-  assert(num_local_points_ >= nover_);
+  if(num_local_points_ < nover_) {
+    error_status_ = 2;
+    return;
+  }
 
   dz_local_.assign( num_local_points_+(2*nover_), 0.0);
   dzm_local_.assign( num_local_points_+(2*nover_), 0.0);
@@ -206,61 +219,16 @@ void FlameParams::SetGrid()
   }
   dzm_[num_points_-1] = dz_[num_points_-1];
 
-  for (int j=0; j<num_local_points_; ++j) {
+  // Copy global grid to local grid
+  // boundary "ghost" nodes use boundary values
+  for (int j=-nover_; j<num_local_points_+nover_; ++j) {
     int jglobal = j + my_pe_*num_local_points_;
+    jglobal = std::max(0,jglobal);
+    jglobal = std::min(jglobal, num_points_-1);
     dz_local_[nover_+j] = dz_[jglobal];
     dzm_local_[nover_+j] = dzm_[jglobal];
     inv_dz_local_[nover_+j] = 1.0/dz_[jglobal];
     inv_dzm_local_[nover_+j] = 1.0/dzm_[jglobal];
-  }
-
-#ifdef ZERORK_MPI
-  //TODO: Everybody has full grid, no need for comms
-  MPI_Status status;
-  // Send left and right
-  if (my_pe_ !=0) {
-    MPI_Send(&dz_local_[nover_], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_);
-    MPI_Send(&dzm_local_[nover_], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_);
-    MPI_Send(&inv_dz_local_[nover_], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_);
-    MPI_Send(&inv_dzm_local_[nover_], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_);
-  }
-  if (my_pe_ != npes_-1) {
-    MPI_Send(&dz_local_[num_local_points_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_);
-    MPI_Send(&dzm_local_[num_local_points_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_);
-    MPI_Send(&inv_dz_local_[num_local_points_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_);
-    MPI_Send(&inv_dzm_local_[num_local_points_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_);
-  }
-
-  if (my_pe_ !=0) {
-    MPI_Recv(&dz_local_[0], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_, &status);
-    MPI_Recv(&dzm_local_[0], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_, &status);
-    MPI_Recv(&inv_dz_local_[0], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_, &status);
-    MPI_Recv(&inv_dzm_local_[0], nover_, MPI_DOUBLE, my_pe_-1, 0, comm_, &status);
-  }
-  if (my_pe_ != npes_-1) {
-    MPI_Recv(&dz_local_[num_local_points_+nover_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
-    MPI_Recv(&dzm_local_[num_local_points_+nover_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
-    MPI_Recv(&inv_dz_local_[num_local_points_+nover_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
-    MPI_Recv(&inv_dzm_local_[num_local_points_+nover_], nover_, MPI_DOUBLE, my_pe_+1, 0, comm_, &status);
-  }
-#endif
-
-  if(my_pe_ == 0) {
-    for(int j=0; j<nover_; ++j) {
-      dz_local_[j] = dz_[0];
-      dzm_local_[j] = dzm_[0];
-      inv_dz_local_[j] = 1.0/dz_[0];
-      inv_dzm_local_[j] = 1.0/dzm_[0];
-    }
-  }
-
-  if(my_pe_ == npes_-1) {
-    for(int j=num_local_points_+nover_; j<num_local_points_+2*nover_; ++j) {
-      dz_local_[j] = dz_[num_points_-1];
-      dzm_local_[j] = dzm_[num_points_-1];
-      inv_dz_local_[j] = 1.0/dz_[num_points_-1];
-      inv_dzm_local_[j] = 1.0/dzm_[num_points_-1];
-    }
   }
 
   //set extended (with ghost cells) work arrays y_ext and rhs_ext
@@ -274,34 +242,33 @@ void FlameParams::SetGrid()
   rel_vol_ext_.assign(num_local_points_+2*nover_,0.0);
 
   // Set jfix and Tfix
-  // TODO: make the parallel implementation cleaner?
-  int local_jfix = 1000000;
+  int local_jfix = num_points_+1;
+  double local_Tfix = 0.0;
   for(int j=0; j<num_local_points_; ++j) {
     int jglobal = j + my_pe_*num_local_points_;
     int temp_id = j*num_states_+num_species_ + 1;
     if( y_[temp_id] > (inlet_temperature_ +
       		deltaTfix_/reference_temperature_) ) {
       local_jfix = jglobal;
+      local_Tfix = y_[temp_id];
       break;
     }
   }
 #ifdef ZERORK_MPI
-  MPI_Allreduce(&local_jfix,&j_fix_,1,MPI_INT,MPI_MIN,comm_);
+  struct { int index; int rank; } local_fix_values, global_fix_values;
+  local_fix_values.index = local_jfix;
+  local_fix_values.rank = my_pe_;
+  MPI_Allreduce(&local_fix_values ,&global_fix_values, 1, MPI_2INT, MPI_MINLOC, comm_);
+  j_fix_ = global_fix_values.index;
+  MPI_Bcast(&local_Tfix, 1, MPI_DOUBLE, global_fix_values.rank, comm_);
+  temperature_fix_ = local_Tfix;
 #else
   j_fix_ = local_jfix;
-#endif
-
-  double local_Tfix = 0.0;
-  for(int j=0; j<num_local_points_; ++j) {
-    int jglobal = j + my_pe_*num_local_points_;
-    int temp_id = j*num_states_+num_species_ + 1;
-    if( jglobal == j_fix_ ) local_Tfix = y_[temp_id];
-  }
-#ifdef ZERORK_MPI
-  MPI_Allreduce(&local_Tfix,&temperature_fix_,1,MPI_DOUBLE,MPI_MAX,comm_);
-#else
   temperature_fix_ = local_Tfix;
 #endif
+  if(j_fix_ == num_points_ + 1) {
+    error_status_ = 6;
+  }
 }
 
 // For simulations with wall heat losses, set the wall temperature profile
@@ -321,16 +288,19 @@ void FlameParams::SetMemory()
 
   std::vector<int> row_id_zerod, col_id_zerod;
 
+  mti_mf_.resize(num_species_,0.0); 
+  mti_mf_grad_.resize(num_species_, 0.0);
+  mti_temp_grad_.resize(1, 0.0); // num_dimensions
+  mti_pres_grad_.resize(1, 0.0); // num_dimensions
   // Setup the MassTransportFactory data structure
-  // TODO: remove new/deletes
   transport_input_.num_dimensions_        = 1;
   transport_input_.ld_grad_temperature_   = 1;
   transport_input_.ld_grad_pressure_      = 1;
   transport_input_.ld_grad_mass_fraction_ = num_species_;
-  transport_input_.mass_fraction_         = new double[num_species_];
-  transport_input_.grad_temperature_      = new double[1]; // num_dimensions
-  transport_input_.grad_pressure_         = new double[1]; // num_dimensions
-  transport_input_.grad_mass_fraction_    = new double[num_species_];
+  transport_input_.mass_fraction_         = &mti_mf_[0];
+  transport_input_.grad_temperature_      = &mti_temp_grad_[0];
+  transport_input_.grad_pressure_         = &mti_pres_grad_[0];
+  transport_input_.grad_mass_fraction_    = &mti_mf_grad_[0];
 
   // Apply constant pressure approximation
   transport_input_.pressure_         = pressure_;
@@ -377,7 +347,7 @@ void FlameParams::SetMemory()
   // create the Jacobian data structures needed for the banded and SPGMR
   // integrators
   // Set Jacobian parameters
-  // Case 3 is a block tridiagonal (potentially sparse) matrix solved with SuperLU
+  // Case 2 is a block tridiagonal (potentially sparse) matrix solved with SuperLU
   if(integrator_type_ == 2) {
     row_id_zerod.assign(num_nonzeros_zerod, 0);
     col_id_zerod.assign(num_nonzeros_zerod, 0);
@@ -386,14 +356,16 @@ void FlameParams::SetMemory()
     reactor_->GetJacobianPattern(&row_id_zerod[0],
                                  &col_id_zerod[0]);
 
-    // TODO: Check on this behavior
+    // N.B.: Currently integrator_type_ == 2 enforces dense blocks
+    //       This may be reevaluated
+#if 1
     // Set to 1 to force dense blocks
-    dense_to_sparse_.assign(num_states_*num_states_, 1); //, 1); //force dense!!
+    dense_to_sparse_.assign(num_states_*num_states_, 1);
     dense_to_sparse_offdiag_.assign(num_states_*num_states_, 1);
-    //printf("# WARNING: Using dense block tridiagonal Jacobian\n");
 
-    // The following is to use sparse blocks, only matters if
-    // dense_to_sparse_/offdiag_ is initialized at 0 above
+#else
+    dense_to_sparse_.assign(num_states_*num_states_, 0);
+    dense_to_sparse_offdiag_.assign(num_states_*num_states_, 0);
 
     // Chemical jacobian pattern -- only for diagonal block
     for (int j=0; j<num_nonzeros_zerod; j++) {
@@ -412,7 +384,7 @@ void FlameParams::SetMemory()
 	}
 	//Dense rows and columns for local T
 	if(j==num_states_-1 || i==num_states_-1) {
-	  //dense_to_sparse_[dense_id] = 1; //already in getjaocobian patter
+	  //dense_to_sparse_[dense_id] = 1; //already in getjacobianpattern
 	}
 	//Dense rows for off-diagonal T?
 	if(i==num_states_-1) {
@@ -426,6 +398,7 @@ void FlameParams::SetMemory()
 	}
       }
     }
+#endif
 
     // Count non-zeros
     int width = 2*num_off_diagonals_ + 1;
@@ -505,30 +478,23 @@ void FlameParams::SetMemory()
       row_sum_[j+1] += row_sum_[j];
     }
 
-  } // if (integrator_type_ == 2)
-
-  // Set sparse matrix
-  if(integrator_type_ == 2) {
     if(superlu_serial_) {
       sparse_matrix_ = new SparseMatrix(num_local_points_*num_states_, num_nonzeros_loc_);
       if(sparse_matrix_ == NULL) {
-	printf("fail sparse_matrix_ \n");
-	exit(-1); // TODO: add recoverable failure
+	error_status_ = 3;
+	return;
       }
 #ifdef ZERORK_MPI
     } else {
       sparse_matrix_dist_ = new SparseMatrix_dist(num_local_points_*num_states_, num_nonzeros_loc_, comm_);
       if(sparse_matrix_dist_ == NULL) {
-	printf("fail sparse_matrix_dist_ \n");
-	exit(-1); // TODO: add recoverable failure
+	error_status_ = 3;
+	return;
       }
 #endif
     }
 
     if(store_jacobian_) {
-      // TODO: add allocation check in case we run out of memory for large
-      //       mechanisms and grids
-      //saved_jacobian_.assign(num_nonzeros, 0.0);
       saved_jacobian_dist_.assign(num_nonzeros_loc_, 0.0);
     }
   } // if integrator_type == 2
@@ -569,7 +535,8 @@ void FlameParams::SetMemory()
     for(int j=0; j<num_states_; ++j) {
       if(diagonal_id_chem_[j] == -1) {
 	valid_jacobian_structure_ = false;
-	assert(false); // TODO: add recoverable failure
+        error_status_ = 4;
+        return;
       }
     }
 
@@ -577,7 +544,8 @@ void FlameParams::SetMemory()
     for(int j=0; j<num_reactors; ++j) {
       sparse_matrix_chem_[j] = new SparseMatrix(num_states_, num_nonzeros_zerod);
       if(sparse_matrix_chem_[j] == NULL) {
-	assert(false); // TODO: add recoverable failure
+        error_status_ = 4;
+        return;
       }
     }
 
@@ -592,8 +560,9 @@ void FlameParams::SetMemory()
     // test over whole domain
     num_states_per_proc_ = (num_states_ + npes_ - 1)/npes_;
     if(num_states_ - (npes_-1)*num_states_per_proc_ < 1) {
-      cerr << "Too few states per processor. Try using fewer processors.\n";
-      exit(-1);
+      // "Too few states per processor. Try using fewer processors.\n";
+      error_status_ = 5;
+      return;
     }
     if(my_pe_ == npes_-1) {
       num_states_local_ = num_states_ - (npes_-1)*num_states_per_proc_;
@@ -604,8 +573,6 @@ void FlameParams::SetMemory()
     banded_jacobian_serial_.assign(num_points_*4*num_states_local_, 0.0);
     pivots_serial_.assign(num_points_*num_states_local_, 0);
 
-
   } // if integrator_type == 3
-
 }
 

@@ -12,7 +12,7 @@ set(COMMON_SRCS optionable.cpp
                 kinsol_functions.cpp
                 sparse_matrix.cpp
                 zerork_flame_api.cpp)
-set(SPIFY_APPS  zerork_flame_api_tester.x)
+set(SPIFY_APPS  "zerork_flame_api_tester.x;zerork_flame_api")
 
 add_library(zerork_flame_api SHARED ${COMMON_SRCS})
 target_link_libraries(zerork_flame_api zerorkutilities mechanisminfo reactor
@@ -45,7 +45,7 @@ target_include_directories(zerork_flame_api_mpi PRIVATE ${CMAKE_CURRENT_BINARY_D
 
 add_mpi_executable(zerork_flame_api_tester_mpi.x zerork_flame_api_tester.cpp)
 target_link_libraries(zerork_flame_api_tester_mpi.x zerork_flame_api_mpi)
-set(SPIFY_APPS "${SPIFY_APPS};zerork_flame_api_tester_mpi.x")
+set(SPIFY_APPS "${SPIFY_APPS};zerork_flame_api_tester_mpi.x;zerork_flame_api_mpi")
 
 install(TARGETS zerork_flame_api_mpi PUBLIC_HEADER DESTINATION include
         LIBRARY DESTINATION lib
