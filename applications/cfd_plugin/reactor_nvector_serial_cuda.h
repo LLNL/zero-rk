@@ -139,12 +139,18 @@ class ReactorNVectorSerialCuda : public ReactorBase
   thrust::host_vector<int>* jacobian_row_sums_ptr_;
   thrust::host_vector<int> jacobian_row_sums_temperature_;
   thrust::host_vector<int> jacobian_row_sums_no_temperature_;
+  thrust::host_vector<int>* jacobian_row_indexes_ptr_;
+  thrust::host_vector<int> jacobian_row_indexes_temperature_;
+  thrust::host_vector<int> jacobian_row_indexes_no_temperature_;
   thrust::host_vector<int>* jacobian_column_indexes_ptr_;
   thrust::host_vector<int> jacobian_column_indexes_temperature_;
   thrust::host_vector<int> jacobian_column_indexes_no_temperature_;
   thrust::device_vector<int>* jacobian_row_sums_dev_ptr_;
   thrust::device_vector<int> jacobian_row_sums_temperature_dev_;
   thrust::device_vector<int> jacobian_row_sums_no_temperature_dev_;
+  thrust::device_vector<int>* jacobian_row_indexes_dev_ptr_;
+  thrust::device_vector<int> jacobian_row_indexes_temperature_dev_;
+  thrust::device_vector<int> jacobian_row_indexes_no_temperature_dev_;
   thrust::device_vector<int>* jacobian_column_indexes_dev_ptr_;
   thrust::device_vector<int> jacobian_column_indexes_temperature_dev_;
   thrust::device_vector<int> jacobian_column_indexes_no_temperature_dev_;
@@ -196,7 +202,7 @@ class ReactorNVectorSerialCuda : public ReactorBase
 
   void SetupSparseJacobianArrays();
   int SetupJacobianSparseDevice(realtype t, N_Vector y,N_Vector fy);
-  int SparseToDenseDevice(const thrust::device_vector<int>& sums, const thrust::device_vector<int>& idxs,
+  int SparseToDenseDevice(const thrust::device_vector<int>& row_idxs, const thrust::device_vector<int>& col_idxs,
                           const thrust::device_vector<double>& vals, double* dense);
   int FormPreconditionerDevice(double gamma);
   int FactorPreconditioner();

@@ -13,12 +13,8 @@
 static double NormalizeComposition(const size_t num_elements,
                                    double composition[]);
 
-FlameParams::FlameParams(const std::string &input_name, MPI_Comm &comm)
+FlameParams::FlameParams(const std::string &input_name)
 {
-
-  comm_ = comm;
-  MPI_Comm_size(comm_, &npes_);
-  MPI_Comm_rank(comm_, &my_pe_);
 
   int error_code;
 
@@ -43,6 +39,33 @@ FlameParams::FlameParams(const std::string &input_name, MPI_Comm &comm)
   if(parser_ == NULL) {
     printf("# ERROR: Parser for file %s is not created\n",input_name.c_str());
     exit(-1);
+  }
+
+  comm_ = MPI_COMM_WORLD;
+  inter_comm_ = MPI_COMM_WORLD;
+  MPI_Comm_size(comm_, &npes_);
+  MPI_Comm_rank(comm_, &my_pe_);
+  comm_rank_ = 0;
+  num_comms_ = 1;
+  if(parser_->sensitivity_analysis() && 
+    parser_->sensitivity_processors_per_solution() > 0) {
+
+    if(npes_ % parser_->sensitivity_processors_per_solution() !=0 ) {
+      printf("Warning: Total number of processors not evenly divisible by sensitivity_processors_per_solution\n");
+      printf("         Continuing without parallelizing sensitivity analysis\n");
+    } else if(npes_ / parser_->sensitivity_processors_per_solution() <= 1) {
+      printf("Warning: Total number of processors less than or equal to sensitivity_processors_per_solution\n");
+      printf("         Continuing without parallelizing sensitivity analysis\n");
+    } else {
+      num_comms_ = npes_ / parser_->sensitivity_processors_per_solution();
+      comm_rank_ = my_pe_ / parser_->sensitivity_processors_per_solution();
+      MPI_Comm_split(MPI_COMM_WORLD, comm_rank_, my_pe_, &comm_);
+      MPI_Comm_rank(comm_, &my_pe_);
+      MPI_Comm_size(comm_, &npes_);
+      int inter_comm_rank = 0;
+      if(my_pe_ != 0) inter_comm_rank = 1;
+      MPI_Comm_split(MPI_COMM_WORLD, inter_comm_rank, comm_rank_, &inter_comm_);
+    }
   }
 
   // setup constant pressure reactor
@@ -106,11 +129,9 @@ FlameParams::FlameParams(const std::string &input_name, MPI_Comm &comm)
 
   logger_->FFlush();
 
-
 }
 
-FlameParams::~FlameParams()
-{
+FlameParams::~FlameParams() {
   if(parser_ != NULL) {
     delete parser_;
   }
@@ -152,6 +173,10 @@ FlameParams::~FlameParams()
         delete sparse_matrix_chem_[j];
       }
     }
+  }
+  if(num_comms_> 1) {
+    MPI_Comm_free(&comm_);
+    MPI_Comm_free(&inter_comm_);
   }
 }
 

@@ -54,26 +54,26 @@ void __global__ kernel_meanCpMass_mr
     double *meanCp_dev // mean Cp for reactor
 )
 {
-    int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
+    int reactorid = blockIdx.x*blockDim.x + threadIdx.x;
+    int tid = blockIdx.y*blockDim.y + threadIdx.y;
     if(tid < nSpc)
     {
         if(reactorid < nReactors)
         {
             extern __shared__ double values[];
-            int valIdx = blockDim.y*threadIdx.x+threadIdx.y;
+            int valIdx = blockDim.x*threadIdx.y+threadIdx.x;
             values[valIdx] = Cp_dev[nReactors*tid+reactorid];
             values[valIdx] = values[valIdx]*RuInvMolWt_dev[tid];
             Cp_dev[nReactors*tid+reactorid] = values[valIdx];
             values[valIdx] *= y_dev[nReactors*tid+reactorid];
             __syncthreads();
-            if(threadIdx.x == 0)
+            if(threadIdx.y == 0)
             {
                 double accum = 0.0;
-                int lim = min(blockDim.x,nSpc-blockDim.x*blockIdx.x);
+                int lim = min(blockDim.y,nSpc-blockDim.y*blockIdx.y);
                 for(int i = 0; i < lim; ++i)
                 {
-                    accum += values[blockDim.y*i+threadIdx.y];
+                    accum += values[blockDim.x*i+threadIdx.x];
                 }
                 atomicAdd(&meanCp_dev[reactorid],accum);
             }
@@ -209,24 +209,24 @@ void __global__ kernel_getMolWtMixFromY
     double *molWtMix_dev
 )
 {
-  int tid = blockIdx.x*blockDim.x + threadIdx.x;
-  int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
+  int reactorid = blockIdx.x*blockDim.x + threadIdx.x;
+  int tid = blockIdx.y*blockDim.y + threadIdx.y;
   if(tid < nSpc)
   {
       if(reactorid < nReactors)
       {
             extern __shared__ double values[];
-            int valIdx = blockDim.y*threadIdx.x+threadIdx.y;
+            int valIdx = blockDim.x*threadIdx.y+threadIdx.x;
             values[valIdx] = y_dev[nReactors*tid+reactorid];
             values[valIdx] = values[valIdx]*invMolWt_dev[tid];
             __syncthreads();
-            if(threadIdx.x == 0)
+            if(threadIdx.y == 0)
             {
                 double accum = 0.0;
-                int lim = min(blockDim.x,nSpc-blockDim.x*blockIdx.x);
+                int lim = min(blockDim.y,nSpc-blockDim.y*blockIdx.y);
                 for(int i = 0; i < lim; ++i)
                 {
-                    accum += values[blockDim.y*i+threadIdx.y];
+                    accum += values[blockDim.x*i+threadIdx.x];
                 }
                 atomicAdd(&molWtMix_dev[reactorid],accum);
             }
@@ -348,9 +348,9 @@ void meanCpMass_mr(const int nReactors, const int nSpc, const double *RuInvMolWt
 {
   dim3 nThreads2D,nBlocks2D;
   nThreads2D.x = 512; //FIXME : Magic number
-  nThreads2D.y = std::min(nReactors,MAX_THREADS_PER_BLOCK/((int)nThreads2D.x));
-  nBlocks2D.x = (nSpc+nThreads2D.x-1)/nThreads2D.x;
-  nBlocks2D.y = (nReactors+nThreads2D.y-1)/nThreads2D.y;
+  nThreads2D.y = std::min(nSpc,MAX_THREADS_PER_BLOCK/((int)nThreads2D.x));
+  nBlocks2D.x = (nReactors+nThreads2D.x-1)/nThreads2D.x;
+  nBlocks2D.y = (nSpc+nThreads2D.y-1)/nThreads2D.y;
   size_t shrMemSize = sizeof(double)*nThreads2D.x*nThreads2D.y;
   kernel_meanCpMass_mr<<<nBlocks2D,nThreads2D,shrMemSize>>>(nReactors,nSpc,RuInvMolWt_dev,y_dev,cpSpc_dev,cpReactors_dev);
 }
@@ -430,9 +430,9 @@ void getMolWtMixFromY_mr_dev_wrapper(const int nReactors, const int nSpc,
 {
   dim3 nBlocks2D, nThreads2D;
   nThreads2D.x = 512; //FIXME : Magic number
-  nThreads2D.y = std::min(nReactors,MAX_THREADS_PER_BLOCK/((int)nThreads2D.x));
-  nBlocks2D.x = (nSpc+nThreads2D.x-1)/nThreads2D.x;
-  nBlocks2D.y = (nReactors+nThreads2D.y-1)/nThreads2D.y;
+  nThreads2D.y = std::min(nSpc,MAX_THREADS_PER_BLOCK/((int)nThreads2D.x));
+  nBlocks2D.x = (nReactors+nThreads2D.x-1)/nThreads2D.x;
+  nBlocks2D.y = (nSpc+nThreads2D.y-1)/nThreads2D.y;
   size_t shrMemSize = sizeof(double)*nThreads2D.x*nThreads2D.y;
   kernel_getMolWtMixFromY<<<nBlocks2D,nThreads2D,shrMemSize>>>
   (

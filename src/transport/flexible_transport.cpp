@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <cassert>
 
 #include <iostream>
 #include <fstream>
@@ -10,67 +11,43 @@
 #include <utilities/string_utilities.h>
 #include <utilities/file_utilities.h> // also brings in string utilities
 
-#include "constant_lewis.h"
+#include "flexible_transport.h"
 
 
 namespace transport
 {
 
-ConstantLewis::ConstantLewis()
+FlexibleTransport::FlexibleTransport()
 {
   initialized_ = false;
   num_species_ = -1;
   mechanism_ = NULL;
-  mechanism_owner_ = true; 
+  mechanism_owner_ = false;
+  mix_avg_ = false;
+  soret_ = false;
 }
 
-ConstantLewis::~ConstantLewis()
+FlexibleTransport::~FlexibleTransport()
 {
   if(mechanism_owner_ && mechanism_ != NULL) {
     delete mechanism_;
   }
 }
 
-int ConstantLewis::Initialize(const std::vector<std::string> &input_files,
+int FlexibleTransport::Initialize(const std::vector<std::string> &input_files,
                        const std::string &log_name,
                        const double conductivity_multiplier)
 {
-  int flag;
-  FILE *log_fptr = fopen(log_name.c_str(),"a");
-
-  if(log_fptr == NULL) {
-    printf("# ERROR: In ConstantLewis::Initialize(),\n"
-           "#        log file named = %s could not be opened.\n",
-           log_name.c_str());
-    fflush(stdout);
-    return LOG_FILE_ERROR;
-  }
   log_name_ = std::string(log_name);
-
-  if(input_files.size() != 3) {
-    fprintf(log_fptr,
-            "# ERROR: In ConstantLewis::Initialize(),\n"
-            "#        input_files vector incorrect size=%d.\n"
-            "#        Correct size is three with the following definition:\n"
-            "#            input_files[0] = mechanism file\n"
-            "#            input_files[1] = thermodynamics file\n"
-            "#            input_files[2] = transport file\n",
-            (int)input_files.size());
-
-    fflush(log_fptr);
-    fclose(log_fptr);
-    return INPUT_FILE_ERROR;
-  }
-  fclose(log_fptr);
-
   mechanism_ = new zerork::mechanism(input_files[0].c_str(),
                                      input_files[1].c_str(),
                                      log_name_.c_str());
 
   if(mechanism_ == NULL) {
+    FILE *log_fptr = fopen(log_name.c_str(),"a");
     log_fptr = fopen(log_name.c_str(),"a");
     fprintf(log_fptr,
-            "# ERROR: In ConstantLewis::Initialize(),\n"
+            "# ERROR: In FlexibleTransport::Initialize(),\n"
             "#        could not instantiate zerork::mechanism from\n"
             "#            mechanism      file = %s\n"
             "#            thermodynamics file = %s\n",
@@ -80,34 +57,14 @@ int ConstantLewis::Initialize(const std::vector<std::string> &input_files,
     fclose(log_fptr);
     return INPUT_FILE_ERROR;
   }
-
-  // set up the molecular mass arrays
-  num_species_ = mechanism_->getNumSpecies();
-  molecular_mass_.assign(num_species_, 0.0);
-  inv_molecular_mass_.assign(num_species_, 0.0);
-  mechanism_->getMolWtSpc(&molecular_mass_[0]);
-  for(int j=0; j<num_species_; ++j) {
-    inv_molecular_mass_[j] = 1.0/molecular_mass_[j];
-  }
-  species_workspace_.assign(num_species_, 0.0);
-
-  multiplier_ = conductivity_multiplier;
-
-  // parse the transport file for species transport parameters
-  std::string error_message;
-  flag = ParseTransportFile(input_files[2],
-                            "!", // comment character(s)
-                            &error_message);
-  if(flag == NO_ERROR) {
-    initialized_ = true;
-  } else {
-    initialized_ = false;
-  }
-
-  return flag;
+  std::vector<std::string> transport_file(1);
+  transport_file[0] = input_files[2];
+  int flag = Initialize(mechanism_, transport_file, log_name, conductivity_multiplier);
+  mechanism_owner_ = true;
+  return NO_ERROR;
 }
 
-int ConstantLewis::Initialize(zerork::mechanism* mechanism,
+int FlexibleTransport::Initialize(zerork::mechanism* mechanism,
                        const std::vector<std::string> &input_files,
                        const std::string &log_name,
                        const double conductivity_multiplier)
@@ -116,44 +73,20 @@ int ConstantLewis::Initialize(zerork::mechanism* mechanism,
   FILE *log_fptr = fopen(log_name.c_str(),"a");
 
   if(log_fptr == NULL) {
-    printf("# ERROR: In ConstantLewis::Initialize(),\n"
+    printf("# ERROR: In FlexibleTransport::Initialize(),\n"
            "#        log file named = %s could not be opened.\n",
            log_name.c_str());
     fflush(stdout);
     return LOG_FILE_ERROR;
   }
+  fclose(log_fptr);
   log_name_ = std::string(log_name);
 
-  if(input_files.size() != 1) {
-    fprintf(log_fptr,
-            "# ERROR: In ConstantLewis::Initialize(),\n"
-            "#        input_files vector incorrect size=%d.\n"
-            "#        Correct size is one with the following definition:\n"
-            "#            input_files[0] = transport file\n",
-            (int)input_files.size());
+  assert(input_files.size() == 1);
 
-    fflush(log_fptr);
-    fclose(log_fptr);
-    return INPUT_FILE_ERROR;
-  }
-  fclose(log_fptr);
-
+  assert(mechanism != NULL);
   mechanism_ = mechanism;
   mechanism_owner_ = false;
-
-  if(mechanism_ == NULL) {
-    log_fptr = fopen(log_name.c_str(),"a");
-    fprintf(log_fptr,
-            "# ERROR: In ConstantLewis::Initialize(),\n"
-            "#        could not instantiate zerork::mechanism from\n"
-            "#            mechanism      file = %s\n"
-            "#            thermodynamics file = %s\n",
-            input_files[0].c_str(),
-            input_files[1].c_str());
-    fflush(log_fptr);
-    fclose(log_fptr);
-    return INPUT_FILE_ERROR;
-  }
 
   // set up the molecular mass arrays
   num_species_ = mechanism_->getNumSpecies();
@@ -164,6 +97,14 @@ int ConstantLewis::Initialize(zerork::mechanism* mechanism,
     inv_molecular_mass_[j] = 1.0/molecular_mass_[j];
   }
   species_workspace_.assign(num_species_, 0.0);
+
+  lewis_numbers_.assign(num_species_, 0.0);
+  Dmass.assign(num_species_, 0.0);
+  invDij.assign(num_species_*num_species_, 0.0);
+  DTherm.assign(num_species_, 0.0);
+  DeltaI.assign(num_species_, 0.0);
+  sqrtmu.assign(num_species_, 0.0);
+  inv_sqrtmu.assign(num_species_, 0.0);
 
   multiplier_ = conductivity_multiplier;
 
@@ -181,8 +122,7 @@ int ConstantLewis::Initialize(zerork::mechanism* mechanism,
   return flag;
 }
 
-
-int ConstantLewis::GetMixtureViscosity(const MassTransportInput &input,
+int FlexibleTransport::GetMixtureViscosity(const MassTransportInput &input,
                                        double *viscosity) const
 {
   int flag = GetSpeciesViscosity(input, &species_workspace_[0]);
@@ -211,7 +151,8 @@ int ConstantLewis::GetMixtureViscosity(const MassTransportInput &input,
   }
   return flag;
 }
-int ConstantLewis::GetSpeciesViscosity(const MassTransportInput &input,
+
+int FlexibleTransport::GetSpeciesViscosity(const MassTransportInput &input,
                                        double *viscosity) const
 {
   if(input.temperature_ > 0.0) {
@@ -230,7 +171,7 @@ int ConstantLewis::GetSpeciesViscosity(const MassTransportInput &input,
   return NON_POSITIVE_TEMPERATURE;
 }
 
-int ConstantLewis::GetMixtureConductivity(const MassTransportInput &input,
+int FlexibleTransport::GetMixtureConductivity(const MassTransportInput &input,
                                           double *conductivity) const
 {
   int flag = GetSpeciesConductivity(input, &species_workspace_[0]);
@@ -260,7 +201,7 @@ int ConstantLewis::GetMixtureConductivity(const MassTransportInput &input,
   return flag;
 }
 
-int ConstantLewis::GetSpeciesConductivity(const MassTransportInput &input,
+int FlexibleTransport::GetSpeciesConductivity(const MassTransportInput &input,
                                           double *conductivity) const
 {
   if(input.temperature_ > 0.0) {
@@ -285,7 +226,7 @@ int ConstantLewis::GetSpeciesConductivity(const MassTransportInput &input,
       omegamu = omega_mu(temperature*kOverEps_[j]);
       beta = 1.2*omegamu/omega_D(temperature*kOverEps_[j]);
       conductivity[j] = mucoeff_[j]*sqrt_temperature/omegamu*
-	(beta*Cp_sp[j] + (3.75-2.5*beta)*gasConstant*inv_molecular_mass_[j]);
+        (beta*Cp_sp[j] + (3.75-2.5*beta)*gasConstant*inv_molecular_mass_[j]);
     }
 
     return NO_ERROR;
@@ -294,12 +235,13 @@ int ConstantLewis::GetSpeciesConductivity(const MassTransportInput &input,
   return NON_POSITIVE_TEMPERATURE;
 }
 
-int ConstantLewis::GetSpeciesMassFlux(const MassTransportInput &input,
-			       const size_t ld_species_mass_flux,
-			       double *conductivity_mix,
-			       double *specific_heat_mix,
-			       double *species_mass_flux,
-			       double *species_lewis_numbers) const
+int FlexibleTransport::GetSpeciesMassFluxInternal(const MassTransportInput &input,
+                               const size_t ld_species_mass_flux,
+                               double *conductivity_mix,
+                               double *specific_heat_mix,
+                               double *species_mass_flux,
+                               double *species_lewis_numbers,
+                               bool frozen) const
 {
   int flag = NO_ERROR;
   double conductivity_mix_local=0.0;
@@ -314,6 +256,7 @@ int ConstantLewis::GetSpeciesMassFlux(const MassTransportInput &input,
   }
 
   if(flag == NO_ERROR) {
+    const double gasConstant = 8314.46;
 
     const int num_species = num_species_;
     const size_t num_dimensions = input.num_dimensions_;
@@ -336,6 +279,7 @@ int ConstantLewis::GetSpeciesMassFlux(const MassTransportInput &input,
     // zero the species mass flux
     size_t flux_id = 0;
     size_t grad_id = 0;
+    size_t gradT_id = 0;
     for(size_t j=0; j<num_dimensions; ++j) {
 
       for(int k=0; k<num_species; ++k) {
@@ -356,172 +300,199 @@ int ConstantLewis::GetSpeciesMassFlux(const MassTransportInput &input,
       for(int k=0; k<num_species; ++k) {
         mass_flux_sum[j] +=
           input.grad_mass_fraction_[grad_id]*inv_molecular_mass_[k];
-	++grad_id;
-      }
-      grad_id += input.ld_grad_mass_fraction_;
-      mass_flux_sum[j] *= molecular_mass_mix;
-    }
-
-    // compute the uncorrected species mass flux
-    flux_id = 0;
-    grad_id = 0;
-
-    for(size_t j=0; j<num_dimensions; ++j) {
-      for(int k=0; k<num_species; ++k) {
-	species_mass_flux[flux_id] =
-          input.grad_mass_fraction_[grad_id] -
-          input.mass_fraction_[k]*mass_flux_sum[j];
-
-        // TODO: eliminate division operation by storing inverse lewis number
-        species_mass_flux[flux_id] *=
-          -conductivity_mix_local/(specific_heat_cp_mass*lewis_number_[k]);
-
-	species_lewis_numbers[flux_id] = lewis_number_[k];
-
-        ++flux_id;
         ++grad_id;
-      }
-      flux_id += ld_species_mass_flux;
-      grad_id += input.ld_grad_mass_fraction_;
-    }
-
-    // compute the species mass flux sum for correction
-    mass_flux_sum.assign(num_dimensions,0.0);
-    flux_id = 0;
-
-    for(size_t j=0; j<num_dimensions; ++j) {
-
-      for(int k=0; k<num_species; ++k) {
-	mass_flux_sum[j] += species_mass_flux[flux_id];
-        ++flux_id;
-      }
-      flux_id += ld_species_mass_flux;
-    }
-
-    // apply the species mass flux sum correction
-    flux_id = 0;
-
-    for(size_t j=0; j<num_dimensions; ++j) {
-
-      double correction = mass_flux_sum[j];
-
-      for(int k=0; k<num_species; ++k) {
-
-	species_mass_flux[flux_id] -= input.mass_fraction_[k]*correction;
-        ++flux_id;
-      }
-      flux_id += ld_species_mass_flux;
-    }
-
-  }
-
-  return flag;
-}
-
-
-int ConstantLewis::GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
-					   const size_t ld_species_mass_flux,
-					   double *conductivity_mix,
-					   double *specific_heat_mix,
-					   double *species_mass_flux,
-					   double *species_lewis_numbers) const
-{
-  int flag = NO_ERROR;
-  double conductivity_mix_local=0.0;
-  if(conductivity_mix != nullptr && *conductivity_mix > 0) {
-      conductivity_mix_local = *conductivity_mix;
-  } else {
-    flag = GetMixtureConductivity(input,
-                                  &conductivity_mix_local);
-    if(conductivity_mix != nullptr) {
-      *conductivity_mix = conductivity_mix_local;
-    }
-  }
-
-  if(flag == NO_ERROR) {
-
-    const int num_species = num_species_;
-    const size_t num_dimensions = input.num_dimensions_;
-
-    const double molecular_mass_mix =
-      mechanism_->getMolWtMixFromY(&input.mass_fraction_[0]);
-    const double inv_molecular_mass_mix = 1.0/molecular_mass_mix;
-
-    double specific_heat_cp_mass = 0;
-    if(specific_heat_mix != nullptr && *specific_heat_mix > 0) {
-        specific_heat_cp_mass = *specific_heat_mix;
-    } else {
-      specific_heat_cp_mass = mechanism_->getMassCpFromTY(input.temperature_,
-                                                          &input.mass_fraction_[0]);
-      if(specific_heat_mix != nullptr) {
-        *specific_heat_mix = specific_heat_cp_mass;
-      }
-    }
-
-    // zero the species mass flux
-    size_t flux_id = 0;
-    size_t grad_id = 0;
-    for(size_t j=0; j<num_dimensions; ++j) {
-
-      for(int k=0; k<num_species; ++k) {
-        species_mass_flux[flux_id] = 0.0;
-        ++flux_id;
-      }
-      flux_id += ld_species_mass_flux;
-    }
-
-    std::vector<double> mass_flux_sum;
-    mass_flux_sum.assign(num_dimensions,0.0);
-
-    // compute molecular_mass_mix*\sum_i (1/molecular_mass[i])*
-    //                                    \grad(mass_fraction[i])
-    grad_id = 0;
-    for(size_t j=0; j<num_dimensions; ++j) {
-
-      for(int k=0; k<num_species; ++k) {
-        mass_flux_sum[j] +=
-          input.grad_mass_fraction_[grad_id]*inv_molecular_mass_[k];
-	++grad_id;
-      }
+      } //k species loop
       grad_id += input.ld_grad_mass_fraction_;
       mass_flux_sum[j] *= molecular_mass_mix;
-    }
+    } //j dimensions loop
 
-    // compute the uncorrected species mass flux
     flux_id = 0;
     grad_id = 0;
-
+    gradT_id = 0;
     for(size_t j=0; j<num_dimensions; ++j) {
+      if(mix_avg_) {
 
+        const double dcoeff = 419.75742*input.pressure_/ sqrt(pow(input.temperature_,3.0)*1000);
+        const double rho = input.pressure_*molecular_mass_mix/(gasConstant*input.temperature_);
+
+        // Compute Mass diffusion term Dmass_k
+        for(int k=0; k<num_species; ++k) {
+
+          double num = 0.0;
+          double den = 0.0;
+          for(int l=0; l<num_species; ++l) {
+
+            invDij[k*num_species + l] = dcoeff*diam2_[k*num_species+l]*
+              omega_D(input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l])*
+              sqrtmass_[k*num_species+l];
+
+            if(l != k) {
+              num += input.mass_fraction_[l];
+              den += input.mass_fraction_[l]*inv_molecular_mass_[l]*invDij[k*num_species + l];
+            }
+
+          } // l species loop
+          if(den != 0.0) {
+            Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+          } else {
+            Dmass[k] = rho/invDij[k*num_species + k];
+          }
+          // Compute Lewis numbers from DMass_k
+          lewis_numbers_[k] = conductivity_mix_local/(specific_heat_cp_mass*Dmass[k]);
+
+        } //k species loop
+
+
+        if(soret_) {
+          // Compute Thermal Diffusion term (Soret/Dufour)
+          // Compute species viscosities
+          int flag = GetSpeciesViscosity(input, &species_workspace_[0]);
+
+          double phi;
+
+          // Pre-compute sqrt
+          for(int k=0; k<num_species; ++k) {
+            sqrtmu[k] = sqrt(species_workspace_[k]);
+            inv_sqrtmu[k] = 1.0/sqrtmu[k];
+          }
+
+          // Compute DeltaI
+          if(flag == NO_ERROR) {
+
+            for(int k=0; k<num_species; ++k) {
+              DeltaI[k] = 0.0;
+              for(int l=0; l<num_species; ++l) {
+                phi = 1.0 + sqrt2mass_[k*num_species + l]*sqrtmu[k]*inv_sqrtmu[l];
+
+                phi = phi*phi * 0.0003535534 * inv_sqrt1mass_[k*num_species + l]*inv_molecular_mass_[l];
+
+                DeltaI[k] += phi*input.mass_fraction_[l];
+              }
+              DeltaI[k] *= molecular_mass_[k]*molecular_mass_[k];
+              DeltaI[k] = species_workspace_[k]/DeltaI[k];//store mu/delta
+            } //k species loop
+
+            // Compute DTherm
+            for(int k=0; k<num_species; ++k) {
+              double num = 0.0;
+              for(int l=0; l<num_species; ++l) {
+                const double cstar = omega_C( input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l] );
+
+                num += input.mass_fraction_[l]*invDij[k*num_species + l]*(1.2*cstar-1.0)*
+                  ( DeltaI[l] - DeltaI[k] ) * inv_sum_mass_[k*num_species+l];
+
+              }
+              DTherm[k] = 0.00375*num*input.mass_fraction_[k]*molecular_mass_[k]*
+                molecular_mass_mix*Dmass[k]/rho;
+            } // k species loop
+
+            // Correction for zero diffusion flux
+            double corr;
+            double num = 0.0;
+            double den = 0.0;
+            for(int k=0; k<num_species; ++k) {
+              num += DTherm[k];
+              den += input.mass_fraction_[k];
+            }
+            corr = num/den;
+            for(int k=0; k<num_species; ++k) {
+              DTherm[k] -= corr*input.mass_fraction_[k];
+            }
+          } //if flag
+        } // if(soret_)
+      }//if(mix_avg_)
+
+      // compute the uncorrected species mass flux
       for(int k=0; k<num_species; ++k) {
+
         species_mass_flux[flux_id] = input.grad_mass_fraction_[grad_id];
-//        species_mass_flux[flux_id] = input.grad_mass_fraction_[grad_id] - input.mass_fraction_[k]*mass_flux_sum[j];
+        if(!frozen || mix_avg_) {
+          species_mass_flux[flux_id] -= input.mass_fraction_[k]*mass_flux_sum[j];
+        }
 
-        // TODO: eliminate division operation by storing inverse lewis number
-        species_mass_flux[flux_id] *=
-          -conductivity_mix_local/(specific_heat_cp_mass*lewis_number_[k]);
+        // Compute species flux  -- mass
+        if(mix_avg_) {
+          species_mass_flux[flux_id] *= -Dmass[k];
+        } else {
+          species_mass_flux[flux_id] *=
+            -conductivity_mix_local/(specific_heat_cp_mass*lewis_numbers_[k]);
+        }
+        // Save Lewis numbers
+        species_lewis_numbers[flux_id] = lewis_numbers_[k];
 
-	species_lewis_numbers[flux_id] = lewis_number_[k];
+        if(soret_) {
+          // Compute species flux -- thermal
+          species_mass_flux[flux_id] -= DTherm[k]*input.grad_temperature_[gradT_id]/input.temperature_;
+        }
 
         ++flux_id;
         ++grad_id;
-      }
+      } //species loop
       flux_id += ld_species_mass_flux;
       grad_id += input.ld_grad_mass_fraction_;
+      gradT_id += input.ld_grad_temperature_;
+    } //spatial loop
 
-    } // for j<num_dimnesions
+    if(!frozen || mix_avg_) {
+      // compute the species mass flux sum for correction
+      mass_flux_sum.assign(num_dimensions,0.0);
+      flux_id = 0;
 
-    // Uncorrected
+      for(size_t j=0; j<num_dimensions; ++j) {
 
-  } // if flag no error
+        for(int k=0; k<num_species; ++k) {
+          mass_flux_sum[j] += species_mass_flux[flux_id];
+          ++flux_id;
+        }
+        flux_id += ld_species_mass_flux;
+      }
 
+      // apply the species mass flux sum correction
+      flux_id = 0;
+
+      for(size_t j=0; j<num_dimensions; ++j) {
+
+        double correction = mass_flux_sum[j];
+
+        for(int k=0; k<num_species; ++k) {
+
+          species_mass_flux[flux_id] -= input.mass_fraction_[k]*correction;
+          ++flux_id;
+        }
+        flux_id += ld_species_mass_flux;
+      }
+    }
+  }
 
   return flag;
 }
 
+int FlexibleTransport::GetSpeciesMassFlux(const MassTransportInput &input,
+                                          const size_t ld_species_mass_flux,
+                                          double *conductivity,
+                                          double *mixture_specific_heat,
+                                          double *species_mass_flux,
+                                          double *species_lewis_numbers) const
+{
+  int flag = this->GetSpeciesMassFluxInternal(input, ld_species_mass_flux, conductivity, mixture_specific_heat,
+                                              species_mass_flux, species_lewis_numbers, false);
+  return flag;
+}
+
+int FlexibleTransport::GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
+                                                      const size_t ld_species_mass_flux,
+                                                      double *conductivity,
+                                                      double *mixture_specific_heat,
+                                                      double *species_mass_flux,
+                                                      double *species_lewis_numbers) const
+{
+  int flag = this->GetSpeciesMassFluxInternal(input, ld_species_mass_flux, conductivity, mixture_specific_heat,
+                                              species_mass_flux, species_lewis_numbers, true);
+  return flag;
+}
 
 // The format of the transport file
-int ConstantLewis::ParseTransportFile(const std::string &transport_file,
+int FlexibleTransport::ParseTransportFile(const std::string &transport_file,
                                       const std::string &comment_chars,
                                       std::string *error_message)
 {
@@ -550,10 +521,11 @@ int ConstantLewis::ParseTransportFile(const std::string &transport_file,
     }
 
     // initialize data parameters
-    lewis_number_.assign(num_species, 1.0);
+    lewis_numbers_.assign(num_species, 1.0);
 
     shape_.assign(num_species, 0);
     kOverEps_.assign(num_species, 0.0);
+    sqrtkOverEps_.assign(num_species, 0.0);
     sigma_.assign(num_species, 0.0);
     mu_.assign(num_species, 0.0);
     alpha_.assign(num_species, 0.0);
@@ -562,33 +534,33 @@ int ConstantLewis::ParseTransportFile(const std::string &transport_file,
     mucoeff_.assign(num_species, 0.0);
     species_line_num.assign(num_species, -1);
 
+    sqrtmass_.assign(num_species*num_species, 0.0);
+    diam2_.assign(num_species*num_species, 0.0);
+
+    sqrt2mass_.assign(num_species*num_species, 0.0);
+    inv_sqrt1mass_.assign(num_species*num_species, 0.0);
+    inv_sum_mass_.assign(num_species*num_species, 0.0);
 
     // Clean this up and streamline later!!
     std::ifstream Le_file;
     std::string line_Le;
     std::string delimiters = std::string(zerork::utilities::WHITESPACE) + ",";
     std::vector<std::string> fields_Le;
-    int Le_file_read = 0;
 
     Le_file.open("Lewis_file");
 
     if(Le_file) {
-      Le_file_read = 1;
-      lewis_number_.clear();
+      lewis_numbers_.clear();
       while(zerork::utilities::GetAnyLine(Le_file,&line_Le)) {
-	zerork::utilities::SplitStringToVector(line_Le,
-						delimiters,
-						&fields_Le);
-	if(fields_Le.size() == 1) {
-	  if(zerork::utilities::StringIsDouble(fields_Le[0])) {
-	    lewis_number_.push_back(atof(fields_Le[0].c_str()));
-	  }
-	}
+        zerork::utilities::SplitStringToVector(line_Le,
+                                                delimiters,
+                                                &fields_Le);
+        if(fields_Le.size() == 1) {
+          if(zerork::utilities::StringIsDouble(fields_Le[0])) {
+            lewis_numbers_.push_back(atof(fields_Le[0].c_str()));
+          }
+        }
       }
-
-    } else {
-      printf("# Warning: could not open Lewis file\n");
-      Le_file_read = 0;
     }//if file
 
     while(zerork::utilities::GetAnyLine(input_file, &line)) {
@@ -601,7 +573,7 @@ int ConstantLewis::ParseTransportFile(const std::string &transport_file,
       num_fields = zerork::utilities::SplitStringToVector(sub_line,
                                                   zerork::utilities::WHITESPACE,
                                                   &fields);
-      if(num_fields >= 6) {
+      if(num_fields >= 7) {
         map_iter = species_id_from_name.find(fields[0]);
 
         if(map_iter != species_id_from_name.end()) {
@@ -620,12 +592,9 @@ int ConstantLewis::ParseTransportFile(const std::string &transport_file,
             alpha_[species_id]        = atof(fields[5].c_str());
             Zrot_[species_id]         = atof(fields[6].c_str());
 
-	    if(Le_file_read ==0) {
-	      lewis_number_[species_id] = atof(fields[7].c_str());
-	    }
-
-	    mucoeff_[species_id] = 2.6693e-6 * sqrt(molecular_mass_[species_id])/pow(sigma_[species_id],2.0);
-	  }
+            sqrtkOverEps_[species_id] = sqrt(kOverEps_[species_id]);
+            mucoeff_[species_id] = 2.6693e-6 * sqrt(molecular_mass_[species_id])/pow(sigma_[species_id],2.0);
+          }
           else if(log_fptr != NULL) {
             fprintf(log_fptr,
                     "# INFO: At line %d in transport file %s,\n"
@@ -682,6 +651,18 @@ int ConstantLewis::ParseTransportFile(const std::string &transport_file,
     if(log_fptr != NULL) {
       fclose(log_fptr);
     }
+
+    for(int k=0; k<num_species; ++k) {
+      for(int l=0; l<num_species; ++l) {
+        sqrtmass_[k*num_species+l] = sqrt(molecular_mass_[k]*molecular_mass_[l] /
+                                         (molecular_mass_[k] + molecular_mass_[l]) );
+        diam2_[k*num_species+l] = pow(sigma_[k] + sigma_[l],2.0);
+        sqrt2mass_[k*num_species+l] = sqrt(sqrt(molecular_mass_[l]*inv_molecular_mass_[k]));
+        inv_sqrt1mass_[k*num_species+l] = 1.0/sqrt(1.0 + molecular_mass_[k]*inv_molecular_mass_[l]);
+        inv_sum_mass_[k*num_species+l] = 1.0/(molecular_mass_[k] + molecular_mass_[l]);
+      }
+    }
+
     // TODO: add transport to log file
     return NO_ERROR;
 
@@ -694,13 +675,10 @@ int ConstantLewis::ParseTransportFile(const std::string &transport_file,
       fclose(log_fptr);
     }
     return INPUT_FILE_ERROR;
+  } // if input file
 }
 
-
-
-}
-
-  double ConstantLewis::omega_D(double t) const
+double FlexibleTransport::omega_D(double t) const
 {
   static double m1 = 6.8728271691;
   static double m2 = 9.4122316321;
@@ -717,13 +695,30 @@ int ConstantLewis::ParseTransportFile(const std::string &transport_file,
   return num / den;
 }
 
-double ConstantLewis::omega_mu (double t) const
+double FlexibleTransport::omega_C(double t) const
+{
+  static double m1  = 0.736808579024474;
+  static double m2  =-0.162584497939513;
+  static double m3  = 0.709531162584400;
+  static double m4  = 1.398019617218464;
+  static double m5  = 0.067965121991416;
+  static double m6  = 0.816955359905454;
+  static double m7  =-0.069897449182209;
+  static double m8  = 1.018675921638549;
+  static double m9  = 1.452306854170371;
+  static double m10 = 0.072004317749258;
+
+  return (m1 + t * (m2 + t * (m3 + t * (m4 + t * m5)))) /
+    (m6 + t * (m7 + t * (m8 + t * (m9 + t * m10))));
+}
+
+  double FlexibleTransport::omega_mu (double t) const
   {
     static double m1 = 3.3530622607;
     static double m2 = 2.53272006;
     static double m3 = 2.9024238575;
     static double m4 = 0.11186138893;
-  static double m5 = 0.8662326188;/* = -0.1337673812 + 1.0 */
+    static double m5 = 0.8662326188;/* = -0.1337673812 + 1.0 */
     static double m6 = 1.3913958626;
     static double m7 = 3.158490576;
     static double m8 = 0.18973411754;

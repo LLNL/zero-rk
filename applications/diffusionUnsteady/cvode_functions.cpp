@@ -209,6 +209,8 @@ int ConstPressureFlameLocal(int nlocal,
     transport_error = params->trans_->GetSpeciesMassFlux(
       params->transport_input_,
       num_species,
+      nullptr,
+      nullptr,
       &params->species_mass_flux_[j*num_species],
       &params->species_lewis_numbers_[j*num_species]);
     if(transport_error != transport::NO_ERROR) {

@@ -48,11 +48,15 @@ ZeroRKFlameManager::ZeroRKFlameManager() {
   string_options_["therm_filename"] = std::string("therm.dat");
   string_options_["transport_filename"] = std::string("tran.dat");
   string_options_["transport_model"] = "ConstantLewis";
+  string_options_["constant_lewis_setting"] = "GridPoint"; //Tfix, Default
+  string_options_["temperature_fix_setting"] = "Delta"; //Absolute, InOutMix
+  int_options_["constant_lewis_grid_point"] = 0;
+  double_options_["temperature_fix_value"] = 250.0; //legacy value
 
   //Solver options
   int_options_["integrator_type"] = 3;
   int_options_["store_jacobian"]  = 1;
-  int_options_["convective_scheme_type"] = 2;
+  int_options_["convective_scheme_type"] = 0;
   int_options_["max_subiterations"] = 10;
   int_options_["steady_max_iterations"] = 100;
   double_options_["relative_tolerance"] = 1.0e-2;
@@ -86,6 +90,7 @@ zerork_flame_status_t ZeroRKFlameManager::ReadOptionsFile(const std::string& opt
   int_options_["convective_scheme_type"] = inputFileDB.convective_scheme_type();
   int_options_["pseudo_unsteady"] = inputFileDB.pseudo_unsteady();
   int_options_["pseudo_unsteady_max_iterations"] = inputFileDB.pseudo_unsteady_max_iterations();
+  int_options_["constant_lewis_grid_point"] = inputFileDB.constant_lewis_grid_point();
 
   double_options_["absolute_tolerance"] = inputFileDB.absolute_tolerance();
   double_options_["relative_tolerance"] = inputFileDB.relative_tolerance();
@@ -93,6 +98,7 @@ zerork_flame_status_t ZeroRKFlameManager::ReadOptionsFile(const std::string& opt
   double_options_["pseudo_unsteady_dt"] = inputFileDB.pseudo_unsteady_dt();
   double_options_["pseudo_unsteady_time"] = inputFileDB.pseudo_unsteady_time();
   double_options_["step_limiter"] = inputFileDB.step_limiter();
+  double_options_["temperature_fix_value"] = inputFileDB.temperature_fix_value();
 
   string_options_["mechanism_parsing_log_filename"] = inputFileDB.mechanism_parsing_log();
   string_options_["transport_parsing_log_filename"] = inputFileDB.transport_parsing_log();
@@ -100,6 +106,8 @@ zerork_flame_status_t ZeroRKFlameManager::ReadOptionsFile(const std::string& opt
   string_options_["therm_filename"] = inputFileDB.therm_file();
   string_options_["transport_filename"] = inputFileDB.transport_file();
   string_options_["transport_model"] = inputFileDB.transport_model();
+  string_options_["constant_lewis_setting"] = inputFileDB.constant_lewis_setting();
+  string_options_["temperature_fix_setting"] = inputFileDB.temperature_fix_setting();
   return ZERORK_FLAME_STATUS_SUCCESS;
 }
 

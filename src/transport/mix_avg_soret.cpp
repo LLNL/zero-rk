@@ -32,8 +32,8 @@ MixAvgSoret::~MixAvgSoret()
 }
 
 int MixAvgSoret::Initialize(const std::vector<std::string> &input_files,
-                            const std::string &log_name,
-                            const double conductivity_multiplier)
+                       const std::string &log_name,
+                       const double conductivity_multiplier)
 {
   int flag;
   FILE *log_fptr = fopen(log_name.c_str(),"a");
@@ -60,12 +60,13 @@ int MixAvgSoret::Initialize(const std::vector<std::string> &input_files,
     fflush(log_fptr);
     fclose(log_fptr);
     return INPUT_FILE_ERROR;
-
   }
   fclose(log_fptr);
+
   mechanism_ = new zerork::mechanism(input_files[0].c_str(),
                                      input_files[1].c_str(),
                                      log_name_.c_str());
+
   if(mechanism_ == NULL) {
     log_fptr = fopen(log_name.c_str(),"a");
     fprintf(log_fptr,
@@ -110,13 +111,14 @@ int MixAvgSoret::Initialize(const std::vector<std::string> &input_files,
   } else {
     initialized_ = false;
   }
+
   return flag;
 }
 
 int MixAvgSoret::Initialize(zerork::mechanism* mechanism,
-                            const std::vector<std::string> &input_files,
-                            const std::string &log_name,
-                            const double conductivity_multiplier)
+                       const std::vector<std::string> &input_files,
+                       const std::string &log_name,
+                       const double conductivity_multiplier)
 {
   int flag;
   FILE *log_fptr = fopen(log_name.c_str(),"a");
@@ -141,7 +143,6 @@ int MixAvgSoret::Initialize(zerork::mechanism* mechanism,
     fflush(log_fptr);
     fclose(log_fptr);
     return INPUT_FILE_ERROR;
-
   }
   fclose(log_fptr);
 
@@ -192,6 +193,7 @@ int MixAvgSoret::Initialize(zerork::mechanism* mechanism,
   } else {
     initialized_ = false;
   }
+
   return flag;
 }
 
@@ -292,11 +294,12 @@ int MixAvgSoret::GetSpeciesConductivity(const MassTransportInput &input,
                                   &input.mass_fraction_[0],
                                   &Cp_sp[0]);
 
+
     for(int j=0; j<num_species; ++j) {
       // Modified Eucken formula
       omegamu = omega_mu(temperature*kOverEps_[j]);
       beta = 1.2*omegamu/omega_D(temperature*kOverEps_[j]);
-      conductivity[j] = mucoeff_[j]*sqrt_temperature/omegamu *
+      conductivity[j] = mucoeff_[j]*sqrt_temperature/omegamu*
 	(beta*Cp_sp[j] + (3.75-2.5*beta)*gasConstant*inv_molecular_mass_[j]);
     }
 
@@ -307,16 +310,23 @@ int MixAvgSoret::GetSpeciesConductivity(const MassTransportInput &input,
 }
 
 int MixAvgSoret::GetSpeciesMassFlux(const MassTransportInput &input,
-				    const size_t ld_species_mass_flux,
-				    double *species_mass_flux,
-				    double *species_lewis_numbers) const
+			       const size_t ld_species_mass_flux,
+			       double *conductivity_mix,
+			       double *specific_heat_mix,
+			       double *species_mass_flux,
+			       double *species_lewis_numbers) const
 {
-  double conductivity_mix=0.0;
-  int flag = GetMixtureConductivity(input,
-                                    &conductivity_mix);
-  double inv_molecular_mass_mix = 0.0;
-  double dcoeff = 0.0;
-  double rho = 0.0;
+  int flag = NO_ERROR;
+  double conductivity_mix_local=0.0;
+  if(conductivity_mix != nullptr && *conductivity_mix > 0) {
+      conductivity_mix_local = *conductivity_mix;
+  } else {
+    flag = GetMixtureConductivity(input,
+                                  &conductivity_mix_local);
+    if(conductivity_mix != nullptr) {
+      *conductivity_mix = conductivity_mix_local;
+    }
+  }
   const double gasConstant = 8314.46;
   double cstar;
 
@@ -327,12 +337,18 @@ int MixAvgSoret::GetSpeciesMassFlux(const MassTransportInput &input,
 
     const double molecular_mass_mix =
       mechanism_->getMolWtMixFromY(&input.mass_fraction_[0]);
+    const double inv_molecular_mass_mix = 1.0/molecular_mass_mix;
 
-    const double specific_heat_cp_mass =
-      mechanism_->getMassCpFromTY(input.temperature_,
-                                  &input.mass_fraction_[0]);
-
-    inv_molecular_mass_mix = 1.0/molecular_mass_mix;
+    double specific_heat_cp_mass = 0;
+    if(specific_heat_mix != nullptr && *specific_heat_mix > 0) {
+        specific_heat_cp_mass = *specific_heat_mix;
+    } else {
+      specific_heat_cp_mass = mechanism_->getMassCpFromTY(input.temperature_,
+                                                          &input.mass_fraction_[0]);
+      if(specific_heat_mix != nullptr) {
+        *specific_heat_mix = specific_heat_cp_mass;
+      }
+    }
 
     // zero the species mass flux
     size_t flux_id = 0;
@@ -366,14 +382,8 @@ int MixAvgSoret::GetSpeciesMassFlux(const MassTransportInput &input,
 
     for(size_t j=0; j<num_dimensions; ++j) {
 
-      // Outside species loops stuff
-      inv_molecular_mass_mix = 0.0;
-      for(int k=0; k<num_species; ++k) {
-	inv_molecular_mass_mix +=
-	  input.mass_fraction_[k]*inv_molecular_mass_[k];
-      } //k species loop
-      dcoeff = 419.75742*input.pressure_/ sqrt(pow(input.temperature_,3.0)*1000);
-      rho = input.pressure_*molecular_mass_mix/(gasConstant*input.temperature_);
+      const double dcoeff = 419.75742*input.pressure_/ sqrt(pow(input.temperature_,3.0)*1000);
+      const double rho = input.pressure_*molecular_mass_mix/(gasConstant*input.temperature_);
 
       // Compute Mass diffusion term Dmass_k
       for(int k=0; k<num_species; ++k) {
@@ -392,9 +402,9 @@ int MixAvgSoret::GetSpeciesMassFlux(const MassTransportInput &input,
 	  }
 
 	} // l species loop
-	Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+          Dmass[k] = rho*num*inv_molecular_mass_mix/den;
 	// Compute Lewis numbers from DMass_k
-	lewisnumbers[k] = conductivity_mix/(specific_heat_cp_mass*Dmass[k]);
+	lewisnumbers[k] = conductivity_mix_local/(specific_heat_cp_mass*Dmass[k]);
 
       } //k species loop
 
@@ -498,29 +508,41 @@ int MixAvgSoret::GetSpeciesMassFlux(const MassTransportInput &input,
     flux_id = 0;
 
     for(size_t j=0; j<num_dimensions; ++j) {
+
       double correction = mass_flux_sum[j];
+
       for(int k=0; k<num_species; ++k) {
+
 	species_mass_flux[flux_id] -= input.mass_fraction_[k]*correction;
         ++flux_id;
       }
       flux_id += ld_species_mass_flux;
     }
+
   }
 
   return flag;
 }
 
-int MixAvgSoret::GetSpeciesMassFluxUncorrected(const MassTransportInput &input,
-				    const size_t ld_species_mass_flux,
-				    double *species_mass_flux,
-				    double *species_lewis_numbers) const
+
+int MixAvgSoret::GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
+					   const size_t ld_species_mass_flux,
+					   double *conductivity_mix,
+					   double *specific_heat_mix,
+					   double *species_mass_flux,
+					   double *species_lewis_numbers) const
 {
-  double conductivity_mix=0.0;
-  int flag = GetMixtureConductivity(input,
-                                    &conductivity_mix);
-  double inv_molecular_mass_mix = 0.0;
-  double dcoeff = 0.0;
-  double rho = 0.0;
+  int flag = NO_ERROR;
+  double conductivity_mix_local=0.0;
+  if(conductivity_mix != nullptr && *conductivity_mix > 0) {
+      conductivity_mix_local = *conductivity_mix;
+  } else {
+    flag = GetMixtureConductivity(input,
+                                  &conductivity_mix_local);
+    if(conductivity_mix != nullptr) {
+      *conductivity_mix = conductivity_mix_local;
+    }
+  }
   const double gasConstant = 8314.46;
   double cstar;
 
@@ -531,12 +553,18 @@ int MixAvgSoret::GetSpeciesMassFluxUncorrected(const MassTransportInput &input,
 
     const double molecular_mass_mix =
       mechanism_->getMolWtMixFromY(&input.mass_fraction_[0]);
+    const double inv_molecular_mass_mix = 1.0/molecular_mass_mix;
 
-    const double specific_heat_cp_mass =
-      mechanism_->getMassCpFromTY(input.temperature_,
-                                  &input.mass_fraction_[0]);
-
-    inv_molecular_mass_mix = 1.0/molecular_mass_mix;
+    double specific_heat_cp_mass = 0;
+    if(specific_heat_mix != nullptr && *specific_heat_mix > 0) {
+        specific_heat_cp_mass = *specific_heat_mix;
+    } else {
+      specific_heat_cp_mass = mechanism_->getMassCpFromTY(input.temperature_,
+                                                          &input.mass_fraction_[0]);
+      if(specific_heat_mix != nullptr) {
+        *specific_heat_mix = specific_heat_cp_mass;
+      }
+    }
 
     // zero the species mass flux
     size_t flux_id = 0;
@@ -570,14 +598,8 @@ int MixAvgSoret::GetSpeciesMassFluxUncorrected(const MassTransportInput &input,
 
     for(size_t j=0; j<num_dimensions; ++j) {
 
-      // Outside species loops stuff
-      inv_molecular_mass_mix = 0.0;
-      for(int k=0; k<num_species; ++k) {
-	inv_molecular_mass_mix +=
-	  input.mass_fraction_[k]*inv_molecular_mass_[k];
-      } //k species loop
-      dcoeff = 419.75742*input.pressure_/ sqrt(pow(input.temperature_,3.0)*1000);
-      rho = input.pressure_*molecular_mass_mix/(gasConstant*input.temperature_);
+      const double dcoeff = 419.75742*input.pressure_/ sqrt(pow(input.temperature_,3.0)*1000);
+      const double rho = input.pressure_*molecular_mass_mix/(gasConstant*input.temperature_);
 
       // Compute Mass diffusion term Dmass_k
       for(int k=0; k<num_species; ++k) {
@@ -596,181 +618,9 @@ int MixAvgSoret::GetSpeciesMassFluxUncorrected(const MassTransportInput &input,
 	  }
 
 	} // l species loop
-	Dmass[k] = rho*num*inv_molecular_mass_mix/den;
+          Dmass[k] = rho*num*inv_molecular_mass_mix/den;
 	// Compute Lewis numbers from DMass_k
-	lewisnumbers[k] = conductivity_mix/(specific_heat_cp_mass*Dmass[k]);
-
-      } //k species loop
-
-      // Compute Thermal Diffusion term (Soret/Dufour)
-      // Compute species viscosities
-      int flag = GetSpeciesViscosity(input, &species_workspace_[0]);
-      double phi;
-
-      // Pre-compute sqrt
-      for(int k=0; k<num_species; ++k) {
-	sqrtmu[k] = sqrt(species_workspace_[k]);
-	inv_sqrtmu[k] = 1.0/sqrtmu[k];
-      }
-
-      // Compute DeltaI
-      if(flag == NO_ERROR) {
-
-	for(int k=0; k<num_species; ++k) {
-	  DeltaI[k] = 0.0;
-	  for(int l=0; l<num_species; ++l) {
-	    phi = 1.0 + sqrt2mass_[k*num_species + l]*sqrtmu[k]*inv_sqrtmu[l];
-	    phi = phi*phi * 0.0003535534 * inv_sqrt1mass_[k*num_species + l]*inv_molecular_mass_[l];
-	    DeltaI[k] += phi*input.mass_fraction_[l];
-	  }
-	  DeltaI[k] *= molecular_mass_[k]*molecular_mass_[k];
-	  DeltaI[k] = species_workspace_[k]/DeltaI[k];//store mu/delta
-	} //k species loop
-
-	// Compute DTherm
-	for(int k=0; k<num_species; ++k) {
-	  double num = 0.0;
-	  for(int l=0; l<num_species; ++l) {
-	    cstar = omega_C( input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l] );
-	    num += input.mass_fraction_[l]*invDij[k*num_species + l]*(1.2*cstar-1.0)*
-	      ( DeltaI[l] - DeltaI[k] ) * inv_sum_mass_[k*num_species+l];
-
-	  }
-	  DTherm[k] = 0.00375*num*input.mass_fraction_[k]*molecular_mass_[k]*
-	    molecular_mass_mix*Dmass[k]/rho;
-	} // k species loop
-
-	// Correction for zero diffusion flux
-	double corr;
-	double num = 0.0;
-	double den = 0.0;
-	for(int k=0; k<num_species; ++k) {
-	  num += DTherm[k];
-	  den += input.mass_fraction_[k];
-	}
-	corr = num/den;
-	for(int k=0; k<num_species; ++k) {
-	  DTherm[k] -= corr*input.mass_fraction_[k];
-	}
-      } //if flag
-
-      // compute the uncorrected species mass flux
-      flux_id = 0;
-      grad_id = 0;
-      size_t gradT_id = 0;
-      for(int k=0; k<num_species; ++k) {
-
-	species_mass_flux[flux_id] =
-          input.grad_mass_fraction_[grad_id] -
-          input.mass_fraction_[k]*mass_flux_sum[j];
-
-	// Compute species flux  -- mass
-	species_mass_flux[flux_id] *= -Dmass[k];
-
-	species_lewis_numbers[flux_id] = lewisnumbers[k];
-
-	// Compute species flux -- thermal
-	species_mass_flux[flux_id] -= DTherm[k]*input.grad_temperature_[gradT_id]/input.temperature_;
-
-        ++flux_id;
-        ++grad_id;
-      } //species loop
-      flux_id += ld_species_mass_flux;
-      grad_id += input.ld_grad_mass_fraction_;
-      gradT_id += input.ld_grad_temperature_;
-    } //spatial loop
-
-  }
-
-  return flag;
-}
-
-int MixAvgSoret::GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
-						const size_t ld_species_mass_flux,
-						double conductivity,
-						double mixture_specific_heat,
-						double molecular_mass_mix,
-						double *species_mass_flux,
-						double *species_lewis_numbers) const
-{
-  double conductivity_mix=conductivity;
-  int flag = NO_ERROR;
-  double inv_molecular_mass_mix = 0.0;
-  double dcoeff = 0.0;
-  double rho = 0.0;
-  const double gasConstant = 8314.46;
-  double cstar;
-
-  if(flag == NO_ERROR) {
-
-    const int num_species = num_species_;
-    const size_t num_dimensions = input.num_dimensions_;
-
-    const double specific_heat_cp_mass = mixture_specific_heat;
-
-    inv_molecular_mass_mix = 1.0/molecular_mass_mix;
-
-    // zero the species mass flux
-    size_t flux_id = 0;
-    size_t grad_id = 0;
-    for(size_t j=0; j<num_dimensions; ++j) {
-
-      for(int k=0; k<num_species; ++k) {
-        species_mass_flux[flux_id] = 0.0;
-        ++flux_id;
-      }
-      flux_id += ld_species_mass_flux;
-    }
-
-    std::vector<double> mass_flux_sum;
-    mass_flux_sum.assign(num_dimensions,0.0);
-
-    // compute molecular_mass_mix*\sum_i (1/molecular_mass[i])*
-    //                                    \grad(mass_fraction[i])
-    grad_id = 0;
-    for(size_t j=0; j<num_dimensions; ++j) {
-
-      for(int k=0; k<num_species; ++k) {
-        mass_flux_sum[j] +=
-          input.grad_mass_fraction_[grad_id]*inv_molecular_mass_[k];
-	++grad_id;
-      } //k species loop
-      grad_id += input.ld_grad_mass_fraction_;
-      mass_flux_sum[j] *= molecular_mass_mix;
-    } //j spatial loop
-
-
-    for(size_t j=0; j<num_dimensions; ++j) {
-
-      // Outside species loops stuff
-      inv_molecular_mass_mix = 0.0;
-      for(int k=0; k<num_species; ++k) {
-	inv_molecular_mass_mix +=
-	  input.mass_fraction_[k]*inv_molecular_mass_[k];
-      } //k species loop
-      dcoeff = 419.75742*input.pressure_/ sqrt(pow(input.temperature_,3.0)*1000);
-      rho = input.pressure_*molecular_mass_mix/(gasConstant*input.temperature_);
-
-      // Compute Mass diffusion term Dmass_k
-      for(int k=0; k<num_species; ++k) {
-
-	double num = 0.0;
-	double den = 0.0;
-	for(int l=0; l<num_species; ++l) {
-
-	  invDij[k*num_species + l] = dcoeff*diam2_[k*num_species+l]*
-	    omega_D(input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l])*
-	    sqrtmass_[k*num_species+l];
-
-	  if(l != k) {
-	    num += input.mass_fraction_[l];
-	    den += input.mass_fraction_[l]*inv_molecular_mass_[l]*invDij[k*num_species + l];
-	  }
-
-	} // l species loop
-	Dmass[k] = rho*num*inv_molecular_mass_mix/den;
-	// Compute Lewis numbers from DMass_k
-	lewisnumbers[k] = conductivity_mix/(specific_heat_cp_mass*Dmass[k]);
+	lewisnumbers[k] = conductivity_mix_local/(specific_heat_cp_mass*Dmass[k]);
 
       } //k species loop
 
@@ -858,6 +708,7 @@ int MixAvgSoret::GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
   return flag;
 }
 
+
 // The format of the transport file
 int MixAvgSoret::ParseTransportFile(const std::string &transport_file,
                                       const std::string &comment_chars,
@@ -904,7 +755,6 @@ int MixAvgSoret::ParseTransportFile(const std::string &transport_file,
     inv_sum_mass_.assign(num_species*num_species, 0.0);
 
     mucoeff_.assign(num_species, 0.0);
-
     species_line_num.assign(num_species, -1);
 
     while(zerork::utilities::GetAnyLine(input_file, &line)) {
@@ -938,7 +788,7 @@ int MixAvgSoret::ParseTransportFile(const std::string &transport_file,
 
 	    sqrtkOverEps_[species_id] = sqrt(kOverEps_[species_id]);
 	    mucoeff_[species_id] = 2.6693e-6 * sqrt(molecular_mass_[species_id])/pow(sigma_[species_id],2.0);
-          }
+	  }
           else if(log_fptr != NULL) {
             fprintf(log_fptr,
                     "# INFO: At line %d in transport file %s,\n"
@@ -998,14 +848,15 @@ int MixAvgSoret::ParseTransportFile(const std::string &transport_file,
 
     for(int k=0; k<num_species; ++k) {
       for(int l=0; l<num_species; ++l) {
-        sqrtmass_[k*num_species+l] = sqrt(molecular_mass_[k]*molecular_mass_[l] /
-					  (molecular_mass_[k] + molecular_mass_[l]) );
-        diam2_[k*num_species+l] = pow(sigma_[k] + sigma_[l],2.0);
+	sqrtmass_[k*num_species+l] = sqrt(molecular_mass_[k]*molecular_mass_[l] /
+					 (molecular_mass_[k] + molecular_mass_[l]) );
+	diam2_[k*num_species+l] = pow(sigma_[k] + sigma_[l],2.0);
 	sqrt2mass_[k*num_species+l] = sqrt(sqrt(molecular_mass_[l]*inv_molecular_mass_[k]));
 	inv_sqrt1mass_[k*num_species+l] = 1.0/sqrt(1.0 + molecular_mass_[k]*inv_molecular_mass_[l]);
 	inv_sum_mass_[k*num_species+l] = 1.0/(molecular_mass_[k] + molecular_mass_[l]);
       }
     }
+
 
     // TODO: add transport to log file
     return NO_ERROR;

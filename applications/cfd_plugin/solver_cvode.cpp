@@ -104,9 +104,9 @@ int CvodeSolver::Integrate(const double end_time) {
     //Check for GPU
     if(num_batches > 1) {
         int NEQ = reactor_ref_.GetNumStateVariables();
-        cudaStream_t queue = (cudaStream_t) 0; //TODO: Non-default stream?
         SUNMemoryHelper memhelper = SUNMemoryHelper_Cuda();
-        A = SUNMatrix_MagmaDenseBlock(num_batches, NEQ, NEQ, SUNMEMTYPE_DEVICE, memhelper, queue);
+        //NULL is passed to use default cuda stream
+        A = SUNMatrix_MagmaDenseBlock(num_batches, NEQ, NEQ, SUNMEMTYPE_DEVICE, memhelper, NULL);
         LS = ZRKLinSol_MagmaDense(state, A);
         ZRKLinSol_MagmaDense_SetAsync(LS, 0);
         flag = CVodeSetLinearSolver(cvode_mem, LS, A);

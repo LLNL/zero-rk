@@ -78,19 +78,15 @@ class MassTransportInterface
 
   virtual int GetSpeciesMassFlux(const MassTransportInput &input,
                                  const size_t ld_species_mass_flux,
+				 double *conductivity_mix,
+				 double *specific_heat_mix,
                                  double *species_mass_flux,
 				 double *species_lewis_numbers) const = 0;
 
-  virtual int GetSpeciesMassFluxUncorrected(const MassTransportInput &input,
-					    const size_t ld_species_mass_flux,
-					    double *species_mass_flux,
-					    double *species_lewis_numbers) const = 0;
-
   virtual int GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
 					     const size_t ld_species_mass_flux,
-					     double conductivity,
-					     double mixture_specific_heat,
-					     double molecular_mass_mix,
+					     double *conductivity_mix,
+					     double *specific_heat_mix,
 					     double *species_mass_flux,
 					     double *species_lewis_numbers) const = 0;
 

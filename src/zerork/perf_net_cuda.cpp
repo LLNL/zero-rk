@@ -59,6 +59,20 @@ perf_net_cuda::perf_net_cuda(info_net &netobj, rate_const &Kobj)
     }
   }
   assert(rCtrU == nStep*maxReactants);
+  //re-order reactantSpcIdxListUnwrapped to optimize rxn_conc_mult kernel
+
+  int* reactantSpcIdxListUnwrapped_tmp = new int[nStep*maxReactants];
+  for(j=0; j<nStep; j++)
+  {
+    for(k=0; k<maxReactants; k++)
+    {
+      reactantSpcIdxListUnwrapped_tmp[k*nStep+j]= reactantSpcIdxListUnwrapped[j*maxReactants+k];
+    }
+  }
+  memcpy(reactantSpcIdxListUnwrapped, reactantSpcIdxListUnwrapped_tmp, sizeof(int)*maxReactants*nStep);
+  delete[] reactantSpcIdxListUnwrapped_tmp;
+
+  
 
   //Reorder scatter add operations to reduce atomic races in production rate calcs.
   sa64c=reorderScatterAdd_by_ntuple(128, totProd, nStep, nSpc,
@@ -271,16 +285,16 @@ perf_net_cuda::perf_net_cuda(info_net &netobj, rate_const &Kobj)
         const int rop_size = step_rop_concentration_powers.size();
         for(k=0; k<rop_size; k++)
         {
-          rop_concentration_powers[j*maxReactants+k] = step_rop_concentration_powers[k];
+          rop_concentration_powers[k*nStep+j] = step_rop_concentration_powers[k];
         }
         for(k=rop_size; k<maxReactants; k++)
         {
-          rop_concentration_powers[j*maxReactants+k] = 0.0;
+          rop_concentration_powers[k*nStep+j] = 0.0;
         }
       } else {
         for(k=infoPtr->getOrderOfStep(j); k<maxReactants; k++)
         {
-          rop_concentration_powers[j*maxReactants+k] = 0.0;
+          rop_concentration_powers[k*nStep+j] = 0.0;
         }
       }
     }

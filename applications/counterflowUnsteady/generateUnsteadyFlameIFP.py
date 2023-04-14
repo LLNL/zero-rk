@@ -404,6 +404,15 @@ spify_parser_params.append(
 }
 )
 
+spify_parser_params.append(
+{
+    'name':'write_mole_fractions_to_field_files',
+    'type':'bool',
+    'longDesc' : "Flag that when set to true [y] includes mole fractions in field file output",
+    'defaultValue' : 0
+}
+)
+
 #Generate parser code
 spg().generate(spify_parser_name,spify_parser_params)
 

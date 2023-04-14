@@ -17,3 +17,17 @@ install(TARGETS zerorkutilities
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include/utilities)
 
+
+add_mpi_library(zerorkmpiutilities mpi_utilities.cpp)
+
+target_include_directories(zerorkmpiutilities PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                                                  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../>
+                                                  $<INSTALL_INTERFACE:include>)
+
+set_target_properties(zerorkmpiutilities PROPERTIES
+                      PUBLIC_HEADER  "mpi_utilities.h")
+
+install(TARGETS zerorkmpiutilities
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    PUBLIC_HEADER DESTINATION include/utilities)

@@ -28,18 +28,20 @@
 class FlameParams
 {
  public:
-  explicit FlameParams(const std::string &input_name, MPI_Comm &comm);
+  explicit FlameParams(const std::string &input_name);
   ~FlameParams();
 
   // MPI
   MPI_Comm comm_;
+  MPI_Comm inter_comm_;
+  int comm_rank_,num_comms_;
   int my_pe_,npes_;
   int num_procs_;
   int num_local_points_;
   int num_points_;
   int nover_;
 
-  zerork::mechanism *mechanism_; // TODO: avoid using a separate mechanism
+  zerork::mechanism *mechanism_;
 
   SteadyFlameIFP *parser_;
   CounterflowReactor *reactor_;

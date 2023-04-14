@@ -33,6 +33,8 @@ int ComputeLewis(FlameParams &params, double *y_ptr)
   transport_error = params.trans_->GetSpeciesMassFlux(
     params.transport_input_,
     num_species,
+    nullptr,
+    nullptr,
     &params.species_mass_flux_[0],
     &params.species_lewis_numbers_[0]);
   if(transport_error != transport::NO_ERROR) {

@@ -4,7 +4,7 @@ add_mpi_executable(counterflow_steady_flame_solver.x counterflow_steady_flame_so
                    kinsol_functions.cpp set_initial_conditions.cpp
                    flame_params.cpp sparse_matrix.cpp sparse_matrix_dist.cpp SteadyFlameIFP.cpp)
 
-target_link_libraries(counterflow_steady_flame_solver.x zerorkutilities mechanisminfo reactor
+target_link_libraries(counterflow_steady_flame_solver.x zerorkmpiutilities zerorkutilities mechanisminfo reactor
                       zerorktransport zerork superlu_dist superlu spify sundials_kinsol sundials_nvecparallel)
 
 install(TARGETS counterflow_steady_flame_solver.x

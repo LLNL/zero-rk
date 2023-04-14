@@ -1,3 +1,6 @@
+
+#include <assert.h>
+
 #include <algorithm> //std::min
 #include "perf_net_kernels.h"
 #include "zerork_cuda_defs.h"
@@ -53,7 +56,7 @@ void __global__ cuda_rxn_conc_mult
         int local_tid = threadIdx.x*nReacsPerStep;
         for(int j = 0; j < nReacsPerStep; ++j)
         {
-            C_shared[local_tid+j] = C_dev[reactantSpcIdxListUnwrapped_dev[tid*nReacsPerStep+j]];
+            C_shared[local_tid+j] = C_dev[reactantSpcIdxListUnwrapped_dev[j*nStep+tid]];
         }
 //        __syncthreads();
 
@@ -65,68 +68,63 @@ void __global__ cuda_rxn_conc_mult
 }
 
 
+template<int nReacsPerStep>
 void __global__ cuda_rxn_conc_mult_mr
 (
     const int nReactors,
     const int nSpc,
     const int nStep,
-    const int nReacsPerStep,
     const int *reactantSpcIdxListUnwrapped_dev,
     const double *C_dev,
     double *stepOut_dev
 )
 {
-    int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
-    if(tid < nStep)
+  int tid = blockIdx.x*blockDim.x + threadIdx.x;
+  const int reactorid = tid % nReactors;
+  const int stepid    = tid / nReactors;
+  if(stepid < nStep && reactorid < nReactors)
+  {
+    double mult = 1.0;
+    for(int j = 0; j < nReacsPerStep; ++j)
     {
-        if(reactorid < nReactors)
-        {
-            double accum = 1.0;
-            for(int j = 0; j < nReacsPerStep; ++j)
-            {
-                int currIdx = reactantSpcIdxListUnwrapped_dev[tid*nReacsPerStep+j]*nReactors + reactorid;
-                accum *= C_dev[currIdx];
-            }
-            stepOut_dev[nReactors*tid+reactorid] *= accum;
-        }
+      int currIdx = reactantSpcIdxListUnwrapped_dev[j*nStep+stepid]*nReactors+reactorid;
+      mult *= C_dev[currIdx];
     }
+    stepOut_dev[stepid*nReactors+reactorid] *= mult;
+  }
 }
 
+template <int nReacsPerStep>
 void __global__ cuda_rxn_conc_mult_ni_mr
 (
     const int nReactors,
     const int nSpc,
     const int nStep,
-    const int nReacsPerStep,
     const int *reactantSpcIdxListUnwrapped_dev,
     const double *rop_concentration_powers_dev,
     const double *C_dev,
     double *stepOut_dev
 )
 {
-    int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
-    if(tid < nStep)
+  int tid = blockIdx.x*blockDim.x + threadIdx.x;
+  const int reactorid = tid / nStep;
+  const int stepid    = tid % nStep;
+  if(stepid < nStep && reactorid < nReactors)
+  {
+    double mult = 1.0;
+    for(int j = 0; j < nReacsPerStep; ++j)
     {
-        if(reactorid < nReactors)
-        {
-            double accum = 1.0;
-            for(int j = 0; j < nReacsPerStep; ++j)
-            { //TODO: re-order reactantSpcIdxListUnwrapped_dev.
-                const int currConcIdx = reactantSpcIdxListUnwrapped_dev[tid*nReacsPerStep+j]*nReactors + reactorid;
-                //const int currPowIdx = reactantSpcIdxListUnwrapped_dev[tid*nReacsPerStep+j];
-                const double species_concentration = C_dev[currConcIdx];
-                const double power = rop_concentration_powers_dev[tid*nReacsPerStep+j];
-                double val = pow(fabs(species_concentration),power);
-                if(species_concentration < 0) {
-                  val *= -1; 
-                }
-                accum *= val;
-            }
-            stepOut_dev[nReactors*tid+reactorid] *= accum;
-        }
+      const int currConcIdx = reactantSpcIdxListUnwrapped_dev[j*nStep+stepid]*nReactors + reactorid;
+      const double species_concentration = C_dev[currConcIdx];
+      const double power = rop_concentration_powers_dev[j*nStep+stepid];
+      double val = pow(fabs(species_concentration),power);
+      if(species_concentration < 0) {
+        val *= -1; 
+      }
+      mult *= val;
     }
+    stepOut_dev[stepid*nReactors+reactorid] *= mult;
+  }
 }
 
 void __global__ cuda_production_rates
@@ -221,38 +219,103 @@ void perf_net_cuda_rxn_conc_mult_mr(const int nReactors, const int nSpc,
         const double *C_dev,
         double *stepOut_dev)
 {
-    int threadsX = 1;
-    int threadsY = std::min(nReactors,MAX_THREADS_PER_BLOCK/threadsX);
-    dim3 nThreads2D(threadsX,threadsY);
-
-    int nBlocksX = (nStep+threadsX-1)/threadsX;
-    int nBlocksY = (nReactors+threadsY-1)/threadsY;
-    dim3 nBlocks2D(nBlocksX,nBlocksY);
+    assert(maxReactants < 9);
+    //N.B. in this call we have stepOut with nStep as leading dimension
+ 
+    int nThreads = 512;
+    int nBlocks  = (nStep*nReactors+nThreads-1)/nThreads;
 
     //Scatter multiplication kernel
     if(rop_concentration_powers_dev == nullptr) {
-      cuda_rxn_conc_mult_mr<<< nBlocks2D, nThreads2D >>>
-      (
-          nReactors,
-          nSpc,
-          nStep,
-          maxReactants,
-          reactantSpcIdxListUnwrapped_dev,
-          C_dev,
-          stepOut_dev
-      );
+      switch(maxReactants) {
+        case 1:
+          cuda_rxn_conc_mult_mr<1><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        case 2:
+          cuda_rxn_conc_mult_mr<2><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        case 3:
+          cuda_rxn_conc_mult_mr<3><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        case 4:
+          cuda_rxn_conc_mult_mr<4><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        case 5:
+          cuda_rxn_conc_mult_mr<5><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        case 6:
+          cuda_rxn_conc_mult_mr<6><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        case 7:
+          cuda_rxn_conc_mult_mr<7><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        case 8:
+          cuda_rxn_conc_mult_mr<8><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            C_dev, stepOut_dev);
+          break;
+        default:
+          assert(false);
+      }
     } else {
-      cuda_rxn_conc_mult_ni_mr<<< nBlocks2D, nThreads2D >>>
-      (
-          nReactors,
-          nSpc,
-          nStep,
-          maxReactants,
-          reactantSpcIdxListUnwrapped_dev,
-          rop_concentration_powers_dev,
-          C_dev,
-          stepOut_dev
-      );
+      switch(maxReactants) {
+        case 1:
+          cuda_rxn_conc_mult_ni_mr<1><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        case 2:
+          cuda_rxn_conc_mult_ni_mr<2><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        case 3:
+          cuda_rxn_conc_mult_ni_mr<3><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        case 4:
+          cuda_rxn_conc_mult_ni_mr<4><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        case 5:
+          cuda_rxn_conc_mult_ni_mr<5><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        case 6:
+          cuda_rxn_conc_mult_ni_mr<6><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        case 7:
+          cuda_rxn_conc_mult_ni_mr<7><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        case 8:
+          cuda_rxn_conc_mult_ni_mr<8><<< nBlocks, nThreads >>> (
+            nReactors, nSpc, nStep, reactantSpcIdxListUnwrapped_dev,
+            rop_concentration_powers_dev, C_dev, stepOut_dev);
+          break;
+        default:
+          assert(false);
+      }
     }
 #ifdef ZERORK_FULL_DEBUG
     cudaDeviceSynchronize();

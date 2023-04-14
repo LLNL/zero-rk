@@ -6,11 +6,13 @@ extern "C" void dgbtrs_(char *TRANS, int *N, int *NRHS, int* nu, int* nl, double
 
 static double FindMaximumParallel(const int num_points,
                                   const double f[],
-                                  int *j_at_max);
+                                  int *j_at_max,
+                                  MPI_Comm comm);
 
 static double FindMinimumParallel(const int num_points,
                                   const double f[],
-                                  int *j_at_min);
+                                  int *j_at_min,
+                                  MPI_Comm comm);
 
 
 // Main RHS function
@@ -371,15 +373,16 @@ int ConstPressureFlameLocal(int nlocal,
       transport_error = params->trans_->GetSpeciesMassFlux(
         params->transport_input_,
         num_species,
+        &params->thermal_conductivity_[j],
+        &params->mixture_specific_heat_mid_[j],
         &params->species_mass_flux_[j*num_species],
         &params->species_lewis_numbers_[j*num_species]);
     } else {
       transport_error = params->trans_->GetSpeciesMassFluxFrozenThermo(
         params->transport_input_,
         num_species,
-        params->thermal_conductivity_[j],
-        params->mixture_specific_heat_mid_[j],
-        params->molecular_mass_mix_mid_[j],
+        &params->thermal_conductivity_[j],
+        &params->mixture_specific_heat_mid_[j],
         &params->species_mass_flux_[j*num_species],
         &params->species_lewis_numbers_[j*num_species]);
     }
@@ -1660,7 +1663,8 @@ int AFSolve(double solution[],
 
 static double FindMaximumParallel(const int num_points,
                                   const double f[],
-                                  int *j_at_max)
+                                  int *j_at_max,
+                                  MPI_Comm comm)
 {
   int myrank;
   struct {
@@ -1679,10 +1683,10 @@ static double FindMaximumParallel(const int num_points,
   }
 
   // Compute global maximum
-  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+  MPI_Comm_rank(comm, &myrank);
   in.index += myrank*num_points;
 
-  MPI_Allreduce(&in,&out,1,MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  MPI_Allreduce(&in,&out,1,MPI_DOUBLE_INT, MPI_MAXLOC, comm);
   *j_at_max = out.index;
   return out.value;
 }
@@ -1690,7 +1694,8 @@ static double FindMaximumParallel(const int num_points,
 
 static double FindMinimumParallel(const int num_points,
                                   const double f[],
-                                  int *j_at_min)
+                                  int *j_at_min,
+                                  MPI_Comm comm)
 {
   int myrank;
   struct {
@@ -1709,10 +1714,10 @@ static double FindMinimumParallel(const int num_points,
   }
 
   // Compute global maximum
-  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+  MPI_Comm_rank(comm, &myrank);
   in.index += myrank*num_points;
 
-  MPI_Allreduce(&in,&out,1,MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+  MPI_Allreduce(&in,&out,1,MPI_DOUBLE_INT, MPI_MINLOC, comm);
 
   *j_at_min = out.index;
 

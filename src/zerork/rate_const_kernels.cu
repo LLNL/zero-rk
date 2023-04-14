@@ -35,13 +35,13 @@ void __global__ updateArrheniusStep_CUDA_mr
     const double *Tmulti_dev
 )
 {
-    int stepid = blockIdx.x*blockDim.x + threadIdx.x;
-    int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
+    int reactorid = blockIdx.x*blockDim.x + threadIdx.x;
+    int stepid = blockIdx.y*blockDim.y + threadIdx.y;
 
-    extern __shared__ double shrMem[]; //needs to be (3*blockDim.x+2*blockDim.y)*sizeof(double)
+    extern __shared__ double shrMem[];
     double *logAfact_th= &shrMem[0];
-    double *Tpow_th = &shrMem[blockDim.x];
-    double *Tact_th = &shrMem[2*blockDim.x];
+    double *Tpow_th = &shrMem[blockDim.y];
+    double *Tact_th = &shrMem[2*blockDim.y];
     double invT;
     double log_e_T;
 
@@ -49,11 +49,11 @@ void __global__ updateArrheniusStep_CUDA_mr
     {
         if(reactorid < nReactors)
         {
-            if(threadIdx.y == 0)
+            if(threadIdx.x == 0)
             {
-                logAfact_th[threadIdx.x] = logAfact_dev[stepid];
-                Tpow_th[threadIdx.x] = Tpow_dev[stepid];
-                Tact_th[threadIdx.x] = Tact_dev[stepid];
+                logAfact_th[threadIdx.y] = logAfact_dev[stepid];
+                Tpow_th[threadIdx.y] = Tpow_dev[stepid];
+                Tact_th[threadIdx.y] = Tact_dev[stepid];
             }
 
             __syncthreads();
@@ -61,9 +61,9 @@ void __global__ updateArrheniusStep_CUDA_mr
             invT= 1/T;
             log_e_T = log(T);
 
-            K_dev[reactorid+nReactors*stepid] = exp( logAfact_th[threadIdx.x] 
-                                  + Tpow_th[threadIdx.x]*log_e_T
-                                  - Tact_th[threadIdx.x]*invT );
+            K_dev[reactorid+nReactors*stepid] = exp( logAfact_th[threadIdx.y] 
+                                  + Tpow_th[threadIdx.y]*log_e_T
+                                  - Tact_th[threadIdx.y]*invT );
         }
     }
 }
@@ -689,16 +689,16 @@ void rate_const_updateArrheniusStep_CUDA_mr(const int nReactors,const int nStep,
     double *K_dev, const double *logAfact_dev, const double *Tpow_dev, const double *Tact_dev,
     const double *T_dev, cudaStream_t arrhStream)
 {
-  int threadsX = 1;
-  int threadsY = std::min(nReactors,MAX_THREADS_PER_BLOCK/threadsX);
+  //Tuned on P100
+  int threadsX = 256;
+  int threadsY = 1;
   dim3 nThreads2D(threadsX,threadsY);
 
-  int nBlocksX = (nStep+threadsX-1)/threadsX;
-  int nBlocksY = (nReactors+threadsY-1)/threadsY;
+  int nBlocksX = (nReactors+threadsX-1)/threadsX;
+  int nBlocksY = (nStep+threadsY-1)/threadsY;
   dim3 nBlocks2D(nBlocksX,nBlocksY);
 
-//  size_t shrMemSize = (3*nThreads2D.x + 2*nThreads2D.y)*sizeof(double);
-  size_t shrMemSize = (3*nThreads2D.x)*sizeof(double);
+  size_t shrMemSize = (3*nThreads2D.y)*sizeof(double);
   updateArrheniusStep_CUDA_mr<<<nBlocks2D,nThreads2D, shrMemSize,arrhStream>>>
                  (nReactors,nStep,K_dev,logAfact_dev,Tpow_dev,Tact_dev,T_dev);
 #ifdef ZERORK_FULL_DEBUG

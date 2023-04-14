@@ -39,7 +39,52 @@ spify_parser_params.append(
     'name':'transport_model',
     'type':'string',
     'shortDesc' : "Transport model",
-    'discreteValues' : ["ConstantLewis", "MixAvg", "MixAvgSoret"]
+    'discreteValues' : ["ConstantLewis", "MixAvg", "MixAvgSoret",
+                        "ConstantLewisOld", "MixAvgOld", "MixAvgSoretOld",
+                        "Flexible"],
+    'defaultValue': "ConstantLewis",
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'constant_lewis_setting',
+    'type':'string',
+    'shortDesc' : "Set how to compute lewis numbers",
+    'discreteValues' : ["GridPoint", "Tfix", "Default"],
+    'defaultValue': "GridPoint",
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'constant_lewis_grid_point',
+    'type':'int',
+    'shortDesc' : "Grid point to use for computing lewis numbers (if \
+                   constant_lewis_setting: GridPoint)",
+    'defaultValue': 0,
+}
+)
+
+
+spify_parser_params.append(
+{
+    'name':'temperature_fix_setting',
+    'type':'string',
+    'shortDesc' : "How to set temperature at which to anchor solution",
+    'discreteValues' : ["Absolute", "Delta", "InOutMix"],
+    'defaultValue': "Delta",
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'temperature_fix_value',
+    'type':'double',
+    'shortDesc' : "Value used in temperature fix setting.  If Absolute, \
+    temperature at which to anchor solution.  If Delta, temperature rise (from \
+    inlet) at which to anchor solution.  If InOutMix, then use Tfix = alpha*Tinlet + (1-alpha)*Toutlet",
+    'defaultValue': 250,
 }
 )
 
@@ -162,7 +207,7 @@ spify_parser_params.append(
     'name':'convective_scheme_type',
     'type':'int',
     'longDesc' : "Convective scheme type: (0 = First order upwind, 1 = Second order upwind, 2 = Second order centered)",
-    'defaultValue' : 2
+    'defaultValue' : 0
 }
 )
 

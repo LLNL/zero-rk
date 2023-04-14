@@ -16,13 +16,15 @@ int ConstPressureFlame(N_Vector y,
   const int num_local_points = params->num_local_points_;
   const int num_states  = params->reactor_->GetNumStates();
   int Nlocal = num_local_points*num_states;
+  int flag = 0;
 
   // Parallel communications
-  ConstPressureFlameComm(Nlocal, y, user_data);
+  flag = ConstPressureFlameComm(Nlocal, y, user_data);
+  if(flag != 0) return flag;
   // RHS calculations
-  ConstPressureFlameLocal(Nlocal, y, ydot, user_data);
+  flag = ConstPressureFlameLocal(Nlocal, y, ydot, user_data);
 
-  return 0;
+  return flag;
 }
 
 int ConstPressureFlameComm(int nlocal,
@@ -125,6 +127,21 @@ int ConstPressureFlameLocal(int nlocal,
   double local_max;
 
   double velocity, thermal_diffusivity;
+
+  int temp_out_of_bounds = 0;
+  int global_temp_out_of_bounds = 0;
+  for(int j=0; j<num_local_points; ++j) {
+    double temperature = y_ptr[j*num_states + num_states-1]*params->reference_temperature_;
+    if(temperature < 100.0 || temperature > 10000) {
+      temp_out_of_bounds += 1;
+    }
+  }
+#ifdef ZERORK_MPI
+  MPI_Allreduce(&temp_out_of_bounds,&global_temp_out_of_bounds,1,MPI_INT,MPI_MAX,comm);
+#else
+  global_temp_out_of_bounds = temp_out_of_bounds;
+#endif
+  if(global_temp_out_of_bounds > 0) return 1;// recoverable error
 
   // Set the residual and rhs to zero
   for(int j=0; j<num_local_states; ++j) {
@@ -272,9 +289,10 @@ int ConstPressureFlameLocal(int nlocal,
     /*
     // compute the species mass flux at the upstream mid point
     transport_error = params->transport_->GetSpeciesMassFlux(
-    //  transport_error = params->transport_->GetSpeciesMassFluxUncorrected(
 				   params->transport_input_,
 				   num_species,
+				   &params->thermal_conductivity_[j],
+				   &params->mixture_specific_heat_mid_[j],
 				   &params->species_mass_flux_[j*num_species],
 				   &params->species_lewis_numbers_[j*num_species]);
     */
@@ -284,9 +302,8 @@ int ConstPressureFlameLocal(int nlocal,
     transport_error = params->transport_->GetSpeciesMassFluxFrozenThermo(
 					 params->transport_input_,
 					 num_species,
-					 params->thermal_conductivity_[j],
-					 params->mixture_specific_heat_mid_[j],
-					 params->molecular_mass_mix_mid_[j],
+					 &params->thermal_conductivity_[j],
+					 &params->mixture_specific_heat_mid_[j],
 					 &params->species_mass_flux_[j*num_species],
 					 &params->species_lewis_numbers_[j*num_species]);
     /**/

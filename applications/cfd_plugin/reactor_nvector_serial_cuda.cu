@@ -23,8 +23,10 @@ ReactorNVectorSerialCuda::ReactorNVectorSerialCuda(std::shared_ptr<zerork::mecha
     csrfm_no_temperature_(),
     csrfm_ptr_(&csrfm_temperature_),
     solve_temperature_(true),
+    jacobian_row_indexes_ptr_(&jacobian_row_indexes_temperature_),
     jacobian_column_indexes_ptr_(&jacobian_column_indexes_temperature_),
     jacobian_row_sums_ptr_(&jacobian_row_sums_temperature_),
+    jacobian_row_indexes_dev_ptr_(&jacobian_row_indexes_temperature_dev_),
     jacobian_column_indexes_dev_ptr_(&jacobian_column_indexes_temperature_dev_),
     jacobian_row_sums_dev_ptr_(&jacobian_row_sums_temperature_dev_),
     destruction_terms_sparse_indexes_dev_ptr_(&destruction_terms_sparse_indexes_temperature_dev_),
@@ -158,10 +160,12 @@ void ReactorNVectorSerialCuda::SetSolveTemperature(bool value) {
       nnz_ = nnz_temperature_;
 
       jacobian_row_sums_ptr_ = &jacobian_row_sums_temperature_;  
+      jacobian_row_indexes_ptr_ = &jacobian_row_indexes_temperature_;  
       jacobian_column_indexes_ptr_ = &jacobian_column_indexes_temperature_;  
       noninteger_sparse_id_ptr_ = &noninteger_sparse_id_temperature_;
 
       jacobian_row_sums_dev_ptr_ = &jacobian_row_sums_temperature_dev_;  
+      jacobian_row_indexes_dev_ptr_ = &jacobian_row_indexes_temperature_dev_;  
       jacobian_column_indexes_dev_ptr_ = &jacobian_column_indexes_temperature_dev_;  
       noninteger_term_id_dev_ptr_ = &noninteger_term_id_temperature_dev_;
       destruction_terms_sparse_indexes_dev_ptr_ = &destruction_terms_sparse_indexes_temperature_dev_;
@@ -174,10 +178,12 @@ void ReactorNVectorSerialCuda::SetSolveTemperature(bool value) {
       nnz_ = nnz_no_temperature_;
 
       jacobian_row_sums_ptr_ = &jacobian_row_sums_no_temperature_;  
+      jacobian_row_indexes_ptr_ = &jacobian_row_indexes_no_temperature_;  
       jacobian_column_indexes_ptr_ = &jacobian_column_indexes_no_temperature_;  
       noninteger_sparse_id_ptr_ = &noninteger_sparse_id_no_temperature_;
 
       jacobian_row_sums_dev_ptr_ = &jacobian_row_sums_no_temperature_dev_;  
+      jacobian_row_indexes_dev_ptr_ = &jacobian_row_indexes_no_temperature_dev_;  
       jacobian_column_indexes_dev_ptr_ = &jacobian_column_indexes_no_temperature_dev_;  
       noninteger_term_id_dev_ptr_ = &noninteger_term_id_no_temperature_dev_;
       destruction_terms_sparse_indexes_dev_ptr_ = &destruction_terms_sparse_indexes_no_temperature_dev_;
@@ -321,6 +327,8 @@ void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
   nnz_ = nnz_temperature_;
 
   // allocate column index data
+  jacobian_row_indexes_temperature_.assign(nnz_temperature_,0);
+  jacobian_row_indexes_no_temperature_.assign(nnz_no_temperature_,0);
   jacobian_column_indexes_temperature_.assign(nnz_temperature_,0);
   jacobian_column_indexes_no_temperature_.assign(nnz_no_temperature_,0);
 
@@ -330,9 +338,11 @@ void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
     for(int k=0; k<num_variables_; ++k) {
       int nzAddr=isNonZero[k*num_variables_+j];
       if(nzAddr>0) {
+        jacobian_row_indexes_temperature_[nzAddr-1]=j;
         jacobian_column_indexes_temperature_[nzAddr-1]=k;
         if(j < num_species_ && k < num_species_) {
           int nzAddrNoTemp = nzAddr - j; //minus 1 for each temperature elem
+          jacobian_row_indexes_no_temperature_[nzAddrNoTemp-1]=j;
           jacobian_column_indexes_no_temperature_[nzAddrNoTemp-1]=k;
         }
       }
@@ -341,6 +351,8 @@ void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
 
   jacobian_row_sums_temperature_dev_ = jacobian_row_sums_temperature_;
   jacobian_row_sums_no_temperature_dev_ = jacobian_row_sums_no_temperature_;
+  jacobian_row_indexes_temperature_dev_ = jacobian_row_indexes_temperature_;
+  jacobian_row_indexes_no_temperature_dev_ = jacobian_row_indexes_no_temperature_;
   jacobian_column_indexes_temperature_dev_ = jacobian_column_indexes_temperature_;
   jacobian_column_indexes_no_temperature_dev_ = jacobian_column_indexes_no_temperature_;
 
@@ -853,7 +865,7 @@ int ReactorNVectorSerialCuda::GetJacobianDenseRaw(long int N, double t, N_Vector
   if(int_options_["analytic"])  {
     SetupJacobianSparseDevice(t,y,fy);
     cudaMemset(Jac, 0, sizeof(double)*num_variables_*num_variables_*num_reactors_);
-    SparseToDenseDevice(*jacobian_row_sums_dev_ptr_, *jacobian_column_indexes_dev_ptr_, jacobian_data_dev_, Jac);
+    SparseToDenseDevice(*jacobian_row_indexes_dev_ptr_, *jacobian_column_indexes_dev_ptr_, jacobian_data_dev_, Jac);
   } else {
     this->DividedDifferenceJacobian(t, y, fy, Jac);
   }
@@ -867,7 +879,7 @@ int ReactorNVectorSerialCuda::JacobianSetup(realtype t, N_Vector y, N_Vector fy)
     SetupJacobianSparseDevice(t,y,fy);
     if(int_options_["dense"] == 1) {
       dense_jacobian_dev_.assign(num_variables_*num_variables_*num_reactors_,0);
-      SparseToDenseDevice(*jacobian_row_sums_dev_ptr_, *jacobian_column_indexes_dev_ptr_, jacobian_data_dev_, thrust::raw_pointer_cast(&dense_jacobian_dev_[0]));
+      SparseToDenseDevice(*jacobian_row_indexes_dev_ptr_, *jacobian_column_indexes_dev_ptr_, jacobian_data_dev_, thrust::raw_pointer_cast(&dense_jacobian_dev_[0]));
     }
   } else {
     dense_jacobian_dev_.resize(num_variables_*num_variables_*num_reactors_);
@@ -995,35 +1007,29 @@ int ReactorNVectorSerialCuda::JacobianSolve(double t, N_Vector y, N_Vector fy,
 
 void __global__ RNSC_SparseToDenseDevice(
     const int num_reactors, const int num_vars,
-    const int nnz, const int* sums,
-    const int* idxs, const double* vals, double* dense)
+    const int nnz, const int* row_idxs, const int* col_idxs,
+    const double* vals, double* dense)
 {
   int tidx = blockIdx.x*blockDim.x + threadIdx.x;
   const int stride = gridDim.x*blockDim.x;
-  for( ; tidx < num_reactors*num_vars; tidx += stride) {
-    const int k = tidx % num_reactors;
-    const int j = tidx / num_reactors;
+  for( ; tidx < num_reactors*nnz; tidx += stride) {
+    const double data = vals[tidx];
+    const int k = tidx / nnz; //reactor id
+    const int j = tidx % nnz; //sparse id
+    const int row = row_idxs[j];
+    const int col = col_idxs[j];
     const int offset = k*num_vars*num_vars;
-    //We could unroll this loop if we kept both row and column indexes
-    //   and then used nnz instead of num_vars in the outer loop
-    for(int m = sums[j]; m < sums[j+1]; ++m) {
-        const int col = idxs[m];
-        const double data = vals[m+k*nnz];
-        //N.B. this would be completely vectorizable if we were using CSC
-        //     We use CSR for cusolverRf, not worth keeping code for both 
-        //     at the moment.
-        dense[offset+col*num_vars+j] = data;
-    }
+    dense[offset+col*num_vars+row] = data;
   }
 }
 
-int ReactorNVectorSerialCuda::SparseToDenseDevice(const thrust::device_vector<int>& sums, const thrust::device_vector<int>& idxs,
-                                                  const thrust::device_vector<double>& vals, double* dense) {
-  int num_threads = std::min(MAX_THREADS_PER_BLOCK,num_variables_*num_reactors_);
-  int num_blocks = (num_variables_*num_reactors_ + num_threads - 1)/num_threads;
+int ReactorNVectorSerialCuda::SparseToDenseDevice(const thrust::device_vector<int>& row_idxs, const thrust::device_vector<int>& col_idxs,
+                                                   const thrust::device_vector<double>& vals, double* dense) {
+  int num_threads = std::min(MAX_THREADS_PER_BLOCK,nnz_*num_reactors_);
+  int num_blocks = (nnz_*num_reactors_ + num_threads - 1)/num_threads;
   RNSC_SparseToDenseDevice<<<num_blocks, num_threads>>>(num_reactors_, num_variables_, nnz_,
-                                                        thrust::raw_pointer_cast(&sums[0]),
-                                                        thrust::raw_pointer_cast(&idxs[0]),
+                                                        thrust::raw_pointer_cast(&row_idxs[0]),
+                                                        thrust::raw_pointer_cast(&col_idxs[0]),
                                                         thrust::raw_pointer_cast(&vals[0]),
                                                         dense);
   return 0;
@@ -1078,13 +1084,14 @@ void __global__ kernel_fwd_destroy_fused
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   const int stride = gridDim.x*blockDim.x;
   for( ; tid < num_reactors*num_terms; tid += stride) {
-     const int termid =    tid / num_reactors;
-     const int reactorid = tid % num_reactors;
+     const int termid =    tid % num_terms;
+     const int reactorid = tid / num_terms;
 
      int conc_idx_loc   = conc_indexes[termid]*num_reactors + reactorid;
      int rxn_idx_loc  = rxn_indexes[termid]*num_reactors + reactorid;
      int sparse_idx_loc  = reactorid*nnz + sparse_indexes[termid];
-     atomicAdd(&jacobian_data[sparse_idx_loc], -1*rop[rxn_idx_loc]*inv_conc[conc_idx_loc]);
+     double val = -1*rop[rxn_idx_loc]*inv_conc[conc_idx_loc];
+     atomicAdd(&jacobian_data[sparse_idx_loc], val);
   }
 }
 
@@ -1104,13 +1111,14 @@ void __global__ kernel_fwd_create_fused
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   const int stride = gridDim.x*blockDim.x;
   for( ; tid < num_reactors*num_terms; tid += stride) {
-     const int termid =    tid / num_reactors;
-     const int reactorid = tid % num_reactors;
+     const int termid =    tid % num_terms;
+     const int reactorid = tid / num_terms;
 
      int conc_idx_loc   = conc_indexes[termid]*num_reactors + reactorid;
      int rxn_idx_loc  = rxn_indexes[termid]*num_reactors + reactorid;
      int sparse_idx_loc  = reactorid*nnz + sparse_indexes[termid];
-     atomicAdd(&jacobian_data[sparse_idx_loc], 1*rop[rxn_idx_loc]*inv_conc[conc_idx_loc]);
+     double val = 1*rop[rxn_idx_loc]*inv_conc[conc_idx_loc];
+     atomicAdd(&jacobian_data[sparse_idx_loc], val);
   }
 }
 
@@ -1131,13 +1139,14 @@ void __global__ kernel_noninteger_terms
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   const int stride = gridDim.x*blockDim.x;
   for( ; tid < num_reactors*num_terms; tid += stride) {
-     const int termid =    tid / num_reactors;
-     const int reactorid = tid % num_reactors;
+     const int termid =    tid % num_reactors;
+     const int reactorid = tid / num_reactors;
 
      const int conc_idx_loc    = conc_indexes[termid]*num_reactors + reactorid;
      const int rxn_idx_loc     = rxn_indexes[termid]*num_reactors + reactorid;
      const int sparse_idx_loc  = reactorid*nnz + sparse_indexes[termid];
-     atomicAdd(&jacobian_data[sparse_idx_loc], multipliers[termid]*rop[rxn_idx_loc]*inv_conc[conc_idx_loc]);
+     double val = multipliers[termid]*rop[rxn_idx_loc]*inv_conc[conc_idx_loc];
+     atomicAdd(&jacobian_data[sparse_idx_loc], val);
   }
 }
 
@@ -1146,7 +1155,7 @@ void __global__ kernel_convert_concentration_to_mf
   const int num_reactors,
   const int num_species,
   const int nnz,
-  const int *jacobian_row_sums,
+  const int *jacobian_row_indexes,
   const int *jacobian_column_indexes,
   const double * inv_mol_wt,
   double * jacobian_data
@@ -1155,15 +1164,12 @@ void __global__ kernel_convert_concentration_to_mf
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   const int stride = gridDim.x*blockDim.x;
 
-  for( ; tid < num_reactors*num_species; tid += stride) {
-    const int speciesid = tid / num_reactors;
-    const int reactorid = tid % num_reactors;
-    for(int m=jacobian_row_sums[speciesid]; m<jacobian_row_sums[speciesid+1]; ++m) {
-      const int col = jacobian_column_indexes[m];
-      if(col < num_species) {
-        const int species_sparse_idx = m + reactorid * nnz;
-        jacobian_data[species_sparse_idx] *= inv_mol_wt[col] / inv_mol_wt[speciesid];
-      }
+  for( ; tid < num_reactors*nnz; tid += stride) {
+    const int sparseid = tid%nnz;
+    const int row = jacobian_row_indexes[sparseid];
+    const int col = jacobian_column_indexes[sparseid];
+    if(row < num_species && col < num_species) {
+      jacobian_data[tid] *= inv_mol_wt[col] / inv_mol_wt[row];
     }
   }
 }
@@ -1173,9 +1179,10 @@ void __global__ kernel_jac_temperatureTermsA
   const int num_reactors,
   const int num_species,
   const int nnz,
+  const int jacobian_temp_idx,
   const double Ru,
   const double sqrt_unit_round,
-  const int *jacobian_row_sums,
+  const int *jacobian_row_indexes,
   const int *jacobian_column_indexes,
   const double * y_ptr,
   const double * tmp3_ptr,
@@ -1190,15 +1197,15 @@ void __global__ kernel_jac_temperatureTermsA
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   const int stride = gridDim.x*blockDim.x;
 
-  for( ; tid < num_reactors*num_species; tid += stride) {
-    const int speciesid = tid / num_reactors;
-    const int reactorid = tid % num_reactors;
-    //N.B. skip last column in this loop
-    for(int m = jacobian_row_sums[speciesid]; m < jacobian_row_sums[speciesid+1]-1; ++m) {
-      int col=jacobian_column_indexes[m];
-      int species_sparse_idx = m + reactorid*nnz;
-      const int temperature_sparse_idx = jacobian_row_sums[num_species] + col + reactorid * nnz;
-      atomicAdd(&jacobian_data[temperature_sparse_idx],jacobian_data[species_sparse_idx]*energy[tid]);
+  for( ; tid < num_reactors*nnz; tid += stride) {
+    const int sparseid = tid%nnz;
+    const int row = jacobian_row_indexes[sparseid];
+    const int col = jacobian_column_indexes[sparseid];
+    if(row < num_species && col < num_species) {
+      const int reactorid = tid/nnz;
+      const int energyid = reactorid*num_species+row;
+      const int temperature_sparse_idx = jacobian_temp_idx + col + reactorid * nnz;
+      atomicAdd(&jacobian_data[temperature_sparse_idx],jacobian_data[tid]*energy[energyid]);
     }
   }
 }
@@ -1404,8 +1411,8 @@ int ReactorNVectorSerialCuda::SetupJacobianSparseDevice(realtype t, N_Vector y, 
     // compute d(Tdot)/dy[j]
     nthreads = std::min(num_reactors_*num_species_, 512);
     nblocks = (num_reactors_*num_species_ + nthreads - 1)/nthreads;
-    kernel_jac_temperatureTermsA<<<nblocks, nthreads>>>(num_reactors_, num_species_, nnz_, mech_ptr_->getGasConstant(),
-                                sqrt_unit_round_, thrust::raw_pointer_cast(&(*jacobian_row_sums_dev_ptr_)[0]), 
+    kernel_jac_temperatureTermsA<<<nblocks, nthreads>>>(num_reactors_, num_species_, nnz_, (*jacobian_row_sums_ptr_)[num_species_], mech_ptr_->getGasConstant(),
+                                sqrt_unit_round_, thrust::raw_pointer_cast(&(*jacobian_row_indexes_dev_ptr_)[0]), 
                                 thrust::raw_pointer_cast(&(*jacobian_column_indexes_dev_ptr_)[0]),
                                 y_ptr_dev, tmp3_ptr_dev, thrust::raw_pointer_cast(&energy_dev_[0]),
                                 thrust::raw_pointer_cast(&inv_mol_wt_dev_[0]), thrust::raw_pointer_cast(&cx_mass_dev_[0]),
@@ -1434,10 +1441,10 @@ int ReactorNVectorSerialCuda::SetupJacobianSparseDevice(realtype t, N_Vector y, 
                                                         thrust::raw_pointer_cast(&jacobian_data_dev_[0]));
   }
 
-  nthreads = std::min(num_reactors_*num_species_, 512);
-  nblocks = (num_reactors_*num_species_ + nthreads - 1)/nthreads;
+  nthreads = std::min(num_reactors_*nnz_, 512);
+  nblocks = (num_reactors_*nnz_ + nthreads - 1)/nthreads;
   kernel_convert_concentration_to_mf<<<nblocks, nthreads>>>(num_reactors_,
-      num_species_, nnz_, thrust::raw_pointer_cast(&(*jacobian_row_sums_dev_ptr_)[0]),
+      num_species_, nnz_, thrust::raw_pointer_cast(&(*jacobian_row_indexes_dev_ptr_)[0]),
       thrust::raw_pointer_cast(&(*jacobian_column_indexes_dev_ptr_)[0]),
       thrust::raw_pointer_cast(&inv_mol_wt_dev_[0]),
       thrust::raw_pointer_cast(&jacobian_data_dev_[0]));

@@ -72,6 +72,7 @@ class FlameParams : Optionable
   double mass_flux_inlet_;
 
   double inlet_temperature_;
+  double outlet_temperature_;
   double inlet_relative_volume_;
   double reference_temperature_;
   double flame_speed_;
@@ -83,7 +84,6 @@ class FlameParams : Optionable
 
   double temperature_fix_;
   int j_fix_;
-  double deltaTfix_;
 
   // data structures setup by SetMemory()
   transport::MassTransportInput transport_input_;

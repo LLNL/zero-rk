@@ -389,7 +389,9 @@ void zerork_reactor(int inp_argc, char **inp_argv)
   }
   if(rank == 0 && delta_temperature_ignition > 0) {
     for(int k = 0; k < nReactors; ++k) {
-      printf("reactor[%d] IDT: %g s\n", k, reactorIDT[k]);
+      if(reactorIDT[k] > 0) {
+        printf("reactor[%d] IDT: %g s\n", k, reactorIDT[k]);
+      }
     }
   }
 

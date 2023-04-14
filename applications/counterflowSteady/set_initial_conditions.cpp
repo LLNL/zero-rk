@@ -61,7 +61,7 @@ void SetInitialComposition(FlameParams &flame_params, N_Vector yvec, double *tim
     filename1 = flame_params.parser_->restart_file().c_str();
     sprintf(filename2,"%s",filename1);
 
-    MPI_File_open(MPI_COMM_WORLD, filename2, MPI_MODE_RDONLY, MPI_INFO_NULL, &restart_file);
+    MPI_File_open(flame_params.comm_, filename2, MPI_MODE_RDONLY, MPI_INFO_NULL, &restart_file);
 
     MPI_File_read_all(restart_file, &num_points_file, 1, MPI_INT, MPI_STATUS_IGNORE);
     MPI_File_read_all(restart_file, &num_vars_file, 1, MPI_INT, MPI_STATUS_IGNORE);

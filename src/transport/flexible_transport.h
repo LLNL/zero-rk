@@ -1,5 +1,5 @@
-#ifndef MIX_AVG_H_
-#define MIX_AVG_H_
+#ifndef FLEXIBLE_TRANSPORT_H_
+#define FLEXIBLE_TRANSPORT_H_
 
 #include <zerork/mechanism.h>
 
@@ -8,11 +8,11 @@
 namespace transport
 {
 
-class MixAvg : public MassTransportInterface
+class FlexibleTransport : public MassTransportInterface
 {
  public:
-  MixAvg();
-  ~MixAvg();
+  FlexibleTransport();
+  ~FlexibleTransport();
   int Initialize(const std::vector<std::string> &input_files,
                  const std::string &log_name,
                  const double conductivity_multiplier = 1.0);
@@ -35,20 +35,33 @@ class MixAvg : public MassTransportInterface
 
   int GetSpeciesMassFlux(const MassTransportInput &input,
                          const size_t ld_species_mass_flux,
-			 double *conductivity_mix,
-		         double *specific_heat_mix,
+                         double *conductivity_mix,
+                         double *specific_heat_mix,
                          double *species_mass_flux,
-			 double *species_lewis_numbers) const;
+                         double *species_lewis_numbers) const;
 
   int GetSpeciesMassFluxFrozenThermo(const MassTransportInput &input,
-                         const size_t ld_species_mass_flux,
-			 double *conductivity_mix,
-		         double *specific_heat_mix,
-                         double *species_mass_flux,
-			 double *species_lewis_numbers) const;
+                                     const size_t ld_species_mass_flux,
+                                     double *conductivity_mix,
+                                     double *specific_heat_mix,
+                                     double *species_mass_flux,
+                                     double *species_lewis_numbers) const;
+
+  void SetMixAvg(bool setting) {mix_avg_ = setting;};
+  void SetSoret(bool setting) {soret_ = setting;};
 
  private:
+  int GetSpeciesMassFluxInternal(const MassTransportInput &input,
+                                 const size_t ld_species_mass_flux,
+                                 double *conductivity_mix,
+                                 double *specific_heat_mix,
+                                 double *species_mass_flux,
+                                 double *species_lewis_numbers,
+                                 bool frozen) const;
+
   bool initialized_;
+  bool mix_avg_;
+  bool soret_;
   int num_species_;
   std::string log_name_;
   std::vector<double> molecular_mass_;
@@ -64,22 +77,25 @@ class MixAvg : public MassTransportInterface
 
   std::vector<double> sqrtmass_, diam2_;
 
-  mutable std::vector<double> lewisnumbers, Dmass, invDij;//to save on .assign
+  std::vector<double> sqrt2mass_, inv_sqrt1mass_, inv_sum_mass_;
+
+  mutable std::vector<double> lewis_numbers_, Dmass, invDij;
+  mutable std::vector<double> DTherm, DeltaI, sqrtmu, inv_sqrtmu;
 
   std::vector<double> mucoeff_;
 
-  mutable std::vector<double> species_workspace_;
-
   double multiplier_;
 
-  zerork::mechanism *mechanism_; // TODO: avoid using a separate mechanism
-                                 //       instantiation
+  mutable std::vector<double> species_workspace_;
+
+  zerork::mechanism *mechanism_;
   bool mechanism_owner_;
   int ParseTransportFile(const std::string &transport_file,
                          const std::string &ignore_chars,
                          std::string *error_message);
 
   double omega_D (double t) const;
+  double omega_C (double t) const;
   double omega_mu (double t) const;
 
 };

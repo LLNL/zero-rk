@@ -37,6 +37,13 @@
 //#include <sundials/sundials_types.h>
 //#include <sundials/sundials_math.h>
 
+#ifndef WIN32
+#ifndef NDEBUG
+#define ZERORK_TRAP_FE
+#include <fenv.h> //for fpe trapping
+#endif
+#endif
+
 using zerork::getHighResolutionTime;
 
 const bool RUN_DEBUG=false;
@@ -104,6 +111,10 @@ int main(int argc, char *argv[])
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &my_pe);
   MPI_Comm_size(MPI_COMM_WORLD, &npes);
+#endif
+
+#ifdef ZERORK_TRAP_FE
+  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW );
 #endif
 
   if(argc < 2) {

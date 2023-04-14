@@ -277,27 +277,27 @@ int ConstPressureFlameLocal(int nlocal,
 				  &params->y_ext_[jext*num_states],
 				  &params->species_specific_heats_[num_species*j]);
     }
-    /*
+
     // compute the species mass flux at the upstream mid point
+    /*
     transport_error = params->trans_->GetSpeciesMassFlux(
-    //  transport_error = params->trans_->GetSpeciesMassFluxUncorrected(
 				   params->transport_input_,
 				   num_species,
+				   &params->thermal_conductivity_[j],
+				   &params->mixture_specific_heat_mid_[j],
 				   &params->species_mass_flux_[j*num_species],
 				   &params->species_lewis_numbers_[j*num_species]);
     */
+
     // Frozen thermo is the default
     // TO DO: switch between regular GetSpeciesMassFlux and FrozenThermo from the input file
-    /**/
     transport_error = params->trans_->GetSpeciesMassFluxFrozenThermo(
 					 params->transport_input_,
 					 num_species,
-					 params->thermal_conductivity_[j],
-					 params->mixture_specific_heat_mid_[j],
-					 params->molecular_mass_mix_mid_[j],
+					 &params->thermal_conductivity_[j],
+					 &params->mixture_specific_heat_mid_[j],
 					 &params->species_mass_flux_[j*num_species],
 					 &params->species_lewis_numbers_[j*num_species]);
-    /**/
 
     if(transport_error != transport::NO_ERROR) {
       return transport_error;

@@ -514,6 +514,7 @@ static void WriteFieldParallel(double t,
   int num_species = params.reactor_->GetNumSpecies();
   int my_pe, npes;
   char filename[32], *basename;
+  bool dump_mole_fractions = params.parser_->write_mole_fractions_to_field_files();
 
   int disp;
   std::vector<double> buffer;
@@ -542,13 +543,27 @@ static void WriteFieldParallel(double t,
   // Write header
   if(my_pe == 0) {
     MPI_File_write(output_file, &num_grid_points_ext, 1, MPI_INT, MPI_STATUS_IGNORE);//num points
-    MPI_File_write(output_file, &num_reactor_states, 1, MPI_INT, MPI_STATUS_IGNORE);//num variables
+    int num_vars = num_reactor_states;
+    if(dump_mole_fractions) num_vars += num_species;
+    MPI_File_write(output_file, &num_vars, 1, MPI_INT, MPI_STATUS_IGNORE);//num variables
     MPI_File_write(output_file, &t, 1, MPI_DOUBLE, MPI_STATUS_IGNORE); //time
     for(int j=0; j<num_reactor_states; ++j) {
       std::string state_name = params.reactor_->GetNameOfStateId(j);
       char buf[64];
       strcpy(buf, state_name.c_str());
       MPI_File_write(output_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE); //state name
+    }
+    if(dump_mole_fractions) {
+      for(int j=0; j<num_reactor_states; ++j) {
+        std::string state_name = params.reactor_->GetNameOfStateId(j);
+        size_t found = state_name.find("MassFraction");
+        if(found != std::string::npos) {
+          state_name.replace(0, 4, "Mole");
+          char buf[64];
+          strcpy(buf, state_name.c_str());
+          MPI_File_write(output_file, &buf, 64, MPI_CHAR, MPI_STATUS_IGNORE); //state name
+        }
+      }
     }
   }
 
@@ -576,6 +591,9 @@ static void WriteFieldParallel(double t,
     }
     disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
       + j*(npes*num_local_points+2)*sizeof(double);
+    if(dump_mole_fractions) {
+      disp += num_species*sizeof(char)*64;
+    }
     MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
     MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
@@ -595,6 +613,9 @@ static void WriteFieldParallel(double t,
     disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
       + sizeof(double)
       + j*(npes*num_local_points+2)*sizeof(double);
+    if(dump_mole_fractions) {
+      disp += num_species*sizeof(char)*64;
+    }
     MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
     MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
@@ -618,9 +639,61 @@ static void WriteFieldParallel(double t,
       + sizeof(double)
       + npes*num_local_points*sizeof(double)
       + j*(npes*num_local_points+2)*sizeof(double);
+    if(dump_mole_fractions) {
+      disp += num_species*sizeof(char)*64;
+    }
     MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
     MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
+  }
+
+  if(dump_mole_fractions) {
+    std::vector<double> inlet_mole_fractions(num_species);
+    std::vector<double> fuel_mole_fractions(num_species);
+    std::vector<double> oxidizer_mole_fractions(num_species);
+    std::vector<double> state_mole_fractions(num_species*num_local_points);
+    params.reactor_->GetMechanism()->getXfromY(&params.fuel_mass_fractions_[0],&fuel_mole_fractions[0]);
+    params.reactor_->GetMechanism()->getXfromY(&params.inlet_mass_fractions_[0],&inlet_mole_fractions[0]);
+    params.reactor_->GetMechanism()->getXfromY(&params.oxidizer_mass_fractions_[0],&oxidizer_mole_fractions[0]);
+    for (int k=0; k<num_local_points; ++k) {
+      params.reactor_->GetMechanism()->getXfromY(&state[k*num_reactor_states],&state_mole_fractions[k*num_species]);
+    }
+
+    for(int j=0; j<num_species; ++j) {
+      // Write left (fuel) BC data
+      if(params.flame_type_ == 0) {
+        buffer[0] = fuel_mole_fractions[j];
+      } else {
+        buffer[0] = inlet_mole_fractions[j];
+      }
+      disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
+        + num_species*sizeof(char)*64
+        + num_reactor_states*(npes*num_local_points+2)*sizeof(double) + j*(npes*num_local_points+2)*sizeof(double);
+      MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
+      MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+      // Write interior data
+      for (int k=0; k<num_local_points; ++k) {
+        buffer[k] = state_mole_fractions[k*num_species + j];
+      }
+      disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
+        + num_species*sizeof(char)*64
+        + sizeof(double)
+        + num_reactor_states*(npes*num_local_points+2)*sizeof(double) + j*(npes*num_local_points+2)*sizeof(double);
+      MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
+      MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+      // Write right (oxidizer) BC data
+      buffer[0] = oxidizer_mole_fractions[j];
+      disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
+        + num_species*sizeof(char)*64
+        + sizeof(double)
+        + npes*num_local_points*sizeof(double)
+        + num_reactor_states*(npes*num_local_points+2)*sizeof(double) + j*(npes*num_local_points+2)*sizeof(double);
+      MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
+      MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
+
+    }
   }
 
   // Write mass flux
@@ -628,6 +701,10 @@ static void WriteFieldParallel(double t,
   buffer[0] = params.mass_flux_fuel_;
   disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
     + num_reactor_states*(npes*num_local_points+2)*sizeof(double);
+  if(dump_mole_fractions) {
+    disp += num_species*(npes*num_local_points+2)*sizeof(double)
+            + num_species*sizeof(char)*64;
+  }
   MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
   MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
@@ -638,6 +715,10 @@ static void WriteFieldParallel(double t,
   disp = 2*sizeof(int) + sizeof(double) + num_reactor_states*sizeof(char)*64
     + sizeof(double)
     + num_reactor_states*(npes*num_local_points+2)*sizeof(double);
+  if(dump_mole_fractions) {
+    disp += num_species*(npes*num_local_points+2)*sizeof(double)
+            + num_species*sizeof(char)*64;
+  }
   MPI_File_set_view(output_file, disp, MPI_DOUBLE, localarray, "native", MPI_INFO_NULL);
   MPI_File_write_all(output_file, &buffer[0], num_local_points, MPI_DOUBLE, MPI_STATUS_IGNORE);
 
@@ -647,6 +728,10 @@ static void WriteFieldParallel(double t,
     + sizeof(double)
     + npes*num_local_points*sizeof(double)
     + num_reactor_states*(npes*num_local_points+2)*sizeof(double);
+  if(dump_mole_fractions) {
+    disp += num_species*(npes*num_local_points+2)*sizeof(double)
+            + num_species*sizeof(char)*64;
+  }
   MPI_File_set_view(output_file, disp, MPI_DOUBLE, MPI_DOUBLE, "native", MPI_INFO_NULL);
   MPI_File_write_all(output_file, &buffer[0], 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
 

@@ -61,6 +61,10 @@ int main(int argc, char *argv[])
   check_status(zerork_flame_set_int_option("integrator_type", inputFileDB.integrator_type(), zf_handle));
   check_status(zerork_flame_set_int_option("convective_scheme_type", inputFileDB.convective_scheme_type(), zf_handle));
   check_status(zerork_flame_set_string_option("transport_model", inputFileDB.transport_model().c_str(), zf_handle));
+  check_status(zerork_flame_set_string_option("constant_lewis_setting", inputFileDB.constant_lewis_setting().c_str(), zf_handle));
+  check_status(zerork_flame_set_int_option("constant_lewis_grid_point", inputFileDB.constant_lewis_grid_point(), zf_handle));
+  check_status(zerork_flame_set_string_option("temperature_fix_setting", inputFileDB.temperature_fix_setting().c_str(), zf_handle));
+  check_status(zerork_flame_set_double_option("temperature_fix_value", inputFileDB.temperature_fix_value(), zf_handle));
   check_status(zerork_flame_set_input_files(mechfilename, thermfilename, transfilename, zf_handle));
   check_status(zerork_flame_load_mechanism(zf_handle));
 

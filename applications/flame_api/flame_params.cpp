@@ -9,6 +9,7 @@
 #include <utilities/file_utilities.h>
 
 #include "flame_params.h"
+#include "transport/flexible_transport.h"
 
 FlameParams::FlameParams(ConstPressureReactor* reactor, 
                          transport::MassTransportInterface* trans,
@@ -66,8 +67,6 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
     error_status_ = 1;
   }
 
-  deltaTfix_ = 250.0;
-
   if(error_status_ == 0) {
     SetInitialCondition(flame_speed,T,mass_fractions);
   }
@@ -76,6 +75,65 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
   }
   if(error_status_ == 0) {
     SetMemory();
+  }
+  if(error_status_ == 0) {
+    if(string_options_["transport_model"] == "ConstantLewis") {
+      bool need_lewis_update = false;
+      int lewis_grid_point = -1;
+      if(string_options_["constant_lewis_setting"] == "GridPoint") {
+        need_lewis_update = true;
+        lewis_grid_point = int_options_["constant_lewis_grid_point"];
+        if(lewis_grid_point == -1) {
+          lewis_grid_point = num_points_ - 1;
+        }
+      } else if(string_options_["constant_lewis_setting"] == "Tfix") {
+        need_lewis_update = true;
+        lewis_grid_point = j_fix_;
+      }
+      if(need_lewis_update) {
+        lewis_grid_point = std::min(std::max(0,lewis_grid_point),num_points_-1);
+
+#ifdef ZERORK_MPI
+        int lewis_grid_point_rank = lewis_grid_point / num_local_points_;
+        int lewis_grid_point_local = lewis_grid_point - (lewis_grid_point_rank*num_local_points_);
+        std::vector<double> lewis_state(num_states_);
+        if(my_pe_ == lewis_grid_point_rank) {
+          for(int k=0; k<num_states_; ++k) {
+            lewis_state[k] = y_[lewis_grid_point_local*num_states_+k];
+          }
+        }
+        MPI_Bcast(&lewis_state[0], num_states_, MPI_DOUBLE, lewis_grid_point_rank, comm_);
+
+        for(int k=0; k<num_species_; ++k) {
+          transport_input_.mass_fraction_[k] = lewis_state[k];
+          transport_input_.grad_mass_fraction_[k] = 0.0;
+        }
+        transport_input_.temperature_ = reference_temperature_*lewis_state[num_states_-1];
+        transport_input_.grad_temperature_[0] = 0.0;
+#else
+        for(int k=0; k<num_species_; ++k) {
+          transport_input_.mass_fraction_[k] = y_[lewis_grid_point*num_states_+k];
+          transport_input_.grad_mass_fraction_[k] = 0.0;
+        }
+        transport_input_.temperature_ = reference_temperature_*y_[(lewis_grid_point+1)*num_states_-1];
+        transport_input_.grad_temperature_[0] = 0.0;
+#endif
+
+        transport::FlexibleTransport* flexible_transport = dynamic_cast<transport::FlexibleTransport*>(transport_);
+        flexible_transport->SetMixAvg(true);
+        int transport_error = flexible_transport->GetSpeciesMassFlux(
+				   transport_input_,
+				   num_species_,
+				   nullptr, //conductivity (computed internally)
+				   nullptr, //specific heat (computed(internally)
+				   &species_mass_flux_[0], //unused
+				   &species_lewis_numbers_[0]); //unused
+        flexible_transport->SetMixAvg(false);
+        if(transport_error != transport::NO_ERROR) {
+          error_status_ = 1;
+        }
+      }
+    }
   }
 }
 
@@ -171,18 +229,22 @@ void FlameParams::SetInitialCondition(double flame_speed, const double* T, const
     //S_L = y[num_species_]*params->inlet_relative_volume_
     mass_flux_ = flame_speed/inlet_relative_volume_;
   }
+  if(my_pe_ == npes_-1) {
+    outlet_temperature_ = y_[(num_local_points_-1)*num_states_ + num_species_+1];
+  }
 #ifdef ZERORK_MPI
   //N.B. inlet_temperature_ used in jfix Tfix, inlet_relative_volume_ currently only used on root, 
   //     but Bcast to avoid issues if it's needed elsewhere in the future.
   MPI_Bcast(&inlet_temperature_, 1, MPI_DOUBLE, 0, comm_);
   MPI_Bcast(&inlet_relative_volume_, 1, MPI_DOUBLE, 0, comm_);
   MPI_Bcast(&mass_flux_, 1, MPI_DOUBLE, 0, comm_);
+  MPI_Bcast(&outlet_temperature_, 1, MPI_DOUBLE, npes_-1, comm_);
 #endif
 
   for(int j = 0; j < num_local_points_; ++j) {
     y_[j*num_states_ + num_species_] = mass_flux_;
   }
-} // void FlameParams::SetInlet()
+} // void FlameParams::SetInitialCondition()
 
 // Set the grid
 void FlameParams::SetGrid()
@@ -244,11 +306,20 @@ void FlameParams::SetGrid()
   // Set jfix and Tfix
   int local_jfix = num_points_+1;
   double local_Tfix = 0.0;
+  double temperature_fix_target = 0.0;
+  std::string tfix_setting = string_options_["temperature_fix_setting"];
+  double tfix_value = double_options_["temperature_fix_value"];
+  if(tfix_setting == "Delta") {
+    temperature_fix_target = inlet_temperature_ + tfix_value/reference_temperature_;
+  } else if(tfix_setting == "Absolute") {
+    temperature_fix_target = tfix_value/reference_temperature_;
+  } else if(tfix_setting == "InOutMix") {
+    temperature_fix_target = tfix_value*inlet_temperature_ + (1-tfix_value)*outlet_temperature_;
+  }
   for(int j=0; j<num_local_points_; ++j) {
     int jglobal = j + my_pe_*num_local_points_;
     int temp_id = j*num_states_+num_species_ + 1;
-    if( y_[temp_id] > (inlet_temperature_ +
-      		deltaTfix_/reference_temperature_) ) {
+    if( y_[temp_id] > temperature_fix_target ) {
       local_jfix = jglobal;
       local_Tfix = y_[temp_id];
       break;
