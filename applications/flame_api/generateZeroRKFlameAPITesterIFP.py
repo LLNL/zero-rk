@@ -52,7 +52,7 @@ spify_parser_params.append(
     'type':'string',
     'shortDesc' : "Set how to compute lewis numbers",
     'discreteValues' : ["GridPoint", "Tfix", "Default"],
-    'defaultValue': "GridPoint",
+    'defaultValue': "Tfix",
 }
 )
 
@@ -73,7 +73,7 @@ spify_parser_params.append(
     'type':'string',
     'shortDesc' : "How to set temperature at which to anchor solution",
     'discreteValues' : ["Absolute", "Delta", "InOutMix"],
-    'defaultValue': "Delta",
+    'defaultValue': "InOutMix",
 }
 )
 
@@ -84,7 +84,7 @@ spify_parser_params.append(
     'shortDesc' : "Value used in temperature fix setting.  If Absolute, \
     temperature at which to anchor solution.  If Delta, temperature rise (from \
     inlet) at which to anchor solution.  If InOutMix, then use Tfix = alpha*Tinlet + (1-alpha)*Toutlet",
-    'defaultValue': 250,
+    'defaultValue': 0.25,
 }
 )
 
@@ -153,7 +153,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady",
     'type':'int',
     'shortDesc':"Run psuedo_unsteady at first",
-    'defaultValue': 0
+    'defaultValue': 1
 }
 )
 
@@ -162,7 +162,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_dt",
     'type':'double',
     'shortDesc' : "Initial pseudo-unsteady time step",
-    'defaultValue': 1.0e-3
+    'defaultValue': 1.0e-4
 }
 )
 
@@ -171,7 +171,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_min_dt",
     'type':'double',
     'shortDesc' : "Minimum pseudo-unsteady time step",
-    'defaultValue': 1.0e-6
+    'defaultValue': 1.0e-8
 }
 )
 
@@ -180,7 +180,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_max_dt",
     'type':'double',
     'shortDesc' : "Maximum pseudo-unsteady time step",
-    'defaultValue': 1.0e-2
+    'defaultValue': 2.0e-3
 }
 )
 
@@ -189,7 +189,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_max_iterations",
     'type':'int',
     'shortDesc':"Number of iterations for psuedo unsteady solution",
-    'defaultValue': 80
+    'defaultValue': 40
 }
 )
 
@@ -244,7 +244,7 @@ spify_parser_params.append(
     'name':"reference_temperature",
     'type':'double',
     'shortDesc' : "Reference temperature to normalize the ODE dT/dt equation",
-    'defaultValue' : 1000.0
+    'defaultValue' : 2500.0
 }
 )
 
