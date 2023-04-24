@@ -29,6 +29,7 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
   num_points_(grid.size()),
   num_states_(reactor->GetNumStates()),
   num_species_(reactor->GetNumSpecies()),
+  num_kinsol_errors_(0),
   pressure_(pressure),
 #ifdef ZERORK_MPI
   comm_(comm),
@@ -61,7 +62,7 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
   store_jacobian_  = int_options_["store_jacobian"] != 0;
   reference_temperature_ =  double_options_["reference_temperature"];
   step_limiter_.assign(reactor_->GetNumSteps(), double_options_["step_limiter"]);
-  pseudo_unsteady_ = int_options_["pseudo_unsteady"];
+  pseudo_unsteady_ = int_options_["pseudo_unsteady"] != 0;
   dt_ = double_options_["pseudo_unsteady_dt"];
   if(dt_ <= 0.0) {
     error_status_ = 1;
@@ -72,6 +73,9 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
   }
   if(error_status_ == 0) {
     SetGrid();
+  }
+  if(error_status_ == 0) {
+    SetTfix();
   }
   if(error_status_ == 0) {
     SetMemory();
@@ -303,6 +307,9 @@ void FlameParams::SetGrid()
   rel_vol_.assign(num_local_points_,0.0);
   rel_vol_ext_.assign(num_local_points_+2*nover_,0.0);
 
+}
+
+void FlameParams::SetTfix() {
   // Set jfix and Tfix
   int local_jfix = num_points_+1;
   double local_Tfix = 0.0;
@@ -341,8 +348,6 @@ void FlameParams::SetGrid()
     error_status_ = 6;
   }
 }
-
-// For simulations with wall heat losses, set the wall temperature profile
 
 // requires SetGrid to be set first
 void FlameParams::SetMemory()
@@ -646,4 +651,52 @@ void FlameParams::SetMemory()
 
   } // if integrator_type == 3
 }
+
+void FlameParams::GetTemperatureAndMassFractions(double* T, double* mass_fractions)
+{
+#ifdef ZERORK_MPI
+  //Collect output
+  int remainder = num_points_ % npes_;
+  if(remainder != 0) {
+    error_status_ = 1;
+    return;
+  }
+  if(my_pe_ < remainder) {
+    num_local_points_ += 1;
+  }
+  std::vector<int> gather_counts(npes_,0);
+  std::vector<int> gather_counts_mf(npes_,0);
+  std::vector<int> gather_displs(npes_,0);
+  std::vector<int> gather_displs_mf(npes_,0);
+  for(int j = 0; j < npes_; ++j) {
+    gather_counts[j] = num_points_/npes_;
+    if(j<remainder) gather_counts[j] += 1;
+    gather_counts_mf[j] = gather_counts[j]*num_species_;
+    if(j>0) {
+      gather_displs[j] = gather_displs[j-1]+gather_counts[j-1];
+      gather_displs_mf[j] = gather_displs_mf[j-1]+gather_counts_mf[j-1];
+    }
+  }
+
+  std::vector<double> mass_fractions_local(num_local_points_*num_species_,0.0);
+  std::vector<double> T_local(num_local_points_,0.0);
+  for(int j = 0; j < num_local_points_; ++j) {
+    for(int k = 0; k < num_species_; ++k) {
+      mass_fractions_local[j*num_species_ + k] = y_[j*num_states_ +k];
+    }
+    T_local[j] = y_[(j+1)*num_states_ - 1]*reference_temperature_;
+  }
+  MPI_Gatherv(mass_fractions_local.data(), gather_counts_mf[my_pe_], MPI_DOUBLE,
+               mass_fractions, gather_counts_mf.data(), gather_displs_mf.data(), MPI_DOUBLE, 0, comm_);
+  MPI_Gatherv(T_local.data(), gather_counts[my_pe_], MPI_DOUBLE,
+               T, gather_counts.data(), gather_displs.data(), MPI_DOUBLE, 0, comm_);
+#else
+  for(int j = 0; j < num_local_points_; ++j) {
+    for(int k = 0; k < num_species_; ++k) {
+      mass_fractions[j*num_species_ + k] = y_[j*num_states_ +k];
+    }
+    T[j] = y_[(j+1)*num_states_ - 1]*reference_temperature_;
+  }
+#endif
+} // void FlameParams::GetTemperatureAndMassFractions()
 

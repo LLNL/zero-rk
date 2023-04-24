@@ -18,7 +18,7 @@
 #include "sparse_matrix_dist.h"
 #endif
 
-class FlameParams : Optionable
+class FlameParams : public Optionable
 {
  public:
   explicit FlameParams(ConstPressureReactor* reactor, 
@@ -45,6 +45,7 @@ class FlameParams : Optionable
   int num_species_;
   int num_states_;
   int nover_;
+  int num_kinsol_errors_;
 
   ConstPressureReactor *reactor_;
   transport::MassTransportInterface *transport_;
@@ -156,6 +157,8 @@ class FlameParams : Optionable
   std::vector<double> banded_jacobian_serial_;
   std::vector<int> pivots_serial_;
 
+  void SetTfix();
+  void GetTemperatureAndMassFractions(double* T, double* mass_fractions);
  private:
   void SetInitialCondition(double flame_speed, const double* T, const double* mass_fractions);
   void SetGrid();

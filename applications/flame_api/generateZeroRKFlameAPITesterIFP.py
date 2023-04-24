@@ -168,6 +168,24 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"pseudo_unsteady_min_dt",
+    'type':'double',
+    'shortDesc' : "Minimum pseudo-unsteady time step",
+    'defaultValue': 1.0e-6
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"pseudo_unsteady_max_dt",
+    'type':'double',
+    'shortDesc' : "Maximum pseudo-unsteady time step",
+    'defaultValue': 1.0e-2
+}
+)
+
+spify_parser_params.append(
+{
     'name':"pseudo_unsteady_max_iterations",
     'type':'int',
     'shortDesc':"Number of iterations for psuedo unsteady solution",
@@ -181,6 +199,16 @@ spify_parser_params.append(
     'type':'double',
     'shortDesc' : "Time duration for pseudo-unsteady solution",
     'defaultValue': 0.05
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"kinsol_strategy",
+    'type':'string',
+    'shortDesc' : "What KINSol strategy to use",
+    'defaultValue':  "NONE",
+    'discreteValues': ["NONE", "LINESEARCH"]
 }
 )
 

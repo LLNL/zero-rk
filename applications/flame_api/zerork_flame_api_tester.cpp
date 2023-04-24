@@ -58,6 +58,8 @@ int main(int argc, char *argv[])
   check_status(zerork_flame_set_double_option("absolute_tolerance", inputFileDB.absolute_tolerance(), zf_handle));
   check_status(zerork_flame_set_int_option("pseudo_unsteady", inputFileDB.pseudo_unsteady(), zf_handle));
   check_status(zerork_flame_set_double_option("pseudo_unsteady_dt", inputFileDB.pseudo_unsteady_dt(), zf_handle));
+  check_status(zerork_flame_set_double_option("pseudo_unsteady_min_dt", inputFileDB.pseudo_unsteady_min_dt(), zf_handle));
+  check_status(zerork_flame_set_double_option("pseudo_unsteady_max_dt", inputFileDB.pseudo_unsteady_max_dt(), zf_handle));
   check_status(zerork_flame_set_int_option("integrator_type", inputFileDB.integrator_type(), zf_handle));
   check_status(zerork_flame_set_int_option("convective_scheme_type", inputFileDB.convective_scheme_type(), zf_handle));
   check_status(zerork_flame_set_string_option("transport_model", inputFileDB.transport_model().c_str(), zf_handle));
@@ -65,6 +67,7 @@ int main(int argc, char *argv[])
   check_status(zerork_flame_set_int_option("constant_lewis_grid_point", inputFileDB.constant_lewis_grid_point(), zf_handle));
   check_status(zerork_flame_set_string_option("temperature_fix_setting", inputFileDB.temperature_fix_setting().c_str(), zf_handle));
   check_status(zerork_flame_set_double_option("temperature_fix_value", inputFileDB.temperature_fix_value(), zf_handle));
+  check_status(zerork_flame_set_string_option("kinsol_strategy", inputFileDB.kinsol_strategy().c_str(), zf_handle));
   check_status(zerork_flame_set_input_files(mechfilename, thermfilename, transfilename, zf_handle));
   check_status(zerork_flame_load_mechanism(zf_handle));
 
@@ -150,9 +153,9 @@ int WriteProfileFile(const char* file, int num_species, std::vector<double>& gri
     for(int j = 0; j < num_grid_points; ++j) {
       profile_file << grid[j];
       for(int k = 0; k < num_species; ++k) {
-        profile_file << "," << mass_fractions[j*num_species+k];
+        profile_file << "\t" << mass_fractions[j*num_species+k];
       }
-      profile_file << "," << T[j];
+      profile_file << "\t" << T[j];
       profile_file << std::endl;
     }
   }
