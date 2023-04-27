@@ -16,8 +16,8 @@ endif()
 
 if((NOT EXISTS ${magma_prefix}) OR (NOT ${magma_system_working}))
   message(STATUS "Building: Magma...")
-  set(GPU_TARGET_LIST "${CMAKE_CUDA_ARCHITECTURES}")
-  list(TRANSFORM GPU_TARGET_LIST PREPEND sm_)
+  set(GPU_TARGET_LIST "${HIP_ARCHITECTURES}")
+  #list(TRANSFORM GPU_TARGET_LIST PREPEND sm_)
   string(REPLACE ";" " " GPU_TARGET "${GPU_TARGET_LIST}")
   configure_file(
 	${CMAKE_CURRENT_LIST_DIR}/magma.CMakeLists.txt
@@ -47,11 +47,12 @@ endif()
 add_library(magma STATIC IMPORTED GLOBAL)
 set_target_properties(magma PROPERTIES
   IMPORTED_LOCATION ${magma_lib_dir}/${CMAKE_STATIC_LIBRARY_PREFIX}magma${CMAKE_STATIC_LIBRARY_SUFFIX}
-  INTERFACE_INCLUDE_DIRECTORIES "${magma_prefix}/include;${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
-  INTERFACE_LINK_DIRECTORIES "${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}"
+  INTERFACE_INCLUDE_DIRECTORIES "${magma_prefix}/include"
+  INTERFACE_LINK_DIRECTORIES ""
   INTERFACE_COMPILE_DEFINITIONS ZERORK_HAVE_MAGMA)
 
 
 find_package(OpenMP)
-target_link_libraries(magma INTERFACE cusparse lapack blas OpenMP::OpenMP_CXX)
+#target_link_libraries(magma INTERFACE lapack blas OpenMP::OpenMP_CXX omp)
+target_link_libraries(magma INTERFACE lapack blas OpenMP::OpenMP_CXX)
 

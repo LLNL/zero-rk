@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 #include "zerork_cuda_defs.h"
 #include "nasa_poly_kernels.h"
 
@@ -17,38 +17,38 @@ nasa_poly_group_cuda::nasa_poly_group_cuda(const int inpSpc,
 {
   checkCudaError
   (
-     cudaMalloc((void**)&thermoCoeff_dev,sizeof(double)*inpSpc*LDA_THERMO_POLY_D5R2),
-     "cudaMalloc(... thermoCoeff_dev ...)"
+     hipMalloc((void**)&thermoCoeff_dev,sizeof(double)*inpSpc*LDA_THERMO_POLY_D5R2),
+     "hipMalloc(... thermoCoeff_dev ...)"
   );
-  cudaMemcpy(thermoCoeff_dev,thermoCoef,inpSpc*LDA_THERMO_POLY_D5R2*sizeof(double),cudaMemcpyHostToDevice);
+  hipMemcpy(thermoCoeff_dev,thermoCoef,inpSpc*LDA_THERMO_POLY_D5R2*sizeof(double),hipMemcpyHostToDevice);
 
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"nasa_poly_group::nasa_poly_group( ... )");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"nasa_poly_group::nasa_poly_group( ... )");
 #endif
 }
 
 nasa_poly_group_cuda::~nasa_poly_group_cuda()
 {
-  cudaFree(thermoCoeff_dev);
+  hipFree(thermoCoeff_dev);
 }
 
-void nasa_poly_group_cuda::getG_RT_CUDA(const double T, double * G_RT_dev, cudaStream_t stream) const
+void nasa_poly_group_cuda::getG_RT_CUDA(const double T, double * G_RT_dev, hipStream_t stream) const
 {
     nasa_poly_group_getG_RT_CUDA(T, G_RT_dev, nGroupSpc, thermoCoeff_dev, stream);
 }
 
-void nasa_poly_group_cuda::getG_RT_CUDA_mr(const int nReactors, const double *T_dev, double *G_RT_dev, cudaStream_t stream) const
+void nasa_poly_group_cuda::getG_RT_CUDA_mr(const int nReactors, const double *T_dev, double *G_RT_dev, hipStream_t stream) const
 {
     nasa_poly_group_getG_RT_CUDA_mr(nReactors, T_dev, G_RT_dev, nGroupSpc, thermoCoeff_dev, stream);
 }
 
-void nasa_poly_group_cuda::getH_RT_CUDA_mr(const int nReactors, const double *T_dev, double *H_RT_dev, cudaStream_t stream) const
+void nasa_poly_group_cuda::getH_RT_CUDA_mr(const int nReactors, const double *T_dev, double *H_RT_dev, hipStream_t stream) const
 {
     nasa_poly_group_getH_RT_CUDA_mr(nReactors, T_dev, H_RT_dev, nGroupSpc, thermoCoeff_dev, stream);
 }
 
-void nasa_poly_group_cuda::getCp_R_CUDA_mr(const int nReactors, const double *T_dev, double *Cp_R_dev, cudaStream_t stream) const
+void nasa_poly_group_cuda::getCp_R_CUDA_mr(const int nReactors, const double *T_dev, double *Cp_R_dev, hipStream_t stream) const
 {
     nasa_poly_group_getCp_R_CUDA_mr(nReactors, T_dev, Cp_R_dev, nGroupSpc, thermoCoeff_dev, stream);
 }

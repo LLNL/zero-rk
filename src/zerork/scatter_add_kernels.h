@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #ifndef ZERORK_SCATTER_ADD_KERNELS_H
 #define ZERORK_SCATTER_ADD_KERNELS_H
 

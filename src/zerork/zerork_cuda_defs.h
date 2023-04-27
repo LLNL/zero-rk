@@ -1,7 +1,7 @@
 #ifndef ZERORK_CUDA_DEFS_H
 #define ZERORK_CUDA_DEFS_H
 
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 #define MAX_NREACS 5
 #define MAX_NPRODS 5
@@ -13,7 +13,7 @@
 
 namespace zerork {
 
-void checkCudaError(cudaError_t err, const char *msg = NULL);
+void checkCudaError(hipError_t err, const char *msg = NULL);
 
 } // namespace zerork
 #endif

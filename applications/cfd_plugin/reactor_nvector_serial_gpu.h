@@ -4,22 +4,22 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
-#include "interfaces/cuda_la_manager/cuda_la_manager.h"
-#include "interfaces/cublas_manager/cublas_manager.h"
+#include "interfaces/hip_la_manager/hip_la_manager.h"
+#include "interfaces/hipblas_manager/hipblas_manager.h"
 #ifdef ZERORK_HAVE_MAGMA
 #include "interfaces/magma_manager/magma_manager.h"
 #endif
-#include "interfaces/cusolver_rf_manager/cusolver_rf_manager.h"
+//#include "interfaces/cusolver_rf_manager/cusolver_rf_manager.h"
 
 #include "zerork/mechanism_cuda.h"
 
 #include "reactor_base.h"
 
-class ReactorNVectorSerialCuda : public ReactorBase
+class ReactorNVectorSerialGpu : public ReactorBase
 {
  public:
-  explicit ReactorNVectorSerialCuda(std::shared_ptr<zerork::mechanism_cuda> mech_ptr);
-  virtual ~ReactorNVectorSerialCuda();
+  explicit ReactorNVectorSerialGpu(std::shared_ptr<zerork::mechanism_cuda> mech_ptr);
+  virtual ~ReactorNVectorSerialGpu();
 
   int SetRootTime(double t);
   double GetRootTime();
@@ -67,10 +67,10 @@ class ReactorNVectorSerialCuda : public ReactorBase
   int TemperatureDerivative(const double* inverse_densities, const double* y, double* ydot);
 
   std::shared_ptr<zerork::mechanism_cuda> mech_ptr_;
-  cusolver_rf_manager csrfm_temperature_;
-  cusolver_rf_manager csrfm_no_temperature_;
-  cusolver_rf_manager* csrfm_ptr_;
-  std::unique_ptr<cuda_la_manager> cuda_la_manager_;
+//  cusolver_rf_manager csrfm_temperature_;
+//  cusolver_rf_manager csrfm_no_temperature_;
+//  cusolver_rf_manager* csrfm_ptr_;
+  std::unique_ptr<hip_la_manager> hip_la_manager_;
 
   bool solve_temperature_;
   int nnz_;

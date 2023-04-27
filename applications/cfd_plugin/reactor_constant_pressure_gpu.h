@@ -2,9 +2,9 @@
 #define REACTOR_CONSTANT_PRESSURE_GPU_H
 
 #include "zerork/mechanism_cuda.h"
-#include "reactor_nvector_serial_cuda.h"
+#include "reactor_nvector_serial_gpu.h"
 
-class ReactorConstantPressureGPU : public ReactorNVectorSerialCuda
+class ReactorConstantPressureGPU : public ReactorNVectorSerialGpu
 {
  public:
   ReactorConstantPressureGPU(std::shared_ptr<zerork::mechanism_cuda> mech_ptr);

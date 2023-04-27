@@ -1,12 +1,12 @@
-#ifndef CUDA_LA_MANAGER_H
-#define CUDA_LA_MANAGER_H
+#ifndef HIP_LA_MANAGER_H
+#define HIP_LA_MANAGER_H
 
 
-class cuda_la_manager
+class hip_la_manager
 {
  public:
-  cuda_la_manager();
-  virtual ~cuda_la_manager() {};
+  hip_la_manager();
+  virtual ~hip_la_manager() {};
 
   int factor(int num_batches, int n, double* values);
   int solve(int num_batches, int n, const double* rhs, double* soln);

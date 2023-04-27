@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "scatter_add_kernels.h"
 
 #if defined(__CUDA_ARCH__) &&  __CUDA_ARCH__ < 600
@@ -118,7 +119,7 @@ __global__ void scatterAdd_gpu_atomic_global_8op(const int nOps,
       int threadDestId;
   
       int counter = threadIdx.x;
-      int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+      int stride = std::min((unsigned int) blockDim.x,nData-blockDim.x*blockIdx.x);
       while(counter < 8)
       {
           threadSrcId[counter] = srcId[8*blockIdx.y+counter]*nData;
@@ -156,7 +157,7 @@ __global__ void scatterAdd_gpu_atomic_global_16op(const int nOps,
       int threadDestId;
 
       int counter = threadIdx.x;
-      int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+      int stride = std::min((unsigned int) blockDim.x,nData-blockDim.x*blockIdx.x);
       while(counter < 16)
       {
           threadSrcId[counter] = srcId[16*blockIdx.y+counter]*nData;
@@ -202,7 +203,7 @@ __global__ void scatterAdd_gpu_atomic_global_32op(const int nOps,
       int threadDestId;
   
       int counter = threadIdx.x;
-      int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+      int stride = std::min((unsigned int) blockDim.x,nData-blockDim.x*blockIdx.x);
       while(counter < 32)
       {
           threadSrcId[counter] = srcId[32*blockIdx.y+counter]*nData;
@@ -264,7 +265,7 @@ __global__ void scatterAdd_gpu_atomic_global_64op(const int nOps,
       int threadDestId;
 
       int counter = threadIdx.x;
-      int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+      int stride = std::min((unsigned int) blockDim.x,nData-blockDim.x*blockIdx.x);
       while(counter < 64)
       {
           threadSrcId[counter] = srcId[64*blockIdx.y+counter]*nData;
@@ -358,7 +359,7 @@ __global__ void scatterAdd_gpu_atomic_global_128op(const int nOps,
       int threadDestId;
 
       int counter = threadIdx.x;
-      int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+      int stride = std::min((unsigned int) blockDim.x,nData-blockDim.x*blockIdx.x);
       while(counter < 128)
       {
           threadSrcId[counter] = srcId[128*blockIdx.y+counter]*nData;
@@ -524,7 +525,7 @@ __global__ void scatterAdd_gpu_atomic_global_fused(
         const int* destIdCurr = &destId[nOps[j+1]];
 
         int counter = threadIdx.x;
-        int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+        int stride = std::min((unsigned int) blockDim.x,nData-blockDim.x*blockIdx.x);
         while(counter < nAdd)
         {
             threadSrcId[counter] = srcIdCurr[nAdd*blockIdx.y+counter]*nData;
@@ -573,7 +574,7 @@ __global__ void multScatterAdd_gpu_atomic_global_fused(
         const int* destIdCurr = &destId[nOps[j+1]];
 
         int counter = threadIdx.x;
-        int stride = min(blockDim.x,nData-blockDim.x*blockIdx.x);
+        int stride = std::min((unsigned int) blockDim.x,nData-blockDim.x*blockIdx.x);
         while(counter < nAdd)
         {
             threadSrcId[counter] = srcIdCurr[nAdd*blockIdx.y+counter];

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include <algorithm> // std::min
 #include "nasa_poly_kernels.h"
 #include "zerork_cuda_defs.h"
@@ -104,7 +105,7 @@ void __global__ cuda_get_G_RT_mr
           __shared__ double coeffShr[16];
 
           int counter = threadIdx.x;
-          int stride = min(blockDim.x,nReactors-blockDim.x*blockIdx.x);
+          int stride = std::min((unsigned int) blockDim.x,nReactors-blockDim.x*blockIdx.x);
           while(counter < 16)
           {
               coeffShr[counter]=thermoCoeff_dev[coefAddr+counter];
@@ -176,7 +177,7 @@ void __global__ cuda_get_H_RT_mr
           __shared__ double coeffShr[16];
 
           int counter = threadIdx.x;
-          int stride = min(blockDim.x,nReactors-blockDim.x*blockIdx.x);
+          int stride = std::min((unsigned int) blockDim.x,nReactors-blockDim.x*blockIdx.x);
           while(counter < 16)
           {
               coeffShr[counter]=thermoCoeff_dev[coefAddr+counter];
@@ -238,7 +239,7 @@ void __global__ cuda_get_Cp_R_mr
           __shared__ double coeffShr[16];
 
           int counter = threadIdx.x;
-          int stride = min(blockDim.x,nReactors-blockDim.x*blockIdx.x);
+          int stride = std::min((unsigned int) blockDim.x,nReactors-blockDim.x*blockIdx.x);
           while(counter < 16)
           {
               coeffShr[counter]=thermoCoeff_dev[coefAddr+counter];
@@ -274,47 +275,47 @@ void __global__ cuda_get_Cp_R_mr
 
 
 
-void nasa_poly_group_getG_RT_CUDA(const double T, double * G_RT_dev, const int nGroupSpc, const double * thermoCoeff_dev, cudaStream_t stream)
+void nasa_poly_group_getG_RT_CUDA(const double T, double * G_RT_dev, const int nGroupSpc, const double * thermoCoeff_dev, hipStream_t stream)
 {
     int nThreads = THREADS_PER_BLOCK;
     int nBlocks = (nGroupSpc+nThreads-1)/nThreads;
     cuda_get_G_RT<<<nBlocks, nThreads, 0, stream>>> (nGroupSpc, T, thermoCoeff_dev, G_RT_dev );
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"cuda_get_G_RT");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"cuda_get_G_RT");
 #endif
 }
 
-void nasa_poly_group_getG_RT_CUDA_mr(const int nReactors, const double *T_dev, double *G_RT_dev, const int nGroupSpc, const double * thermoCoeff_dev, cudaStream_t stream)
+void nasa_poly_group_getG_RT_CUDA_mr(const int nReactors, const double *T_dev, double *G_RT_dev, const int nGroupSpc, const double * thermoCoeff_dev, hipStream_t stream)
 {
     int nThreads = std::min(nReactors,MAX_THREADS_PER_BLOCK);
     dim3 nBlocks((nReactors+nThreads-1)/nThreads,nGroupSpc);
     cuda_get_G_RT_mr<<<nBlocks, nThreads, 0, stream>>>(nReactors, nGroupSpc, T_dev, thermoCoeff_dev, G_RT_dev);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"cuda_get_G_RT_mr");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"cuda_get_G_RT_mr");
 #endif
 }
 
-void nasa_poly_group_getH_RT_CUDA_mr(const int nReactors, const double *T_dev, double *H_RT_dev, const int nGroupSpc, const double * thermoCoeff_dev, cudaStream_t stream)
+void nasa_poly_group_getH_RT_CUDA_mr(const int nReactors, const double *T_dev, double *H_RT_dev, const int nGroupSpc, const double * thermoCoeff_dev, hipStream_t stream)
 {
     int nThreads = std::min(nReactors,MAX_THREADS_PER_BLOCK);
     dim3 nBlocks((nReactors+nThreads-1)/nThreads,nGroupSpc);
     cuda_get_H_RT_mr<<<nBlocks, nThreads, 0, stream>>>(nReactors, nGroupSpc, T_dev, thermoCoeff_dev, H_RT_dev);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"cuda_get_H_RT_mr");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"cuda_get_H_RT_mr");
 #endif
 }
 
-void nasa_poly_group_getCp_R_CUDA_mr(const int nReactors, const double *T_dev, double *Cp_R_dev, const int nGroupSpc, const double * thermoCoeff_dev, cudaStream_t stream)
+void nasa_poly_group_getCp_R_CUDA_mr(const int nReactors, const double *T_dev, double *Cp_R_dev, const int nGroupSpc, const double * thermoCoeff_dev, hipStream_t stream)
 {
     int nThreads = std::min(nReactors,MAX_THREADS_PER_BLOCK);
     dim3 nBlocks((nReactors+nThreads-1)/nThreads,nGroupSpc);
     cuda_get_Cp_R_mr<<<nBlocks, nThreads, 0, stream>>>(nReactors, nGroupSpc, T_dev, thermoCoeff_dev, Cp_R_dev);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"cuda_get_Cp_R_mr");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"cuda_get_Cp_R_mr");
 #endif
 }
 

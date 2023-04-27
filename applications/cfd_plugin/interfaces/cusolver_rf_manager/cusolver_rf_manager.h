@@ -32,7 +32,7 @@ class cusolver_rf_manager
   superlu_manager slum_;
 
   cusolverStatus_t status_;
-  cudaError_t cudaStatus_;
+  hipError_t cudaStatus_;
 
   bool factored_;
   int n_;

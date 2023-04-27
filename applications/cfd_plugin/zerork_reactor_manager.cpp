@@ -271,7 +271,7 @@ void ZeroRKReactorManager::AssignGpuId() {
     }
     /* Assign device to MPI process*/
     int n_devices;
-    cudaGetDeviceCount(&n_devices);
+    hipGetDeviceCount(&n_devices);
     if(node_rank / n_devices < ranks_per_gpu) {
       gpu_id_ = node_rank % n_devices;
     }
@@ -281,9 +281,9 @@ void ZeroRKReactorManager::AssignGpuId() {
 #else
       printf("Assigning device %d to process\n", gpu_id_);
 #endif
-      cudaSetDevice(gpu_id_);
-      cudaDeviceSynchronize();
-      if(cudaGetLastError() != cudaSuccess) {
+      hipSetDevice(gpu_id_);
+      hipDeviceSynchronize();
+      if(hipGetLastError() != hipSuccess) {
         //Failed to set device.  Fall back to cpu.
         gpu_id_ = -1;
       }

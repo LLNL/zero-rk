@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include <algorithm> //std::min
 #include "mechanism_kernels.h"
 #include "zerork_cuda_defs.h"
@@ -70,7 +71,7 @@ void __global__ kernel_meanCpMass_mr
             if(threadIdx.y == 0)
             {
                 double accum = 0.0;
-                int lim = min(blockDim.y,nSpc-blockDim.y*blockIdx.y);
+                int lim = std::min((unsigned int) blockDim.y,nSpc-blockDim.y*blockIdx.y);
                 for(int i = 0; i < lim; ++i)
                 {
                     accum += values[blockDim.x*i+threadIdx.x];
@@ -153,7 +154,7 @@ void __global__ kernel_getMassIntEnergyFromTY_mr_dev
             if(threadIdx.x == 0)
             {
                 double accum = 0.0;
-                int lim = min(blockDim.x,nSpc-blockDim.x*blockIdx.x);
+                int lim = std::min((unsigned int) blockDim.x,nSpc-blockDim.x*blockIdx.x);
                 for(int i = 0; i < lim; ++i)
                 {
                     accum += values[blockDim.y*i+threadIdx.y];
@@ -189,7 +190,7 @@ void __global__ kernel_getMassEnthalpyFromTY_mr_dev
             if(threadIdx.x == 0)
             {
                 double accum = 0.0;
-                int lim = min(blockDim.x,nSpc-blockDim.x*blockIdx.x);
+                int lim = std::min((unsigned int) blockDim.x,nSpc-blockDim.x*blockIdx.x);
                 for(int i = 0; i < lim; ++i)
                 {
                     accum += values[blockDim.y*i+threadIdx.y];
@@ -223,7 +224,7 @@ void __global__ kernel_getMolWtMixFromY
             if(threadIdx.y == 0)
             {
                 double accum = 0.0;
-                int lim = min(blockDim.y,nSpc-blockDim.y*blockIdx.y);
+                int lim = std::min((unsigned int) blockDim.y,nSpc-blockDim.y*blockIdx.y);
                 for(int i = 0; i < lim; ++i)
                 {
                     accum += values[blockDim.x*i+threadIdx.x];

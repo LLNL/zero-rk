@@ -16,11 +16,11 @@ set(SUNDIALS_IFACE_NUM ${SUNDIALS_VERSION})
 if(${SUNDIALS_VERSION} EQUAL "5")
 set(SUNDIALS_IFACE_NUM "4")
 if(${ENABLE_GPU})
-set(sundials_libs "${sundials_libs};nveccuda")
+set(sundials_libs "${sundials_libs};nvechip")
 set(MAGMA_ARGS "")
 if(${ZERORK_HAVE_MAGMA})
 set(sundials_libs "${sundials_libs};sunlinsolmagmadense;sunmatrixmagmadense")
-set(MAGMA_ARGS "-DENABLE_MAGMA=ON -DMAGMA_DIR=${magma_prefix}")
+set(MAGMA_ARGS "-DENABLE_MAGMA=ON -DMAGMA_DIR=${magma_prefix} -DSUNDIALS_MAGMA_BACKENDS=HIP")
 endif() #MAGMA
 endif() #GPU
 endif() #Sundials5

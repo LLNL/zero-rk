@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include "misc_kernels.h"
 #include "zerork_cuda_defs.h"
 #include "constants.h"
@@ -37,20 +38,20 @@ void printCudaArray(const int n, const double *A_dev)
   int nBlocks = (n + nThreads -1 )/nThreads;
   kernel_printCudaArray<<<nBlocks, nThreads>>>(n,A_dev);
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"printCudaArray()");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"printCudaArray()");
 #endif
 }
 
-void setDoubleArrayVal(double * array,const double value,const int idxStart,const int idxEnd, const cudaStream_t stream)
+void setDoubleArrayVal(double * array,const double value,const int idxStart,const int idxEnd, const hipStream_t stream)
 {
   int nVals = idxEnd - idxStart; //not inclusive
   int nThreads = std::min(nVals,MAX_THREADS_PER_BLOCK);
   int nBlocks = (nVals+nThreads-1)/nThreads;
   kernel_setDoubleArrayVal<<<nBlocks,nThreads,0,stream>>>(array,value,idxStart,idxEnd);
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"setDoubleArrayVal()");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"setDoubleArrayVal()");
 #endif
 
 }

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,7 +11,7 @@
 #include "zerork/zerork_cuda_defs.h"
 #include <nvector/nvector_serial.h> // serial N_Vector types, fcts., and macros
 
-#include "cuda_profiler_api.h"
+#include "hip/hip_runtime_api.h"
 
 typedef struct
 {
@@ -74,11 +75,11 @@ typedef struct
 
   int currReactor; //used for single reactor code
 
-  cudaStream_t concDerivStream,TDerivStream;
+  hipStream_t concDerivStream,TDerivStream;
 } ode_cv_param;
 
 
-//void checkCudaError(cudaError_t err, const char * msg);
+//void checkCudaError(hipError_t err, const char * msg);
 
 
 
@@ -207,78 +208,78 @@ int main(int argc, char *argv[])
   int nState = nSpc + 1;
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.y_dev,sizeof(double)*nState*nReactors),
-      "cudaMalloc(... y_dev ...)"
+      hipMalloc((void**)&systemParam.y_dev,sizeof(double)*nState*nReactors),
+      "hipMalloc(... y_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.ydot_dev,sizeof(double)*nState*nReactors),
-      "cudaMalloc(... ydot_dev ...)"
+      hipMalloc((void**)&systemParam.ydot_dev,sizeof(double)*nState*nReactors),
+      "hipMalloc(... ydot_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.Dens_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... Dens_dev ...)"
+      hipMalloc((void**)&systemParam.Dens_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... Dens_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.invDens_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... invDens_dev ...)"
+      hipMalloc((void**)&systemParam.invDens_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... invDens_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.molWt_dev,sizeof(double)*nSpc),
-      "cudaMalloc(... molWt_dev ...)"
+      hipMalloc((void**)&systemParam.molWt_dev,sizeof(double)*nSpc),
+      "hipMalloc(... molWt_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.invMolWt_dev,sizeof(double)*nSpc),
-      "cudaMalloc(... invMolWt_dev ...)"
+      hipMalloc((void**)&systemParam.invMolWt_dev,sizeof(double)*nSpc),
+      "hipMalloc(... invMolWt_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.meanCvMass_dev,sizeof(double)*nReactors),
-      "cudaMalloc(... meanCvMass_dev ...)"
+      hipMalloc((void**)&systemParam.meanCvMass_dev,sizeof(double)*nReactors),
+      "hipMalloc(... meanCvMass_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.Energy_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... Energy_dev ...)"
+      hipMalloc((void**)&systemParam.Energy_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... Energy_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.CvMass_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... CvMass_dev ...)"
+      hipMalloc((void**)&systemParam.CvMass_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... CvMass_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.netProd_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... netProd_dev ...)"
+      hipMalloc((void**)&systemParam.netProd_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... netProd_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.conc_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... conc_dev ...)"
+      hipMalloc((void**)&systemParam.conc_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... conc_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.createRate_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... createRate_dev ...)"
+      hipMalloc((void**)&systemParam.createRate_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... createRate_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.destroyRate_dev,sizeof(double)*nSpc*nReactors),
-      "cudaMalloc(... destroyRate_dev ...)"
+      hipMalloc((void**)&systemParam.destroyRate_dev,sizeof(double)*nSpc*nReactors),
+      "hipMalloc(... destroyRate_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.fwdROP_dev,sizeof(double)*nStep*nReactors),
-      "cudaMalloc(... fwdROP_dev ...)"
+      hipMalloc((void**)&systemParam.fwdROP_dev,sizeof(double)*nStep*nReactors),
+      "hipMalloc(... fwdROP_dev ...)"
   );
   zerork::checkCudaError
   (
-      cudaMalloc((void**)&systemParam.reactorTemps_dev,sizeof(double)*nReactors),
-      "cudaMalloc(... reactorTemps_dev ...)"
+      hipMalloc((void**)&systemParam.reactorTemps_dev,sizeof(double)*nReactors),
+      "hipMalloc(... reactorTemps_dev ...)"
   );
 
   // set constant parameters //TODO: Possibly calculate for each reactor
@@ -286,11 +287,11 @@ int main(int argc, char *argv[])
   for(j=0; j<nSpc; j++)
     {systemParam.invMolWt[j]=1.0/systemParam.molWt[j];}
 
-  cudaMemcpy(systemParam.molWt_dev,systemParam.molWt,sizeof(double)*nSpc,cudaMemcpyHostToDevice);
-  cudaMemcpy(systemParam.invMolWt_dev,systemParam.invMolWt,sizeof(double)*nSpc,cudaMemcpyHostToDevice);
+  hipMemcpy(systemParam.molWt_dev,systemParam.molWt,sizeof(double)*nSpc,hipMemcpyHostToDevice);
+  hipMemcpy(systemParam.invMolWt_dev,systemParam.invMolWt,sizeof(double)*nSpc,hipMemcpyHostToDevice);
 
-  cudaStreamCreate(&(systemParam.concDerivStream));
-  cudaStreamCreate(&(systemParam.TDerivStream));
+  hipStreamCreate(&(systemParam.concDerivStream));
+  hipStreamCreate(&(systemParam.TDerivStream));
 
   for(j=0; j<nSpc-1; j++)
     {
@@ -343,7 +344,7 @@ int main(int argc, char *argv[])
           if(prevConcIdx >= nSpc) prevConcIdx=0;
         }
     }
-  cudaMemcpy(systemParam.reactorTemps_dev,Temp_array,sizeof(double)*nReactors,cudaMemcpyHostToDevice);
+  hipMemcpy(systemParam.reactorTemps_dev,Temp_array,sizeof(double)*nReactors,hipMemcpyHostToDevice);
 
   for(k=0;k<nReactors;++k)
   {
@@ -351,8 +352,8 @@ int main(int argc, char *argv[])
       systemParam.invDens[k]=1.0/systemParam.Dens[k];
   }
 
-  cudaMemcpy(systemParam.Dens_dev,systemParam.Dens,sizeof(double)*nReactors,cudaMemcpyHostToDevice);
-  cudaMemcpy(systemParam.invDens_dev,systemParam.invDens,sizeof(double)*nReactors,cudaMemcpyHostToDevice);
+  hipMemcpy(systemParam.Dens_dev,systemParam.Dens,sizeof(double)*nReactors,hipMemcpyHostToDevice);
+  hipMemcpy(systemParam.invDens_dev,systemParam.invDens,sizeof(double)*nReactors,hipMemcpyHostToDevice);
 
  N_Vector systemState;
  N_Vector systemDeriv;
@@ -491,21 +492,21 @@ int main(int argc, char *argv[])
   free(systemParam.destroyRate);
   free(systemParam.conc);
 
-  cudaFree(systemParam.y_dev);
-  cudaFree(systemParam.ydot_dev);
-  cudaFree(systemParam.Dens_dev);
-  cudaFree(systemParam.invDens_dev);
-  cudaFree(systemParam.molWt_dev);
-  cudaFree(systemParam.invMolWt_dev);
-  cudaFree(systemParam.meanCvMass_dev);
-  cudaFree(systemParam.Energy_dev);
-  cudaFree(systemParam.CvMass_dev);
-  cudaFree(systemParam.netProd_dev);
-  cudaFree(systemParam.conc_dev);
-  cudaFree(systemParam.createRate_dev);
-  cudaFree(systemParam.destroyRate_dev);
-  cudaFree(systemParam.fwdROP_dev);
-  cudaFree(systemParam.reactorTemps_dev);
+  hipFree(systemParam.y_dev);
+  hipFree(systemParam.ydot_dev);
+  hipFree(systemParam.Dens_dev);
+  hipFree(systemParam.invDens_dev);
+  hipFree(systemParam.molWt_dev);
+  hipFree(systemParam.invMolWt_dev);
+  hipFree(systemParam.meanCvMass_dev);
+  hipFree(systemParam.Energy_dev);
+  hipFree(systemParam.CvMass_dev);
+  hipFree(systemParam.netProd_dev);
+  hipFree(systemParam.conc_dev);
+  hipFree(systemParam.createRate_dev);
+  hipFree(systemParam.destroyRate_dev);
+  hipFree(systemParam.fwdROP_dev);
+  hipFree(systemParam.reactorTemps_dev);
 
   N_VDestroy_Serial(systemState);
   N_VDestroy_Serial(systemDeriv);
@@ -516,14 +517,14 @@ int main(int argc, char *argv[])
       N_VDestroy_Serial(systemDerivIns[k]);
   }
 
-  cudaStreamDestroy(systemParam.concDerivStream);
-  cudaStreamDestroy(systemParam.TDerivStream);
+  hipStreamDestroy(systemParam.concDerivStream);
+  hipStreamDestroy(systemParam.TDerivStream);
 
   fclose(outputFptr);
   fclose(stateFptr);
 
-  cudaDeviceSynchronize();
-  cudaDeviceReset();
+  hipDeviceSynchronize();
+  hipDeviceReset();
   return 0;
 }
   
@@ -817,37 +818,37 @@ int const_vol_wsr_mr_dev(realtype t, N_Vector y, N_Vector ydot,
   dim3 nThreads2D,nBlocks2D;
   double startTime=getHighResolutionTime();
 
-  cudaMemcpy(cvp->y_dev,NV_DATA_S(y),sizeof(double)*nSize*nReactors,cudaMemcpyHostToDevice);
-  cudaMemcpy(cvp->reactorTemps_dev,&(cvp->y_dev[nSpc*nReactors]),sizeof(double)*nReactors,cudaMemcpyDeviceToDevice);
+  hipMemcpy(cvp->y_dev,NV_DATA_S(y),sizeof(double)*nSize*nReactors,hipMemcpyHostToDevice);
+  hipMemcpy(cvp->reactorTemps_dev,&(cvp->y_dev[nSpc*nReactors]),sizeof(double)*nReactors,hipMemcpyDeviceToDevice);
 //  double *Temp_dev = &(cvp->y_dev[nSpc*nReactors]);
-//  checkCudaError(cudaGetLastError(),"wsr_memcpy");
+//  checkCudaError(hipGetLastError(),"wsr_memcpy");
 
   // set concentration via density and mass fraction
   cvp->mech->getCfromVY_mr_dev(nReactors,cvp->invDens_dev,cvp->y_dev,cvp->conc_dev);
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_CfromVY");
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_CfromVY");
 
   // set temperature
   nThreads = 1024;
   nBlocks = (nReactors + nThreads -1)/nThreads;
   multiplyElements<<<nBlocks,nThreads>>>(nReactors,cvp->Tref,cvp->reactorTemps_dev);
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_multiplyElems");
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_multiplyElems");
 
   // compute the molar production rates at the current state (aka wdot)
   cvp->mech->getReactionRates_CUDA_mr_dev(nReactors,cvp->reactorTemps_dev,
                                                     cvp->conc_dev,cvp->netProd_dev,
                                                     cvp->createRate_dev,cvp->destroyRate_dev,
                                                     cvp->fwdROP_dev);
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_getReactionRates");
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_getReactionRates");
 
   cvp->mech->getIntEnergy_RT_mr_dev(nReactors,cvp->reactorTemps_dev,cvp->Energy_dev);
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_getIntEnergy");
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_getIntEnergy");
   cvp->mech->getMassCvFromTY_mr_dev(nReactors,cvp->reactorTemps_dev,cvp->y_dev,cvp->CvMass_dev,cvp->meanCvMass_dev);
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_getMassCv");
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_getMassCv");
 
   // ydot = [kmol/m^3/s] * [kg/kmol] * [m^3/kg] = [(kg spec j)/(kg mix)/s]
   nThreads2D.x = 1;
@@ -856,22 +857,22 @@ int const_vol_wsr_mr_dev(realtype t, N_Vector y, N_Vector ydot,
   nBlocks2D.y = (nReactors+nThreads2D.y-1)/nThreads2D.y;
 
   cv_wsr_conc_deriv<<<nBlocks2D,nThreads2D,0,cvp->concDerivStream>>>(nReactors,nSpc,cvp->netProd_dev,cvp->molWt_dev,cvp->invDens_dev,cvp->ydot_dev);   
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_conc_deriv");
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_conc_deriv");
 
 
-  cudaMemset(&(cvp->ydot_dev[nReactors*nSpc]),0,sizeof(double)*nReactors);
+  hipMemset(&(cvp->ydot_dev[nReactors*nSpc]),0,sizeof(double)*nReactors);
   nThreads = 1024;
   nBlocks = (nReactors+nThreads-1)/nThreads;
   cv_wsr_T_deriv<<<nBlocks,nThreads,sizeof(double)*nThreads,cvp->TDerivStream>>>(nReactors,nSpc,cvp->mech->getGasConstant(),
                                        cvp->Energy_dev,cvp->netProd_dev,cvp->invDens_dev,
                                        cvp->meanCvMass_dev,cvp->y_dev,cvp->ydot_dev);
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_T_deriv");
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_T_deriv");
 
-  cudaMemcpy(NV_DATA_S(ydot),cvp->ydot_dev,sizeof(double)*nSize*nReactors,cudaMemcpyDeviceToHost);
-//  cudaThreadSynchronize();
-//  checkCudaError(cudaGetLastError(),"wsr_memcpy2");
+  hipMemcpy(NV_DATA_S(ydot),cvp->ydot_dev,sizeof(double)*nSize*nReactors,hipMemcpyDeviceToHost);
+//  hipDeviceSynchronize();
+//  checkCudaError(hipGetLastError(),"wsr_memcpy2");
 
 // TESTING CODE
 /*
@@ -907,11 +908,11 @@ int const_vol_wsr_mr_dev(realtype t, N_Vector y, N_Vector ydot,
       meancv_cpu[k] = cvp->mech->getMassCvFromTY(Temp[k],&(mfp_ins[cvp->nSpc*k]),&(cv_cpu[cvp->nSpc*k]));
   }
 
-  cudaMemcpy(cvp->conc,cvp->conc_dev,sizeof(double)*nSpc*nReactors,cudaMemcpyDeviceToHost);
-  cudaMemcpy(cvp->netProd,cvp->netProd_dev,sizeof(double)*nSpc*nReactors,cudaMemcpyDeviceToHost);
-  cudaMemcpy(cvp->Energy,cvp->Energy_dev,sizeof(double)*nSpc*nReactors,cudaMemcpyDeviceToHost);
-  cudaMemcpy(cvp->CvMass,cvp->CvMass_dev,sizeof(double)*nSpc*nReactors,cudaMemcpyDeviceToHost);
-  cudaMemcpy(cvp->meanCvMass,cvp->meanCvMass_dev,sizeof(double)*nReactors,cudaMemcpyDeviceToHost);
+  hipMemcpy(cvp->conc,cvp->conc_dev,sizeof(double)*nSpc*nReactors,hipMemcpyDeviceToHost);
+  hipMemcpy(cvp->netProd,cvp->netProd_dev,sizeof(double)*nSpc*nReactors,hipMemcpyDeviceToHost);
+  hipMemcpy(cvp->Energy,cvp->Energy_dev,sizeof(double)*nSpc*nReactors,hipMemcpyDeviceToHost);
+  hipMemcpy(cvp->CvMass,cvp->CvMass_dev,sizeof(double)*nSpc*nReactors,hipMemcpyDeviceToHost);
+  hipMemcpy(cvp->meanCvMass,cvp->meanCvMass_dev,sizeof(double)*nReactors,hipMemcpyDeviceToHost);
 
   double diff= 1.0;
   double cpu_val,gpu_val;

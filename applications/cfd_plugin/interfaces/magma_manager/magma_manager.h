@@ -5,9 +5,9 @@
 
 #include <magma_v2.h>
 
-#include "../cuda_la_manager/cuda_la_manager.h"
+#include "../hip_la_manager/hip_la_manager.h"
 
-class magma_manager : public cuda_la_manager
+class magma_manager : public hip_la_manager
 {
  public:
   magma_manager();

@@ -9,8 +9,8 @@
 #include "zerork/mechanism_cuda.h"
 #include <nvector/nvector_serial.h> // serial N_Vector types, fcts., and macros
 
-#include "cuda_runtime.h"
-#include "cuda_profiler_api.h"
+#include "hip/hip_runtime.h"
+//#include "hip/hip_runtime_api.h"
 
 typedef struct
 {
@@ -250,15 +250,15 @@ double* netProdRate_dev;
 double* createRate_dev;
 double* destroyRate_dev;
 double* stepROP_dev;
-cudaMalloc((void**)&Temp_array_dev,sizeof(double)*nReactors);
-cudaMalloc((void**)&conc_dev,sizeof(double)*nReactors*nSpc);
-cudaMalloc((void**)&netProdRate_dev,sizeof(double)*nReactors*nSpc);
-cudaMalloc((void**)&createRate_dev,sizeof(double)*nReactors*nSpc);
-cudaMalloc((void**)&destroyRate_dev,sizeof(double)*nReactors*nSpc);
-cudaMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
+hipMalloc((void**)&Temp_array_dev,sizeof(double)*nReactors);
+hipMalloc((void**)&conc_dev,sizeof(double)*nReactors*nSpc);
+hipMalloc((void**)&netProdRate_dev,sizeof(double)*nReactors*nSpc);
+hipMalloc((void**)&createRate_dev,sizeof(double)*nReactors*nSpc);
+hipMalloc((void**)&destroyRate_dev,sizeof(double)*nReactors*nSpc);
+hipMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
 
 
- cudaMemcpy(Temp_array_dev,&Temp_array[0],sizeof(double)*nReactors,cudaMemcpyHostToDevice);
+ hipMemcpy(Temp_array_dev,&Temp_array[0],sizeof(double)*nReactors,hipMemcpyHostToDevice);
 
  std::vector<double> transposedC(nSpc*nReactors);
  for( k = 0; k < nReactors; ++k)
@@ -268,7 +268,7 @@ cudaMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
          transposedC[j*nReactors+k] = sysParam.conc[k*nSpc+j];
      }
  }
- cudaMemcpy(conc_dev,&transposedC[0],sizeof(double)*nReactors*nSpc,cudaMemcpyHostToDevice);
+ hipMemcpy(conc_dev,&transposedC[0],sizeof(double)*nReactors*nSpc,hipMemcpyHostToDevice);
 
  startTime=getHighResolutionTime();
 
@@ -360,17 +360,17 @@ cudaMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
   printf(" *** %d  %d  %g \n",nSpc,nReactors,cpuTime/gpuTime);
 
   //We copy the values from the last call inside the testing loop
-  cudaMemcpy(stepROP_gpu, stepROP_dev,sizeof(double)*nReactors*nStep,cudaMemcpyDeviceToHost);
-  cudaMemcpy(createRate_gpu, createRate_dev,sizeof(double)*nReactors*nSpc,cudaMemcpyDeviceToHost);
-  cudaMemcpy(destroyRate_gpu, destroyRate_dev,sizeof(double)*nReactors*nSpc,cudaMemcpyDeviceToHost);
-  cudaMemcpy(netProdRate_gpu, netProdRate_dev,sizeof(double)*nReactors*nSpc,cudaMemcpyDeviceToHost);
+  hipMemcpy(stepROP_gpu, stepROP_dev,sizeof(double)*nReactors*nStep,hipMemcpyDeviceToHost);
+  hipMemcpy(createRate_gpu, createRate_dev,sizeof(double)*nReactors*nSpc,hipMemcpyDeviceToHost);
+  hipMemcpy(destroyRate_gpu, destroyRate_dev,sizeof(double)*nReactors*nSpc,hipMemcpyDeviceToHost);
+  hipMemcpy(netProdRate_gpu, netProdRate_dev,sizeof(double)*nReactors*nSpc,hipMemcpyDeviceToHost);
 
-  cudaFree(Temp_array_dev);
-  cudaFree(conc_dev);
-  cudaFree(netProdRate_dev);
-  cudaFree(createRate_dev);
-  cudaFree(destroyRate_dev);
-  cudaFree(stepROP_dev);
+  hipFree(Temp_array_dev);
+  hipFree(conc_dev);
+  hipFree(netProdRate_dev);
+  hipFree(createRate_dev);
+  hipFree(destroyRate_dev);
+  hipFree(stepROP_dev);
 
   // Check _dev results
   diffcount = 0;
@@ -452,8 +452,8 @@ cudaMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
   fclose(outputFptr);
   fclose(stateFptr);
 
-  cudaDeviceSynchronize();
-  cudaDeviceReset();
+  hipDeviceSynchronize();
+  hipDeviceReset();
   return 0;
 }
   

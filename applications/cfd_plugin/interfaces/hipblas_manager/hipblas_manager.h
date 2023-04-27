@@ -3,15 +3,15 @@
 
 #include <vector>
 
-#include "cublas_v2.h"
+#include "hipblas.h"
 
-#include "../cuda_la_manager/cuda_la_manager.h"
+#include "../hip_la_manager/hip_la_manager.h"
 
-class cublas_manager : public cuda_la_manager
+class hipblas_manager : public hip_la_manager
 {
  public:
-  cublas_manager();
-  virtual ~cublas_manager();
+  hipblas_manager();
+  virtual ~hipblas_manager();
 
   bool factored() { return this->factored_; };
 
@@ -25,11 +25,11 @@ class cublas_manager : public cuda_la_manager
   void AllocateDeviceMemory();
   void FreeDeviceMemory();
   void setup_memory();
-  int cuda_bdmv(int n, int nbatch, double* A_dev, double* B_dev, double* Y_dev);
-  void cuda_transpose(double* odata, const double* idata, const int width, const int height);
+  int gpu_bdmv(int n, int nbatch, double* A_dev, double* B_dev, double* Y_dev);
+  void gpu_transpose(double* odata, const double* idata, const int width, const int height);
 
-  cublasHandle_t cublas_handle_;
-  cudaError_t cudaStatus_;
+  hipblasHandle_t hipblas_handle_;
+  //hipError_t cudaStatus_;
 
   bool factored_;
   int n_;

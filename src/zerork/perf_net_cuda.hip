@@ -183,96 +183,96 @@ perf_net_cuda::perf_net_cuda(info_net &netobj, rate_const &Kobj)
 
   //8 create and 8 destroy kernels  2^[0-7]
   scatterAddCount = 16;
-  scatterAddStreams = new cudaStream_t[scatterAddCount];
+  scatterAddStreams = new hipStream_t[scatterAddCount];
   for(j = 0; j < scatterAddCount; ++j)
   {
-      cudaStreamCreate( &scatterAddStreams[j] );
+      hipStreamCreate( &scatterAddStreams[j] );
   }
 
   checkCudaError
   (
-     cudaMalloc((void**)&nOpsDestroy_dev,sizeof(int)*9),
-     "cudaMalloc(... nOpsDestroy_dev ...)"
+     hipMalloc((void**)&nOpsDestroy_dev,sizeof(int)*9),
+     "hipMalloc(... nOpsDestroy_dev ...)"
   );
-  cudaMemcpy(nOpsDestroy_dev, nOpsDestroy,sizeof(int)*9,cudaMemcpyHostToDevice);
+  hipMemcpy(nOpsDestroy_dev, nOpsDestroy,sizeof(int)*9,hipMemcpyHostToDevice);
   delete[] nOpsDestroy;
 
   checkCudaError
   (
-     cudaMalloc((void**)&nOpsCreate_dev,sizeof(int)*9),
-     "cudaMalloc(... nOpsCreate_dev ...)"
+     hipMalloc((void**)&nOpsCreate_dev,sizeof(int)*9),
+     "hipMalloc(... nOpsCreate_dev ...)"
   );
-  cudaMemcpy(nOpsCreate_dev, nOpsCreate,sizeof(int)*9,cudaMemcpyHostToDevice);
+  hipMemcpy(nOpsCreate_dev, nOpsCreate,sizeof(int)*9,hipMemcpyHostToDevice);
   delete[] nOpsCreate;
 
   checkCudaError
   (
-     cudaMalloc((void**)&reactantSpcIdxListUnwrapped_dev,sizeof(int)*rCtrU),
-     "cudaMalloc(... reactantSpcIdxListUnwrapped_dev ...)"
+     hipMalloc((void**)&reactantSpcIdxListUnwrapped_dev,sizeof(int)*rCtrU),
+     "hipMalloc(... reactantSpcIdxListUnwrapped_dev ...)"
   );
-  cudaMemcpy(reactantSpcIdxListUnwrapped_dev,reactantSpcIdxListUnwrapped,sizeof(int)*rCtrU,cudaMemcpyHostToDevice);
+  hipMemcpy(reactantSpcIdxListUnwrapped_dev,reactantSpcIdxListUnwrapped,sizeof(int)*rCtrU,hipMemcpyHostToDevice);
 
   checkCudaError
   (
-     cudaMalloc((void**)&reactantSpcIdxList_dev,sizeof(int)*totReac),
-     "cudaMalloc(... reactantSpcIdxList_dev ...)"
+     hipMalloc((void**)&reactantSpcIdxList_dev,sizeof(int)*totReac),
+     "hipMalloc(... reactantSpcIdxList_dev ...)"
   );
-  cudaMemcpy(reactantSpcIdxList_dev,reactantSpcIdxList,sizeof(int)*totReac,cudaMemcpyHostToDevice);
+  hipMemcpy(reactantSpcIdxList_dev,reactantSpcIdxList,sizeof(int)*totReac,hipMemcpyHostToDevice);
   checkCudaError
   (
-     cudaMalloc((void**)&reactantStepIdxList_dev,sizeof(int)*totReac),
-     "cudaMalloc(... reactantStepIdxList_dev ...)"
+     hipMalloc((void**)&reactantStepIdxList_dev,sizeof(int)*totReac),
+     "hipMalloc(... reactantStepIdxList_dev ...)"
   );
-  cudaMemcpy(reactantStepIdxList_dev,reactantStepIdxList,sizeof(int)*totReac,cudaMemcpyHostToDevice);
+  hipMemcpy(reactantStepIdxList_dev,reactantStepIdxList,sizeof(int)*totReac,hipMemcpyHostToDevice);
 
 
   checkCudaError
   (
-     cudaMalloc((void**)&productSpcIdxList_dev,sizeof(int)*totProd),
-     "cudaMalloc(... productSpcIdxList_dev ...)"
+     hipMalloc((void**)&productSpcIdxList_dev,sizeof(int)*totProd),
+     "hipMalloc(... productSpcIdxList_dev ...)"
   );
-  cudaMemcpy(productSpcIdxList_dev,productSpcIdxList,sizeof(int)*totProd,cudaMemcpyHostToDevice);
+  hipMemcpy(productSpcIdxList_dev,productSpcIdxList,sizeof(int)*totProd,hipMemcpyHostToDevice);
   checkCudaError
   (
-     cudaMalloc((void**)&productStepIdxList_dev,sizeof(int)*totProd),
-     "cudaMalloc(... productStepIdxList_dev ...)"
+     hipMalloc((void**)&productStepIdxList_dev,sizeof(int)*totProd),
+     "hipMalloc(... productStepIdxList_dev ...)"
   );
-  cudaMemcpy(productStepIdxList_dev,productStepIdxList,sizeof(int)*totProd,cudaMemcpyHostToDevice);
+  hipMemcpy(productStepIdxList_dev,productStepIdxList,sizeof(int)*totProd,hipMemcpyHostToDevice);
 
   checkCudaError
   (
-     cudaMalloc((void**)&stepOut_dev,sizeof(double)*nStep*nReactorsMax),
-     "cudaMalloc(... stepOut_dev ...)"
-  );
-
-  checkCudaError
-  (
-     cudaMalloc((void**)&createOut_dev,sizeof(double)*nSpc*nReactorsMax),
-     "cudaMalloc(... createOut_dev ...)"
-  );
-  checkCudaError
-  (
-     cudaMalloc((void**)&destroyOut_dev,sizeof(double)*nSpc*nReactorsMax),
-     "cudaMalloc(... destroyOut_dev ...)"
-  );
-  checkCudaError
-  (
-     cudaMalloc((void**)&netOut_dev,sizeof(double)*nSpc*nReactorsMax),
-     "cudaMalloc(... netOut_dev ...)"
+     hipMalloc((void**)&stepOut_dev,sizeof(double)*nStep*nReactorsMax),
+     "hipMalloc(... stepOut_dev ...)"
   );
 
   checkCudaError
   (
-     cudaMalloc((void**)&C_dev,sizeof(double)*(nSpc+1)*nReactorsMax),
-     "cudaMalloc(... C_dev ...)"
+     hipMalloc((void**)&createOut_dev,sizeof(double)*nSpc*nReactorsMax),
+     "hipMalloc(... createOut_dev ...)"
+  );
+  checkCudaError
+  (
+     hipMalloc((void**)&destroyOut_dev,sizeof(double)*nSpc*nReactorsMax),
+     "hipMalloc(... destroyOut_dev ...)"
+  );
+  checkCudaError
+  (
+     hipMalloc((void**)&netOut_dev,sizeof(double)*nSpc*nReactorsMax),
+     "hipMalloc(... netOut_dev ...)"
+  );
+
+  checkCudaError
+  (
+     hipMalloc((void**)&C_dev,sizeof(double)*(nSpc+1)*nReactorsMax),
+     "hipMalloc(... C_dev ...)"
   );
   //Set extra concentration to 1.0 to keep scatter mult kernel in sync
   setDoubleArrayVal(C_dev,1.0,nSpc*nReactorsMax,(nSpc+1)*nReactorsMax);
 
   checkCudaError
   (
-     cudaMalloc((void**)&Tmulti_dev,sizeof(double)*nReactorsMax),
-     "cudaMalloc(... Tmulti_dev ...)"
+     hipMalloc((void**)&Tmulti_dev,sizeof(double)*nReactorsMax),
+     "hipMalloc(... Tmulti_dev ...)"
   );
 
   rop_concentration_powers_dev = nullptr;
@@ -301,10 +301,10 @@ perf_net_cuda::perf_net_cuda(info_net &netobj, rate_const &Kobj)
 
     checkCudaError
     (
-       cudaMalloc((void**)&rop_concentration_powers_dev,sizeof(double)*nStep*maxReactants),
-       "cudaMalloc(... rop_concentration_powers_dev ...)"
+       hipMalloc((void**)&rop_concentration_powers_dev,sizeof(double)*nStep*maxReactants),
+       "hipMalloc(... rop_concentration_powers_dev ...)"
     );
-    cudaMemcpy(rop_concentration_powers_dev,&rop_concentration_powers[0],sizeof(double)*nStep*maxReactants,cudaMemcpyHostToDevice);
+    hipMemcpy(rop_concentration_powers_dev,&rop_concentration_powers[0],sizeof(double)*nStep*maxReactants,hipMemcpyHostToDevice);
 
     //Reorder non_integer scatter add operations to reduce atomic races in production rate calcs.
     sa64c_ni=reorderScatterAdd_by_ntuple(128, niTotProd, nStep, nSpc,
@@ -430,56 +430,56 @@ perf_net_cuda::perf_net_cuda(info_net &netobj, rate_const &Kobj)
 
     checkCudaError
     (
-       cudaMalloc((void**)&niReactantSpcIdxList_dev,sizeof(int)*niTotReac),
-       "cudaMalloc(... niReactantSpcIdxList_dev ...)"
+       hipMalloc((void**)&niReactantSpcIdxList_dev,sizeof(int)*niTotReac),
+       "hipMalloc(... niReactantSpcIdxList_dev ...)"
     );
-    cudaMemcpy(niReactantSpcIdxList_dev,&niReactantSpcIdxList[0],sizeof(int)*niTotReac,cudaMemcpyHostToDevice);
+    hipMemcpy(niReactantSpcIdxList_dev,&niReactantSpcIdxList[0],sizeof(int)*niTotReac,hipMemcpyHostToDevice);
     checkCudaError
     (
-       cudaMalloc((void**)&niReactantStepIdxList_dev,sizeof(int)*niTotReac),
-       "cudaMalloc(... niReactantStepIdxList_dev ...)"
+       hipMalloc((void**)&niReactantStepIdxList_dev,sizeof(int)*niTotReac),
+       "hipMalloc(... niReactantStepIdxList_dev ...)"
     );
-    cudaMemcpy(niReactantStepIdxList_dev,&niReactantStepIdxList[0],sizeof(int)*niTotReac,cudaMemcpyHostToDevice);
+    hipMemcpy(niReactantStepIdxList_dev,&niReactantStepIdxList[0],sizeof(int)*niTotReac,hipMemcpyHostToDevice);
     checkCudaError
     (
-       cudaMalloc((void**)&niReactantStoichNumList_dev,sizeof(double)*niTotReac),
-       "cudaMalloc(... niReactantStoichNumList_dev ...)"
+       hipMalloc((void**)&niReactantStoichNumList_dev,sizeof(double)*niTotReac),
+       "hipMalloc(... niReactantStoichNumList_dev ...)"
     );
-    cudaMemcpy(niReactantStoichNumList_dev,&niReactantStoichNumList[0],sizeof(double)*niTotReac,cudaMemcpyHostToDevice);
+    hipMemcpy(niReactantStoichNumList_dev,&niReactantStoichNumList[0],sizeof(double)*niTotReac,hipMemcpyHostToDevice);
 
 
     checkCudaError
     (
-       cudaMalloc((void**)&niProductSpcIdxList_dev,sizeof(int)*niTotProd),
-       "cudaMalloc(... niProductSpcIdxList_dev ...)"
+       hipMalloc((void**)&niProductSpcIdxList_dev,sizeof(int)*niTotProd),
+       "hipMalloc(... niProductSpcIdxList_dev ...)"
     );
-    cudaMemcpy(niProductSpcIdxList_dev,&niProductSpcIdxList[0],sizeof(int)*niTotProd,cudaMemcpyHostToDevice);
+    hipMemcpy(niProductSpcIdxList_dev,&niProductSpcIdxList[0],sizeof(int)*niTotProd,hipMemcpyHostToDevice);
     checkCudaError
     (
-       cudaMalloc((void**)&niProductStepIdxList_dev,sizeof(int)*niTotProd),
-       "cudaMalloc(... niProductStepIdxList_dev ...)"
+       hipMalloc((void**)&niProductStepIdxList_dev,sizeof(int)*niTotProd),
+       "hipMalloc(... niProductStepIdxList_dev ...)"
     );
-    cudaMemcpy(niProductStepIdxList_dev,&niProductStepIdxList[0],sizeof(int)*niTotProd,cudaMemcpyHostToDevice);
+    hipMemcpy(niProductStepIdxList_dev,&niProductStepIdxList[0],sizeof(int)*niTotProd,hipMemcpyHostToDevice);
     checkCudaError
     (
-       cudaMalloc((void**)&niProductStoichNumList_dev,sizeof(double)*niTotProd),
-       "cudaMalloc(... niProductStoichNumList_dev ...)"
+       hipMalloc((void**)&niProductStoichNumList_dev,sizeof(double)*niTotProd),
+       "hipMalloc(... niProductStoichNumList_dev ...)"
     );
-    cudaMemcpy(niProductStoichNumList_dev,&niProductStoichNumList[0],sizeof(double)*niTotProd,cudaMemcpyHostToDevice);
+    hipMemcpy(niProductStoichNumList_dev,&niProductStoichNumList[0],sizeof(double)*niTotProd,hipMemcpyHostToDevice);
 
     checkCudaError
     (
-       cudaMalloc((void**)&nOpsDestroy_ni_dev,sizeof(int)*9),
-       "cudaMalloc(... nOpsDestroy_ni_dev ...)"
+       hipMalloc((void**)&nOpsDestroy_ni_dev,sizeof(int)*9),
+       "hipMalloc(... nOpsDestroy_ni_dev ...)"
     );
-    cudaMemcpy(nOpsDestroy_ni_dev, &nOpsDestroy_ni[0],sizeof(int)*9,cudaMemcpyHostToDevice);
+    hipMemcpy(nOpsDestroy_ni_dev, &nOpsDestroy_ni[0],sizeof(int)*9,hipMemcpyHostToDevice);
 
     checkCudaError
     (
-       cudaMalloc((void**)&nOpsCreate_ni_dev,sizeof(int)*9),
-       "cudaMalloc(... nOpsCreate_ni_dev ...)"
+       hipMalloc((void**)&nOpsCreate_ni_dev,sizeof(int)*9),
+       "hipMalloc(... nOpsCreate_ni_dev ...)"
     );
-    cudaMemcpy(nOpsCreate_ni_dev, &nOpsCreate_ni[0],sizeof(int)*9,cudaMemcpyHostToDevice);
+    hipMemcpy(nOpsCreate_ni_dev, &nOpsCreate_ni[0],sizeof(int)*9,hipMemcpyHostToDevice);
   } //use_non_integer_network_
 
   //Initialize gpu timing data
@@ -499,33 +499,33 @@ perf_net_cuda::~perf_net_cuda()
 #endif
 
   delete [] reactantSpcIdxListUnwrapped;
-  cudaFree(reactantSpcIdxListUnwrapped_dev);
-  cudaFree(nOpsDestroy_dev);
-  cudaFree(nOpsCreate_dev);
-  cudaFree(stepOut_dev);
-  cudaFree(createOut_dev);
-  cudaFree(destroyOut_dev);
-  cudaFree(netOut_dev);
-  cudaFree(C_dev);
-  cudaFree(productSpcIdxList_dev);
-  cudaFree(productStepIdxList_dev);
-  cudaFree(reactantSpcIdxList_dev);
-  cudaFree(reactantStepIdxList_dev);
-  cudaFree(Tmulti_dev);
+  hipFree(reactantSpcIdxListUnwrapped_dev);
+  hipFree(nOpsDestroy_dev);
+  hipFree(nOpsCreate_dev);
+  hipFree(stepOut_dev);
+  hipFree(createOut_dev);
+  hipFree(destroyOut_dev);
+  hipFree(netOut_dev);
+  hipFree(C_dev);
+  hipFree(productSpcIdxList_dev);
+  hipFree(productStepIdxList_dev);
+  hipFree(reactantSpcIdxList_dev);
+  hipFree(reactantStepIdxList_dev);
+  hipFree(Tmulti_dev);
   if(use_non_integer_network_) {
-    cudaFree(rop_concentration_powers_dev);
-    cudaFree(niReactantSpcIdxList_dev);
-    cudaFree(niReactantStepIdxList_dev);
-    cudaFree(niReactantStoichNumList_dev);
-    cudaFree(niProductSpcIdxList_dev);
-    cudaFree(niProductStepIdxList_dev);
-    cudaFree(niProductStoichNumList_dev);
-    cudaFree(nOpsDestroy_ni_dev);
-    cudaFree(nOpsCreate_ni_dev);
+    hipFree(rop_concentration_powers_dev);
+    hipFree(niReactantSpcIdxList_dev);
+    hipFree(niReactantStepIdxList_dev);
+    hipFree(niReactantStoichNumList_dev);
+    hipFree(niProductSpcIdxList_dev);
+    hipFree(niProductStepIdxList_dev);
+    hipFree(niProductStoichNumList_dev);
+    hipFree(nOpsDestroy_ni_dev);
+    hipFree(nOpsCreate_ni_dev);
   }
   for(int j = 0; j < scatterAddCount; ++j)
   {
-      cudaStreamDestroy( scatterAddStreams[j] );
+      hipStreamDestroy( scatterAddStreams[j] );
   }
   delete [] scatterAddStreams;
 }
@@ -538,92 +538,92 @@ void perf_net_cuda::calcRatesFromTC_CUDA(const double T, const double C[],
     int cpyStepSize = nStep*sizeof(double);
     float cudaTime_ms;
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEvent_t startTxC,endTxC,startTxStep,endTxStep,startK,endK,startStep,endStep,startProd,endProd,startNet,endNet;
-    cudaEvent_t startTxProd,endTxProd,startTxNet,endTxNet;
-    cudaEventCreate(&startTxC);
-    cudaEventCreate(&endTxC);
-    cudaEventCreate(&startTxStep);
-    cudaEventCreate(&endTxStep);
-    cudaEventCreate(&startK);
-    cudaEventCreate(&endK);
-    cudaEventCreate(&startStep);
-    cudaEventCreate(&endStep);
-    cudaEventCreate(&startProd);
-    cudaEventCreate(&endProd);
-    cudaEventCreate(&startNet);
-    cudaEventCreate(&endNet);
-    cudaEventCreate(&startTxProd);
-    cudaEventCreate(&endTxProd);
-    cudaEventCreate(&startTxNet);
-    cudaEventCreate(&endTxNet);
+    hipEvent_t startTxC,endTxC,startTxStep,endTxStep,startK,endK,startStep,endStep,startProd,endProd,startNet,endNet;
+    hipEvent_t startTxProd,endTxProd,startTxNet,endTxNet;
+    hipEventCreate(&startTxC);
+    hipEventCreate(&endTxC);
+    hipEventCreate(&startTxStep);
+    hipEventCreate(&endTxStep);
+    hipEventCreate(&startK);
+    hipEventCreate(&endK);
+    hipEventCreate(&startStep);
+    hipEventCreate(&endStep);
+    hipEventCreate(&startProd);
+    hipEventCreate(&endProd);
+    hipEventCreate(&startNet);
+    hipEventCreate(&endNet);
+    hipEventCreate(&startTxProd);
+    hipEventCreate(&endTxProd);
+    hipEventCreate(&startTxNet);
+    hipEventCreate(&endTxNet);
 #endif
 
     // reaction-species link lists are kept on device with work arrays for
     // rxn, creation, destruction, and net species rates
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startTxC);
+    hipEventRecord(startTxC);
 #endif
-    cudaMemcpy(C_dev,C,cpySpcSize,cudaMemcpyHostToDevice);
+    hipMemcpy(C_dev,C,cpySpcSize,hipMemcpyHostToDevice);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endTxC);
+    hipEventRecord(endTxC);
 #endif
 
     setDoubleArrayVal(C_dev,1.0,nSpc,nSpc+1);
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startK);
+    hipEventRecord(startK);
 #endif
     static_cast<rate_const_cuda*>(rateConstPtr)->updateK_CUDA(T,C,C_dev,stepOut_dev);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endK);
+    hipEventRecord(endK);
 #endif
 
 #define ZERORK_GPU_SCATTER_MULT
 #ifdef ZERORK_GPU_SCATTER_MULT
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startStep);
+    hipEventRecord(startStep);
 #endif
     //Scatter multiplication kernel
     perf_net_cuda_rxn_conc_mult(nStep, maxReactants, reactantSpcIdxListUnwrapped_dev, C_dev, stepOut_dev);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endStep);
+    hipEventRecord(endStep);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startTxStep);
+    hipEventRecord(startTxStep);
 #endif
-    cudaMemcpyAsync(stepOut,stepOut_dev,cpyStepSize,cudaMemcpyDeviceToHost);
+    hipMemcpyAsync(stepOut,stepOut_dev,cpyStepSize,hipMemcpyDeviceToHost);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endTxStep);
+    hipEventRecord(endTxStep);
 #endif
 #else
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startTxStep);
+    hipEventRecord(startTxStep);
 #endif
-    cudaMemcpy(stepOut,stepOut_dev,cpyStepSize,cudaMemcpyDeviceToHost);
+    hipMemcpy(stepOut,stepOut_dev,cpyStepSize,hipMemcpyDeviceToHost);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endTxStep);
+    hipEventRecord(endTxStep);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startStep);
+    hipEventRecord(startStep);
 #endif
     for(int j=0; j<totReac; ++j)
       {stepOut[reactantStepIdxList[j]]*=C[reactantSpcIdxList[j]];}
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endStep);
+    hipEventRecord(endStep);
 #endif
 #endif
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventSynchronize(endTxC);
-    cudaEventSynchronize(endK);
-    cudaEventSynchronize(endStep);
+    hipEventSynchronize(endTxC);
+    hipEventSynchronize(endK);
+    hipEventSynchronize(endStep);
 
-    cudaEventElapsedTime(&cudaTime_ms, startTxC, endTxC);
+    hipEventElapsedTime(&cudaTime_ms, startTxC, endTxC);
     gpuTxTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startK, endK);
+    hipEventElapsedTime(&cudaTime_ms, startK, endK);
     gpuKTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startStep, endStep);
+    hipEventElapsedTime(&cudaTime_ms, startStep, endStep);
     gpuStepTime += cudaTime_ms/1000.0;
 #endif
 
@@ -631,10 +631,10 @@ void perf_net_cuda::calcRatesFromTC_CUDA(const double T, const double C[],
 #define GPU_DO_ALL
 #ifdef GPU_DO_ALL
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startProd);
+    hipEventRecord(startProd);
 #endif
-    cudaMemset(createOut_dev,0,nSpc*sizeof(double));
-    cudaMemset(destroyOut_dev,0,nSpc*sizeof(double));
+    hipMemset(createOut_dev,0,nSpc*sizeof(double));
+    hipMemset(destroyOut_dev,0,nSpc*sizeof(double));
 
     perf_net_scatterAdd_gpu_atomic_global_128op
         (sa64d,
@@ -783,51 +783,51 @@ void perf_net_cuda::calcRatesFromTC_CUDA(const double T, const double C[],
          createOut_dev, scatterAddStreams[15]);
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endProd);
-    cudaEventSynchronize(endProd);
+    hipEventRecord(endProd);
+    hipEventSynchronize(endProd);
 #else
     for(int j = 0; j <16; ++j) {
-      cudaStreamSynchronize(scatterAddStreams[j]);
+      hipStreamSynchronize(scatterAddStreams[j]);
     }
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startTxProd);
+    hipEventRecord(startTxProd);
 #endif
-    cudaMemcpyAsync(createOut,createOut_dev,cpySpcSize,cudaMemcpyDeviceToHost);
-    cudaMemcpyAsync(destroyOut,destroyOut_dev,cpySpcSize,cudaMemcpyDeviceToHost);
+    hipMemcpyAsync(createOut,createOut_dev,cpySpcSize,hipMemcpyDeviceToHost);
+    hipMemcpyAsync(destroyOut,destroyOut_dev,cpySpcSize,hipMemcpyDeviceToHost);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endTxProd);
+    hipEventRecord(endTxProd);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startNet);
+    hipEventRecord(startNet);
 #endif
     perf_net_cuda_net_rates(nSpc, createOut_dev, destroyOut_dev, netOut_dev);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endNet);
+    hipEventRecord(endNet);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startTxNet);
+    hipEventRecord(startTxNet);
 #endif
-    cudaMemcpy(netOut,netOut_dev,cpySpcSize,cudaMemcpyDeviceToHost);
+    hipMemcpy(netOut,netOut_dev,cpySpcSize,hipMemcpyDeviceToHost);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endTxNet);
+    hipEventRecord(endTxNet);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventSynchronize(endTxProd);
-    cudaEventSynchronize(endTxNet);
+    hipEventSynchronize(endTxProd);
+    hipEventSynchronize(endTxNet);
 
 
-    cudaEventElapsedTime(&cudaTime_ms, startProd, endProd);
+    hipEventElapsedTime(&cudaTime_ms, startProd, endProd);
     gpuProdTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startTxProd, endTxProd);
+    hipEventElapsedTime(&cudaTime_ms, startTxProd, endTxProd);
     gpuTxTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startNet, endNet);
+    hipEventElapsedTime(&cudaTime_ms, startNet, endNet);
     gpuNetTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startTxNet, endTxNet);
+    hipEventElapsedTime(&cudaTime_ms, startTxNet, endTxNet);
     gpuTxTime += cudaTime_ms/1000.0;
 #endif
 #else //GPU_DO_ALL
@@ -837,8 +837,8 @@ void perf_net_cuda::calcRatesFromTC_CUDA(const double T, const double C[],
     memset(destroyOut,0,nSpc*sizeof(double));
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventSynchronize(endTxStep);
-    cudaEventElapsedTime(&cudaTime_ms, startTxStep, endTxStep);
+    hipEventSynchronize(endTxStep);
+    hipEventElapsedTime(&cudaTime_ms, startTxStep, endTxStep);
     gpuTxTime += cudaTime_ms/1000.0;
 #endif
     // compute the species destruction rate by adding each steps rate of progress
@@ -860,22 +860,22 @@ void perf_net_cuda::calcRatesFromTC_CUDA(const double T, const double C[],
     gpuNetTime += getHighResolutionTime() - startTime;
 #endif
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventDestroy(startTxC);
-    cudaEventDestroy(endTxC);
-    cudaEventDestroy(startTxStep);
-    cudaEventDestroy(endTxStep);
-    cudaEventDestroy(startK);
-    cudaEventDestroy(endK);
-    cudaEventDestroy(startStep);
-    cudaEventDestroy(endStep);
-    cudaEventDestroy(startProd);
-    cudaEventDestroy(endProd);
-    cudaEventDestroy(startNet);
-    cudaEventDestroy(endNet);
-    cudaEventDestroy(startTxProd);
-    cudaEventDestroy(endTxProd);
-    cudaEventDestroy(startTxNet);
-    cudaEventDestroy(endTxNet);
+    hipEventDestroy(startTxC);
+    hipEventDestroy(endTxC);
+    hipEventDestroy(startTxStep);
+    hipEventDestroy(endTxStep);
+    hipEventDestroy(startK);
+    hipEventDestroy(endK);
+    hipEventDestroy(startStep);
+    hipEventDestroy(endStep);
+    hipEventDestroy(startProd);
+    hipEventDestroy(endProd);
+    hipEventDestroy(startNet);
+    hipEventDestroy(endNet);
+    hipEventDestroy(startTxProd);
+    hipEventDestroy(endTxProd);
+    hipEventDestroy(startTxNet);
+    hipEventDestroy(endTxNet);
 #endif
 }
 
@@ -911,24 +911,24 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
         stepOut_tp = stepOut;
     }
 
-    cudaEvent_t startTxC,endTxC,startTxStep,endTxStep,startK,endK,startStep,endStep,
+    hipEvent_t startTxC,endTxC,startTxStep,endTxStep,startK,endK,startStep,endStep,
                 startTxProd,endTxProd,startProd,endProd,startTxNet,endTxNet,startNet,endNet;
-    cudaEventCreate(&startTxC);
-    cudaEventCreate(&endTxC);
-    cudaEventCreate(&startTxStep);
-    cudaEventCreate(&endTxStep);
-    cudaEventCreate(&startK);
-    cudaEventCreate(&endK);
-    cudaEventCreate(&startStep);
-    cudaEventCreate(&endStep);
-    cudaEventCreate(&startTxProd);
-    cudaEventCreate(&endTxProd);
-    cudaEventCreate(&startProd);
-    cudaEventCreate(&endProd);
-    cudaEventCreate(&startTxNet);
-    cudaEventCreate(&endTxNet);
-    cudaEventCreate(&startNet);
-    cudaEventCreate(&endNet);
+    hipEventCreate(&startTxC);
+    hipEventCreate(&endTxC);
+    hipEventCreate(&startTxStep);
+    hipEventCreate(&endTxStep);
+    hipEventCreate(&startK);
+    hipEventCreate(&endK);
+    hipEventCreate(&startStep);
+    hipEventCreate(&endStep);
+    hipEventCreate(&startTxProd);
+    hipEventCreate(&endTxProd);
+    hipEventCreate(&startProd);
+    hipEventCreate(&endProd);
+    hipEventCreate(&startTxNet);
+    hipEventCreate(&endTxNet);
+    hipEventCreate(&startNet);
+    hipEventCreate(&endNet);
 
     // transpose C
     if(transposeInOut)
@@ -945,56 +945,56 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
         }
         // reaction-species link lists are kept on device with work arrays for
         // rxn, creation, destruction, and net species rates
-        cudaEventRecord(startTxC);
-        cudaMemcpy(C_dev,C_tp,cpySpcSize,cudaMemcpyHostToDevice);
-        cudaEventRecord(endTxC);
-        cudaDeviceSynchronize();
+        hipEventRecord(startTxC);
+        hipMemcpy(C_dev,C_tp,cpySpcSize,hipMemcpyHostToDevice);
+        hipEventRecord(endTxC);
+        hipDeviceSynchronize();
         delete [] C_tp;
     }
     else
     {
-        cudaEventRecord(startTxC);
-        cudaMemcpy(C_dev,C,cpySpcSize,cudaMemcpyHostToDevice);
-        cudaEventRecord(endTxC);
+        hipEventRecord(startTxC);
+        hipMemcpy(C_dev,C,cpySpcSize,hipMemcpyHostToDevice);
+        hipEventRecord(endTxC);
     }
 
     //Do here instead of in updateK to keep from having separate updateK for tp_dev
-    cudaMemcpy(Tmulti_dev,T,sizeof(double)*nReactors,cudaMemcpyHostToDevice);
+    hipMemcpy(Tmulti_dev,T,sizeof(double)*nReactors,hipMemcpyHostToDevice);
 
-    cudaEventRecord(startK);
+    hipEventRecord(startK);
     static_cast<rate_const_cuda*>(rateConstPtr)->updateK_CUDA_mr(nReactors,Tmulti_dev,C_dev,stepOut_dev);
-    cudaEventRecord(endK);
+    hipEventRecord(endK);
 
-    cudaEventRecord(startStep);
+    hipEventRecord(startStep);
 //    perf_net_cuda_rxn_conc_mult_mr(nReactors, nSpc, nStep,
 //        maxReactants, reactantSpcIdxListUnwrapped_dev, nullptr, C_dev, stepOut_dev);
     //  Currently if non-integer reactions exist all reactions are processed as
     //  if they are non-integer.
     perf_net_cuda_rxn_conc_mult_mr(nReactors, nSpc, nStep, maxReactants,
         reactantSpcIdxListUnwrapped_dev, rop_concentration_powers_dev, C_dev, stepOut_dev);
-    cudaEventRecord(endStep);
+    hipEventRecord(endStep);
 
-    cudaEventRecord(startTxStep);
+    hipEventRecord(startTxStep);
     if(outputAll)
     {
-        cudaMemcpyAsync(stepOut_tp,stepOut_dev,cpyStepSize,cudaMemcpyDeviceToHost);
+        hipMemcpyAsync(stepOut_tp,stepOut_dev,cpyStepSize,hipMemcpyDeviceToHost);
     }
-    cudaEventRecord(endTxStep);
+    hipEventRecord(endTxStep);
 
-    cudaEventSynchronize(endTxC);
-    cudaEventSynchronize(endK);
-    cudaEventSynchronize(endStep);
+    hipEventSynchronize(endTxC);
+    hipEventSynchronize(endK);
+    hipEventSynchronize(endStep);
 
-    cudaEventElapsedTime(&cudaTime_ms, startTxC, endTxC);
+    hipEventElapsedTime(&cudaTime_ms, startTxC, endTxC);
     gpuTxTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startK, endK);
+    hipEventElapsedTime(&cudaTime_ms, startK, endK);
     gpuKTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startStep, endStep);
+    hipEventElapsedTime(&cudaTime_ms, startStep, endStep);
     gpuStepTime += cudaTime_ms/1000.0;
 
-    cudaEventRecord(startProd);
-    cudaMemset(createOut_dev,0,cpySpcSize);
-    cudaMemset(destroyOut_dev,0,cpySpcSize);
+    hipEventRecord(startProd);
+    hipMemset(createOut_dev,0,cpySpcSize);
+    hipMemset(destroyOut_dev,0,cpySpcSize);
 
 
     perf_net_scatterAdd_gpu_atomic_global_128op
@@ -1167,27 +1167,27 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
            createOut_dev, scatterAddStreams[8]);
     }
 
-    cudaEventRecord(endProd);
+    hipEventRecord(endProd);
 
-    cudaEventRecord(startTxProd);
+    hipEventRecord(startTxProd);
     if(outputAll)
     {
-        cudaMemcpyAsync(createOut_tp,createOut_dev,cpySpcSize,cudaMemcpyDeviceToHost);
-        cudaMemcpyAsync(destroyOut_tp,destroyOut_dev,cpySpcSize,cudaMemcpyDeviceToHost);
+        hipMemcpyAsync(createOut_tp,createOut_dev,cpySpcSize,hipMemcpyDeviceToHost);
+        hipMemcpyAsync(destroyOut_tp,destroyOut_dev,cpySpcSize,hipMemcpyDeviceToHost);
     }
-    cudaEventRecord(endTxProd);
+    hipEventRecord(endTxProd);
 
-    cudaEventRecord(startNet);
+    hipEventRecord(startNet);
     perf_net_cuda_net_rates(nSpc*nReactors,createOut_dev,destroyOut_dev,netOut_dev);
-    cudaEventRecord(endNet);
+    hipEventRecord(endNet);
 
-    cudaEventRecord(startTxNet);
-    cudaMemcpy(netOut_tp,netOut_dev,cpySpcSize,cudaMemcpyDeviceToHost);
-    cudaEventRecord(endTxNet);
+    hipEventRecord(startTxNet);
+    hipMemcpy(netOut_tp,netOut_dev,cpySpcSize,hipMemcpyDeviceToHost);
+    hipEventRecord(endTxNet);
 
-    cudaEventSynchronize(endTxStep);
-    cudaEventSynchronize(endTxProd);
-    cudaEventSynchronize(endTxNet);
+    hipEventSynchronize(endTxStep);
+    hipEventSynchronize(endTxProd);
+    hipEventSynchronize(endTxNet);
     if(transposeInOut)
     {
         for(j=0; j < nReactors; ++j)
@@ -1216,18 +1216,18 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
     }
 
 
-    cudaEventSynchronize(endProd);
-    cudaEventSynchronize(endNet);
+    hipEventSynchronize(endProd);
+    hipEventSynchronize(endNet);
 
-    cudaEventElapsedTime(&cudaTime_ms, startTxStep, endTxStep);
+    hipEventElapsedTime(&cudaTime_ms, startTxStep, endTxStep);
     gpuTxTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startProd, endProd);
+    hipEventElapsedTime(&cudaTime_ms, startProd, endProd);
     gpuProdTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startTxProd, endTxProd);
+    hipEventElapsedTime(&cudaTime_ms, startTxProd, endTxProd);
     gpuTxTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startNet, endNet);
+    hipEventElapsedTime(&cudaTime_ms, startNet, endNet);
     gpuNetTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startTxNet, endTxNet);
+    hipEventElapsedTime(&cudaTime_ms, startTxNet, endTxNet);
     gpuTxTime += cudaTime_ms/1000.0;
 
 
@@ -1242,26 +1242,26 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
         }
     }
 
-    cudaEventDestroy(startTxC);
-    cudaEventDestroy(endTxC);
-    cudaEventDestroy(startTxStep);
-    cudaEventDestroy(endTxStep);
-    cudaEventDestroy(startK);
-    cudaEventDestroy(endK);
-    cudaEventDestroy(startStep);
-    cudaEventDestroy(endStep);
-    cudaEventDestroy(startTxProd);
-    cudaEventDestroy(endTxProd);
-    cudaEventDestroy(startProd);
-    cudaEventDestroy(endProd);
-    cudaEventDestroy(startTxNet);
-    cudaEventDestroy(endTxNet);
-    cudaEventDestroy(startNet);
-    cudaEventDestroy(endNet);
+    hipEventDestroy(startTxC);
+    hipEventDestroy(endTxC);
+    hipEventDestroy(startTxStep);
+    hipEventDestroy(endTxStep);
+    hipEventDestroy(startK);
+    hipEventDestroy(endK);
+    hipEventDestroy(startStep);
+    hipEventDestroy(endStep);
+    hipEventDestroy(startTxProd);
+    hipEventDestroy(endTxProd);
+    hipEventDestroy(startProd);
+    hipEventDestroy(endProd);
+    hipEventDestroy(startTxNet);
+    hipEventDestroy(endTxNet);
+    hipEventDestroy(startNet);
+    hipEventDestroy(endNet);
 
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_cuda::getRatesFromTC_mr(): end of routine");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_cuda::getRatesFromTC_mr(): end of routine");
 #endif
 }
 
@@ -1276,37 +1276,37 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr_dev(const int nReactors, const doubl
                                scatterAddStreams[0]);
 
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_cuda::calcRatesFromTC_CUDA_mr_dev( ... ) {cudaMemCpy}");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_cuda::calcRatesFromTC_CUDA_mr_dev( ... ) {cudaMemCpy}");
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEvent_t startTxStep,endTxStep,startK,endK,startStep,endStep,
+    hipEvent_t startTxStep,endTxStep,startK,endK,startStep,endStep,
                 startTxProd,endTxProd,startProd,endProd,startTxNet,endTxNet,startNet,endNet;
-    cudaEventCreate(&startTxStep);
-    cudaEventCreate(&endTxStep);
-    cudaEventCreate(&startK);
-    cudaEventCreate(&endK);
-    cudaEventCreate(&startStep);
-    cudaEventCreate(&endStep);
-    cudaEventCreate(&startTxProd);
-    cudaEventCreate(&endTxProd);
-    cudaEventCreate(&startProd);
-    cudaEventCreate(&endProd);
-    cudaEventCreate(&startTxNet);
-    cudaEventCreate(&endTxNet);
-    cudaEventCreate(&startNet);
-    cudaEventCreate(&endNet);
+    hipEventCreate(&startTxStep);
+    hipEventCreate(&endTxStep);
+    hipEventCreate(&startK);
+    hipEventCreate(&endK);
+    hipEventCreate(&startStep);
+    hipEventCreate(&endStep);
+    hipEventCreate(&startTxProd);
+    hipEventCreate(&endTxProd);
+    hipEventCreate(&startProd);
+    hipEventCreate(&endProd);
+    hipEventCreate(&startTxNet);
+    hipEventCreate(&endTxNet);
+    hipEventCreate(&startNet);
+    hipEventCreate(&endNet);
 
-    cudaEventRecord(startK);
+    hipEventRecord(startK);
 #endif
     static_cast<rate_const_cuda*>(rateConstPtr)->updateK_CUDA_mr(nReactors,T_out_dev,C_out_dev,stepOut_out_dev);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endK);
+    hipEventRecord(endK);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startStep);
+    hipEventRecord(startStep);
 #endif
     //N.B. this happens in default stream so we don't need to sync the streams
     //  Currently if non-integer reactions exist all reactions are processed as
@@ -1314,27 +1314,27 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr_dev(const int nReactors, const doubl
     perf_net_cuda_rxn_conc_mult_mr(nReactors, nSpc, nStep, maxReactants,
         reactantSpcIdxListUnwrapped_dev, rop_concentration_powers_dev, C_dev, stepOut_out_dev);
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endStep);
+    hipEventRecord(endStep);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(startTxStep);
-    cudaEventRecord(endTxStep);
-    cudaDeviceSynchronize();
+    hipEventRecord(startTxStep);
+    hipEventRecord(endTxStep);
+    hipDeviceSynchronize();
 
-    cudaEventSynchronize(endK);
-    cudaEventSynchronize(endStep);
+    hipEventSynchronize(endK);
+    hipEventSynchronize(endStep);
 
-    cudaEventElapsedTime(&cudaTime_ms, startK, endK);
+    hipEventElapsedTime(&cudaTime_ms, startK, endK);
     gpuKTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startStep, endStep);
+    hipEventElapsedTime(&cudaTime_ms, startStep, endStep);
     gpuStepTime += cudaTime_ms/1000.0;
 
-    cudaEventRecord(startProd);
+    hipEventRecord(startProd);
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endStep);
+    hipEventRecord(endStep);
 #endif
 
 #ifndef ZERORK_SCATTER_ADD_FUSED
@@ -1531,68 +1531,68 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr_dev(const int nReactors, const doubl
 
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endProd);
+    hipEventRecord(endProd);
 
-    cudaEventRecord(startTxProd);
-    cudaEventRecord(endTxProd);
+    hipEventRecord(startTxProd);
+    hipEventRecord(endTxProd);
 
-    cudaEventRecord(startNet);
+    hipEventRecord(startNet);
 #endif
     //N.B. this happens in default stream so we don't need to sync the streams
     perf_net_cuda_net_rates(nSpc*nReactors, createOut_out_dev,
         destroyOut_out_dev, netOut_out_dev);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"cuda_net_rates (multi_dev)");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"cuda_net_rates (multi_dev)");
 #endif
 
 #ifdef ZERORK_CUDA_EVENTS
-    cudaEventRecord(endNet);
+    hipEventRecord(endNet);
 
-    cudaEventRecord(startTxNet);
-    cudaEventRecord(endTxNet);
+    hipEventRecord(startTxNet);
+    hipEventRecord(endTxNet);
 
-    cudaEventSynchronize(endTxStep);
-    cudaEventSynchronize(endTxProd);
-    cudaEventSynchronize(endTxNet);
+    hipEventSynchronize(endTxStep);
+    hipEventSynchronize(endTxProd);
+    hipEventSynchronize(endTxNet);
 
-    cudaEventSynchronize(endProd);
-    cudaEventSynchronize(endNet);
+    hipEventSynchronize(endProd);
+    hipEventSynchronize(endNet);
 
-    cudaEventElapsedTime(&cudaTime_ms, startTxStep, endTxStep);
+    hipEventElapsedTime(&cudaTime_ms, startTxStep, endTxStep);
     gpuTxTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startProd, endProd);
+    hipEventElapsedTime(&cudaTime_ms, startProd, endProd);
     gpuProdTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startTxProd, endTxProd);
+    hipEventElapsedTime(&cudaTime_ms, startTxProd, endTxProd);
     gpuTxTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startNet, endNet);
+    hipEventElapsedTime(&cudaTime_ms, startNet, endNet);
     gpuNetTime += cudaTime_ms/1000.0;
-    cudaEventElapsedTime(&cudaTime_ms, startTxNet, endTxNet);
+    hipEventElapsedTime(&cudaTime_ms, startTxNet, endTxNet);
     gpuTxTime += cudaTime_ms/1000.0;
 
-    cudaEventDestroy(startTxStep);
-    cudaEventDestroy(endTxStep);
-    cudaEventDestroy(startK);
-    cudaEventDestroy(endK);
-    cudaEventDestroy(startStep);
-    cudaEventDestroy(endStep);
-    cudaEventDestroy(startTxProd);
-    cudaEventDestroy(endTxProd);
-    cudaEventDestroy(startProd);
-    cudaEventDestroy(endProd);
-    cudaEventDestroy(startTxNet);
-    cudaEventDestroy(endTxNet);
-    cudaEventDestroy(startNet);
-    cudaEventDestroy(endNet);
+    hipEventDestroy(startTxStep);
+    hipEventDestroy(endTxStep);
+    hipEventDestroy(startK);
+    hipEventDestroy(endK);
+    hipEventDestroy(startStep);
+    hipEventDestroy(endStep);
+    hipEventDestroy(startTxProd);
+    hipEventDestroy(endTxProd);
+    hipEventDestroy(startProd);
+    hipEventDestroy(endProd);
+    hipEventDestroy(startTxNet);
+    hipEventDestroy(endTxNet);
+    hipEventDestroy(startNet);
+    hipEventDestroy(endNet);
 #endif
 
     //N.B. : This seems like it is pointless, but in testing
     //it improves performance.  Hypothesis is that it keeps
     //the cpu from getting to far ahead
-    cudaStreamSynchronize((cudaStream_t) 0);
+    hipStreamSynchronize((hipStream_t) 0);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_cuda::getRatesFromTC_mr_dev(): end of routine");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_cuda::getRatesFromTC_mr_dev(): end of routine");
 #endif
 }
 

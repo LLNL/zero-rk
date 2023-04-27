@@ -11,16 +11,16 @@ namespace zerork {
   static void exit(int status) {throw status;}
 #endif // EXIT_THROWS_EXCEPTION
 
-void checkCudaError(cudaError_t err, const char * msg)
+void checkCudaError(hipError_t err, const char * msg)
 {
     if(!err)
         return;
 
     if(!msg)
     {
-      std::printf("%s\n",cudaGetErrorString(err));
+      std::printf("%s\n",hipGetErrorString(err));
     } else {
-      std::printf("%s:  %s\n", msg, cudaGetErrorString(err));
+      std::printf("%s:  %s\n", msg, hipGetErrorString(err));
     }
 #ifndef EXIT_THROWS_EXCEPTION
     std::exit(EXIT_FAILURE);

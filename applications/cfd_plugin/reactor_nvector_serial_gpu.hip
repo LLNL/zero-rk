@@ -1,12 +1,13 @@
+#include "hip/hip_runtime.h"
 
 #include <cmath> //sqrt
 #include <algorithm> //max
 
 #include "zerork/zerork_cuda_defs.h"
 
-#include "reactor_nvector_serial_cuda.h"
-#include "nvector/nvector_cuda.h"
-#include "cuda_transpose.h"
+#include "reactor_nvector_serial_gpu.h"
+#include "nvector/nvector_hip.h"
+#include "gpu_transpose.h"
 
 #ifdef ZERORK_HAVE_MAGMA
 #include <sunmatrix/sunmatrix_magmadense.h>
@@ -16,12 +17,12 @@
 
 //#define ZERORK_REACTOR_NON_INTEGER_JACOBIAN_CPU
 
-ReactorNVectorSerialCuda::ReactorNVectorSerialCuda(std::shared_ptr<zerork::mechanism_cuda> mech_ptr) : 
+ReactorNVectorSerialGpu::ReactorNVectorSerialGpu(std::shared_ptr<zerork::mechanism_cuda> mech_ptr) : 
     ReactorBase(),
     mech_ptr_(mech_ptr),
-    csrfm_temperature_(),
-    csrfm_no_temperature_(),
-    csrfm_ptr_(&csrfm_temperature_),
+//    csrfm_temperature_(),
+//    csrfm_no_temperature_(),
+//    csrfm_ptr_(&csrfm_temperature_),
     solve_temperature_(true),
     jacobian_row_indexes_ptr_(&jacobian_row_indexes_temperature_),
     jacobian_column_indexes_ptr_(&jacobian_column_indexes_temperature_),
@@ -53,10 +54,10 @@ ReactorNVectorSerialCuda::ReactorNVectorSerialCuda(std::shared_ptr<zerork::mecha
   tmp2_data_dev_.assign(num_variables_*max_num_reactors_,0.0);
   tmp3_data_dev_.assign(num_variables_*max_num_reactors_,0.0);
 
-  state_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&state_data_[0], thrust::raw_pointer_cast(&state_data_dev_[0]));
-  tmp1_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&tmp1_data_[0], thrust::raw_pointer_cast(&tmp1_data_dev_[0]));
-  tmp2_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&tmp2_data_[0], thrust::raw_pointer_cast(&tmp2_data_dev_[0]));
-  tmp3_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&tmp3_data_[0], thrust::raw_pointer_cast(&tmp3_data_dev_[0]));
+  state_ = N_VMake_Hip(num_variables_*max_num_reactors_,&state_data_[0], thrust::raw_pointer_cast(&state_data_dev_[0]));
+  tmp1_ = N_VMake_Hip(num_variables_*max_num_reactors_,&tmp1_data_[0], thrust::raw_pointer_cast(&tmp1_data_dev_[0]));
+  tmp2_ = N_VMake_Hip(num_variables_*max_num_reactors_,&tmp2_data_[0], thrust::raw_pointer_cast(&tmp2_data_dev_[0]));
+  tmp3_ = N_VMake_Hip(num_variables_*max_num_reactors_,&tmp3_data_[0], thrust::raw_pointer_cast(&tmp3_data_dev_[0]));
 
   root_time_ = 0.0;
 
@@ -112,21 +113,21 @@ ReactorNVectorSerialCuda::ReactorNVectorSerialCuda(std::shared_ptr<zerork::mecha
 
 #ifdef ZERORK_HAVE_MAGMA
   bool use_magma = true;
-  int use_cublas_env = 0;
-  if(getenv("ZERORK_REACTOR_USE_CUBLAS") != NULL) {
-     use_cublas_env = atoi(getenv("ZERORK_REACTOR_USE_CUBLAS"));
-     if(use_cublas_env!=0) {
+  int use_hipblas_env = 0;
+  if(getenv("ZERORK_REACTOR_USE_HIPBLAS") != NULL) {
+     use_hipblas_env = atoi(getenv("ZERORK_REACTOR_USE_HIPBLAS"));
+     if(use_hipblas_env!=0) {
        use_magma = false;
      }
   }
 
   if(use_magma) {
-    cuda_la_manager_ = std::make_unique<magma_manager>();
+    hip_la_manager_ = std::make_unique<magma_manager>();
   } else {
-    cuda_la_manager_ = std::make_unique<cublas_manager>();
+    hip_la_manager_ = std::make_unique<hipblas_manager>();
   }
 #else
-  cuda_la_manager_ = std::make_unique<cublas_manager>();
+  hip_la_manager_ = std::make_unique<hipblas_manager>();
 #endif
 
   bool use_lu = false;
@@ -137,10 +138,10 @@ ReactorNVectorSerialCuda::ReactorNVectorSerialCuda(std::shared_ptr<zerork::mecha
        use_lu = true;
      }
   }
-  cuda_la_manager_->set_lu(use_lu);
+  hip_la_manager_->set_lu(use_lu);
 }
 
-ReactorNVectorSerialCuda::~ReactorNVectorSerialCuda()
+ReactorNVectorSerialGpu::~ReactorNVectorSerialGpu()
 {
   N_VDestroy(state_);
   N_VDestroy(tmp1_);
@@ -148,11 +149,11 @@ ReactorNVectorSerialCuda::~ReactorNVectorSerialCuda()
   N_VDestroy(tmp3_);
 }
 
-N_Vector& ReactorNVectorSerialCuda::GetStateNVectorRef() {
+N_Vector& ReactorNVectorSerialGpu::GetStateNVectorRef() {
   return state_;
 }
 
-void ReactorNVectorSerialCuda::SetSolveTemperature(bool value) {
+void ReactorNVectorSerialGpu::SetSolveTemperature(bool value) {
   if(solve_temperature_ != value) {
     solve_temperature_ = value;
     if(solve_temperature_) {
@@ -172,7 +173,7 @@ void ReactorNVectorSerialCuda::SetSolveTemperature(bool value) {
       creation_terms_sparse_indexes_dev_ptr_ = &creation_terms_sparse_indexes_temperature_dev_;
       unit_diagonal_dev_ptr_ = &unit_diagonal_temperature_dev_;
 
-      csrfm_ptr_ = &csrfm_temperature_;
+//      csrfm_ptr_ = &csrfm_temperature_;
     } else {
       num_variables_ = num_species_;
       nnz_ = nnz_no_temperature_;
@@ -190,16 +191,16 @@ void ReactorNVectorSerialCuda::SetSolveTemperature(bool value) {
       creation_terms_sparse_indexes_dev_ptr_ = &creation_terms_sparse_indexes_no_temperature_dev_;
       unit_diagonal_dev_ptr_ = &unit_diagonal_no_temperature_dev_;
 
-      csrfm_ptr_ = &csrfm_no_temperature_;
+//      csrfm_ptr_ = &csrfm_no_temperature_;
     }
     N_VDestroy(state_);
     N_VDestroy(tmp1_);
     N_VDestroy(tmp2_);
     N_VDestroy(tmp3_);
-    state_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&state_data_[0], thrust::raw_pointer_cast(&state_data_dev_[0]));
-    tmp1_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&tmp1_data_[0], thrust::raw_pointer_cast(&tmp1_data_dev_[0]));
-    tmp2_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&tmp2_data_[0], thrust::raw_pointer_cast(&tmp2_data_dev_[0]));
-    tmp3_ = N_VMake_Cuda(num_variables_*max_num_reactors_,&tmp3_data_[0], thrust::raw_pointer_cast(&tmp3_data_dev_[0]));
+    state_ = N_VMake_Hip(num_variables_*max_num_reactors_,&state_data_[0], thrust::raw_pointer_cast(&state_data_dev_[0]));
+    tmp1_ = N_VMake_Hip(num_variables_*max_num_reactors_,&tmp1_data_[0], thrust::raw_pointer_cast(&tmp1_data_dev_[0]));
+    tmp2_ = N_VMake_Hip(num_variables_*max_num_reactors_,&tmp2_data_[0], thrust::raw_pointer_cast(&tmp2_data_dev_[0]));
+    tmp3_ = N_VMake_Hip(num_variables_*max_num_reactors_,&tmp3_data_[0], thrust::raw_pointer_cast(&tmp3_data_dev_[0]));
   }
 }
 
@@ -219,18 +220,18 @@ static void __global__ RNSC_set_batch_mask(const int num_variables,
     }
 }
 
-void ReactorNVectorSerialCuda::SetBatchMaskNVector(int reactor_idx, N_Vector batch_mask) {
+void ReactorNVectorSerialGpu::SetBatchMaskNVector(int reactor_idx, N_Vector batch_mask) {
   int num_threads = std::min(1024, num_variables_*num_reactors_);
   int num_blocks = (num_reactors_*num_variables_ + num_threads - 1)/num_threads;
-  double* tmp_ptr = N_VGetDeviceArrayPointer_Cuda(tmp1_);
+  double* tmp_ptr = N_VGetDeviceArrayPointer_Hip(tmp1_);
   RNSC_set_batch_mask<<<num_blocks,num_threads>>>(num_variables_, num_reactors_, reactor_idx, tmp_ptr);
 
-  double* batch_mask_ptr = N_VGetDeviceArrayPointer_Cuda(batch_mask);
-  cuda_transpose(batch_mask_ptr, tmp_ptr, num_reactors_, num_variables_);
+  double* batch_mask_ptr = N_VGetDeviceArrayPointer_Hip(batch_mask);
+  gpu_transpose(batch_mask_ptr, tmp_ptr, num_reactors_, num_variables_);
 }
 
 
-void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
+void ReactorNVectorSerialGpu::SetupSparseJacobianArrays() {
   const int dense_matrix_size = num_variables_*num_variables_;
   std::vector<int> isNonZero(dense_matrix_size);
 
@@ -456,7 +457,7 @@ void ReactorNVectorSerialCuda::SetupSparseJacobianArrays() {
   unit_diagonal_no_temperature_dev_ = unit_diagonal_no_temperature;
 } 
 
-static __device__ int cuda_kernel_ret;
+static __device__ int gpu_kernel_ret;
 
 static void __global__ RNSC_scale_vector(const int n, const double alpha, double *x) {
     int tidx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -472,7 +473,7 @@ static void __global__ RNSC_check_temperatures(const int n, const double check_v
   int stride = gridDim.x*blockDim.x;
   for( ; tidx < n; tidx += stride) {
       if(T_dev[tidx] <= check_val_low) {
-          cuda_kernel_ret = 1;
+          gpu_kernel_ret = 1;
       }
       if(T_dev[tidx] > check_val_high) {
           T_dev[tidx] = check_val_high;
@@ -503,7 +504,7 @@ static void __global__ RNSC_check_mass_fractions(const int n,
   int stride = gridDim.x*blockDim.x;
   for( ; tidx < n; tidx += stride) {
     if(y_dev[tidx] < check_val) {
-        cuda_kernel_ret = 1;
+        gpu_kernel_ret = 1;
     }
   }
 }
@@ -594,16 +595,16 @@ static void __global__ RNSC_temperature_derivative(const int num_reactors, const
   }
 }
 
-int ReactorNVectorSerialCuda::CheckMassFractionsDevice(const double* y) {
+int ReactorNVectorSerialGpu::CheckMassFractionsDevice(const double* y) {
   //Check for large negative mass fracs and try to get CVODE to recover if found
   int num_threads = std::min(MAX_THREADS_PER_BLOCK,num_reactors_*num_species_);
   int num_blocks = (num_reactors_*num_species_ + num_threads -1)/num_threads;
 
   int neg_mass_fracs = 0;
-  cudaMemcpyToSymbol(cuda_kernel_ret,&neg_mass_fracs,sizeof(int));
+  hipMemcpyToSymbol(HIP_SYMBOL(gpu_kernel_ret),&neg_mass_fracs,sizeof(int));
   const double CHECK_VAL = -1.0e-10;
   RNSC_check_mass_fractions<<<num_blocks,num_threads>>>(num_reactors_*num_species_,CHECK_VAL,y);
-  cudaMemcpyFromSymbol(&neg_mass_fracs,cuda_kernel_ret,sizeof(int));
+  hipMemcpyFromSymbol(&neg_mass_fracs,HIP_SYMBOL(gpu_kernel_ret),sizeof(int));
   if(neg_mass_fracs == 1) {
     if(int_options_["verbosity"] > 4) { 
       printf("WARNING: Significantly negative species in "
@@ -613,7 +614,7 @@ int ReactorNVectorSerialCuda::CheckMassFractionsDevice(const double* y) {
   return neg_mass_fracs;
 }
 
-int ReactorNVectorSerialCuda::SetTemperatures(const double* scaled_temperatures, double* temperatures) {
+int ReactorNVectorSerialGpu::SetTemperatures(const double* scaled_temperatures, double* temperatures) {
   const double TLIMIT = 1.0e6;
   const double reference_temperature = double_options_["reference_temperature"];
 #if 0
@@ -626,11 +627,11 @@ int ReactorNVectorSerialCuda::SetTemperatures(const double* scaled_temperatures,
                                                 thrust::raw_pointer_cast(&temperatures_dev_[0]));
 
   int bad_temp_flag = 0;
-  cudaMemcpyToSymbol(cuda_kernel_ret,&bad_temp_flag,sizeof(int));
+  hipMemcpyToSymbol(HIP_SYMBOL(gpu_kernel_ret),&bad_temp_flag,sizeof(int));
   num_threads = ZERORK_ODE_THREADS;
   num_blocks = (num_reactors_ + num_threads-1)/num_threads;
   RCVG_check_temperatures<<<num_blocks,num_threads>>>(num_reactors_, 0.0, TLIMIT, thrust::raw_pointer_cast(&temperatures_dev_[0]));
-  cudaMemcpyFromSymbol(&bad_temp_flag,cuda_kernel_ret,sizeof(int));
+  hipMemcpyFromSymbol(&bad_temp_flag,HIP_SYMBOL(gpu_kernel_ret),sizeof(int));
   if(bad_temp_flag == 1) return 1;
 #else
   int num_threads = ZERORK_ODE_THREADS;
@@ -641,7 +642,7 @@ int ReactorNVectorSerialCuda::SetTemperatures(const double* scaled_temperatures,
   return 0;
 }
 
-int ReactorNVectorSerialCuda::ConcentrationDerivative(const double* inverse_densities, double *ydot) {
+int ReactorNVectorSerialGpu::ConcentrationDerivative(const double* inverse_densities, double *ydot) {
   // ydot = [kmol/m^3/s] * [kg/kmol] * [m^3/kg] = [(kg spec j)/(kg mix)/s]
   dim3 num_threads_2D, num_blocks_2D;
   num_threads_2D.x = 1;
@@ -662,14 +663,14 @@ int ReactorNVectorSerialCuda::ConcentrationDerivative(const double* inverse_dens
                                                                     inverse_densities, ydot);
   }
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  zerork::checkCudaError(cudaGetLastError(),"wsr_conc_deriv");
+  hipDeviceSynchronize();
+  zerork::checkCudaError(hipGetLastError(),"wsr_conc_deriv");
 #endif
   return 0;
 }
 
 
-int ReactorNVectorSerialCuda::TemperatureDerivative(const double* inverse_densities, const double* y, double* ydot) {
+int ReactorNVectorSerialGpu::TemperatureDerivative(const double* inverse_densities, const double* y, double* ydot) {
   int num_threads = ZERORK_ODE_THREADS;
   int num_blocks = (num_reactors_ + num_threads -1)/num_threads;
 
@@ -692,8 +693,8 @@ int ReactorNVectorSerialCuda::TemperatureDerivative(const double* inverse_densit
                                                                                      inverse_densities, mean_cx_mass,
                                                                                      dpdts_ptr, e_src_ptr, y, ydot);
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  zerork::checkCudaError(cudaGetLastError(),"wsr_T_deriv");
+  hipDeviceSynchronize();
+  zerork::checkCudaError(hipGetLastError(),"wsr_T_deriv");
 #endif
   return 0;
 }
@@ -783,21 +784,21 @@ void distribute_jac_terms
     int blocks  = (batch_size*block_size+threads-1)/threads;
     distribute_jac_terms_kernel<<<blocks,threads>>>(block_size,batch_size,col,jac_compressed_col,jac_full);
 #ifdef ZERORK_FULL_DEBUG
-    cudaErrChk(cudaPeekAtLastError(), 1);
-    cudaErrChk(cudaDeviceSynchronize(), 1);
+    zerork::cudaErrChk(hipPeekAtLastError(), 1);
+    zerork::cudaErrChk(hipDeviceSynchronize(), 1);
 #endif
 }
 
-void ReactorNVectorSerialCuda::DividedDifferenceJacobian(double t, N_Vector y, N_Vector fy,
+void ReactorNVectorSerialGpu::DividedDifferenceJacobian(double t, N_Vector y, N_Vector fy,
                                                          double* dense_jacobian) {
   long int j;
   const double uround = 1.0e-16;
   int retval = 0;
 
-  double* yd = N_VGetDeviceArrayPointer_Cuda(y);
-  double* tmp1d = N_VGetDeviceArrayPointer_Cuda(tmp1_);
-  double* tmp2d = N_VGetDeviceArrayPointer_Cuda(tmp2_);
-  double* tmp3d = N_VGetDeviceArrayPointer_Cuda(tmp3_);
+  double* yd = N_VGetDeviceArrayPointer_Hip(y);
+  double* tmp1d = N_VGetDeviceArrayPointer_Hip(tmp1_);
+  double* tmp2d = N_VGetDeviceArrayPointer_Hip(tmp2_);
+  double* tmp3d = N_VGetDeviceArrayPointer_Hip(tmp3_);
 
   const int num_variables = num_variables_;
   const int num_reactors = num_reactors_;
@@ -810,7 +811,7 @@ void ReactorNVectorSerialCuda::DividedDifferenceJacobian(double t, N_Vector y, N
       // Perturb y
 #ifndef ZERORK_RNVSC_PERTURB_V2
       // Copy fresh y to the perturbed y (tmp1)
-      cudaMemcpy(tmp1d,yd,sizeof(double)*num_variables*num_reactors,cudaMemcpyDeviceToDevice);
+      hipMemcpy(tmp1d,yd,sizeof(double)*num_variables*num_reactors,hipMemcpyDeviceToDevice);
       int threads = std::min(1024,num_reactors);
       int blocks  = (num_reactors+threads-1)/threads;
       RNVSC_perturb_y<<<blocks,threads>>>(num_variables, num_reactors, uround, j, tmp1d, tmp3d);
@@ -820,8 +821,8 @@ void ReactorNVectorSerialCuda::DividedDifferenceJacobian(double t, N_Vector y, N
       RNVSC_perturb_y<<<blocks,threads>>>(num_variables, num_reactors, uround, j, yd, tmp1d, tmp3d);
 #endif
 #ifdef ZERORK_FULL_DEBUG
-      cudaErrChk(cudaPeekAtLastError(), 1);
-      cudaErrChk(cudaDeviceSynchronize(), 1);
+      zerork::cudaErrChk(hipPeekAtLastError(), 1);
+      zerork::cudaErrChk(hipDeviceSynchronize(), 1);
 #endif
       //tmp1 contains perturbed state
 
@@ -838,7 +839,7 @@ void ReactorNVectorSerialCuda::DividedDifferenceJacobian(double t, N_Vector y, N
       //tmp3 contains compressed Jacobian data for this column in interleaved/block order
 
       // Put df/dy in "normal" order (store in tmp2_)
-      cuda_transpose(tmp2d,tmp3d,num_reactors,num_variables);
+      gpu_transpose(tmp2d,tmp3d,num_reactors,num_variables);
 
       distribute_jac_terms(num_variables,num_reactors,j,tmp2d,dense_jacobian);
     }
@@ -848,7 +849,7 @@ void ReactorNVectorSerialCuda::DividedDifferenceJacobian(double t, N_Vector y, N
 }
 
 
-int ReactorNVectorSerialCuda::GetJacobianDense(double t, N_Vector y, N_Vector fy, SUNMatrix Jac)
+int ReactorNVectorSerialGpu::GetJacobianDense(double t, N_Vector y, N_Vector fy, SUNMatrix Jac)
 {
 #ifdef ZERORK_HAVE_MAGMA
   long int N = num_variables_; //N.B. should be unused
@@ -860,11 +861,11 @@ int ReactorNVectorSerialCuda::GetJacobianDense(double t, N_Vector y, N_Vector fy
 #endif
 }
 
-int ReactorNVectorSerialCuda::GetJacobianDenseRaw(long int N, double t, N_Vector y, N_Vector fy, double* Jac)
+int ReactorNVectorSerialGpu::GetJacobianDenseRaw(long int N, double t, N_Vector y, N_Vector fy, double* Jac)
 {
   if(int_options_["analytic"])  {
     SetupJacobianSparseDevice(t,y,fy);
-    cudaMemset(Jac, 0, sizeof(double)*num_variables_*num_variables_*num_reactors_);
+    hipMemset(Jac, 0, sizeof(double)*num_variables_*num_variables_*num_reactors_);
     SparseToDenseDevice(*jacobian_row_indexes_dev_ptr_, *jacobian_column_indexes_dev_ptr_, jacobian_data_dev_, Jac);
   } else {
     this->DividedDifferenceJacobian(t, y, fy, Jac);
@@ -872,7 +873,7 @@ int ReactorNVectorSerialCuda::GetJacobianDenseRaw(long int N, double t, N_Vector
   return 0;
 }
 
-int ReactorNVectorSerialCuda::JacobianSetup(realtype t, N_Vector y, N_Vector fy)
+int ReactorNVectorSerialGpu::JacobianSetup(realtype t, N_Vector y, N_Vector fy)
 {
   int flag = 0;
   if(int_options_["analytic"] == 1)  {
@@ -909,21 +910,21 @@ static void __global__ RNSC_AddConstantBlockDiagonalKernel
 }
 
 
-int ReactorNVectorSerialCuda::AddConstantBlockDiagonal(int n, int nbatch,
+int ReactorNVectorSerialGpu::AddConstantBlockDiagonal(int n, int nbatch,
                                           double constant, double* A_dev)
 {
   int threads=1024;
   int blocks=(n*nbatch + threads - 1)/threads;
   RNSC_AddConstantBlockDiagonalKernel<<<blocks,threads>>>(n,nbatch,constant,A_dev);
 #ifdef ZERORK_FULL_DEBUG
-  cudaErrChk(cudaPeekAtLastError(), 1);
-  cudaErrChk(cudaDeviceSynchronize(), 1);
+  zerork::cudaErrChk(hipPeekAtLastError(), 1);
+  zerork::cudaErrChk(hipDeviceSynchronize(), 1);
 #endif
   return 0;  
 }
 
 
-int ReactorNVectorSerialCuda::JacobianFactor(realtype gamma)
+int ReactorNVectorSerialGpu::JacobianFactor(realtype gamma)
 {
   int flag;
   assert(jac_setup_);
@@ -938,8 +939,10 @@ int ReactorNVectorSerialCuda::JacobianFactor(realtype gamma)
 
     // compute M = 1.0 - gamma*numerical_jacobian
     AddConstantBlockDiagonal(num_variables_, num_reactors_, 1.0, thrust::raw_pointer_cast(&dense_preconditioner_dev_[0]));
-    flag = cuda_la_manager_->factor(num_reactors_, num_variables_, thrust::raw_pointer_cast(&dense_preconditioner_dev_[0]));
+    flag = hip_la_manager_->factor(num_reactors_, num_variables_, thrust::raw_pointer_cast(&dense_preconditioner_dev_[0]));
   } else {
+    assert(false); //Not implemented in HIP yet
+/*
     //TODO: Sparse numeric
     if(int_options_["analytic"] != 1) {
       assert(false);
@@ -958,6 +961,7 @@ int ReactorNVectorSerialCuda::JacobianFactor(realtype gamma)
                            thrust::raw_pointer_cast(&preconditioner_data_[0]),
                            cusolver_rf_manager::CSR);
     }
+*/
   }
 
   // CVODE will retry if return value is positive
@@ -976,7 +980,7 @@ void __global__ RNSC_FormPreconditionerDevice(
   }
 }
 
-int ReactorNVectorSerialCuda::FormPreconditionerDevice(double gamma) {
+int ReactorNVectorSerialGpu::FormPreconditionerDevice(double gamma) {
   preconditioner_data_dev_.resize(nnz_*num_reactors_);
   int num_threads = std::min(MAX_THREADS_PER_BLOCK,nnz_*num_reactors_);
   int num_blocks = (nnz_*num_reactors_ + num_threads - 1)/num_threads;
@@ -990,16 +994,17 @@ int ReactorNVectorSerialCuda::FormPreconditionerDevice(double gamma) {
   return 0;
 }
 
-int ReactorNVectorSerialCuda::JacobianSolve(double t, N_Vector y, N_Vector fy,
+int ReactorNVectorSerialGpu::JacobianSolve(double t, N_Vector y, N_Vector fy,
                             N_Vector r, N_Vector z)
 {
-  double * r_ptr = N_VGetDeviceArrayPointer_Cuda(r);
-  double * z_ptr = N_VGetDeviceArrayPointer_Cuda(z);
+  double * r_ptr = N_VGetDeviceArrayPointer_Hip(r);
+  double * z_ptr = N_VGetDeviceArrayPointer_Hip(z);
   int flag = 0;
   if(int_options_["dense"] == 1) {
-    flag = cuda_la_manager_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
+    flag = hip_la_manager_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
   } else {
-    flag = csrfm_ptr_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
+    assert(false);
+//    flag = csrfm_ptr_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
   }
   return flag;
 }
@@ -1023,7 +1028,7 @@ void __global__ RNSC_SparseToDenseDevice(
   }
 }
 
-int ReactorNVectorSerialCuda::SparseToDenseDevice(const thrust::device_vector<int>& row_idxs, const thrust::device_vector<int>& col_idxs,
+int ReactorNVectorSerialGpu::SparseToDenseDevice(const thrust::device_vector<int>& row_idxs, const thrust::device_vector<int>& col_idxs,
                                                    const thrust::device_vector<double>& vals, double* dense) {
   int num_threads = std::min(MAX_THREADS_PER_BLOCK,nnz_*num_reactors_);
   int num_blocks = (nnz_*num_reactors_ + num_threads - 1)/num_threads;
@@ -1292,14 +1297,14 @@ void __global__ kernel_jac_temperatureTermsC
 
 
 //N.B. we work with CSR (not CSC) to be compatible with cusolverRf
-int ReactorNVectorSerialCuda::SetupJacobianSparseDevice(realtype t, N_Vector y, N_Vector fy) {
+int ReactorNVectorSerialGpu::SetupJacobianSparseDevice(realtype t, N_Vector y, N_Vector fy) {
   const double min_mass_frac = double_options_["min_mass_fraction"];
 
-  double *y_ptr_dev = N_VGetDeviceArrayPointer_Cuda(y);
-  double *ydot_ptr_dev = N_VGetDeviceArrayPointer_Cuda(fy);
-  double *tmp1_ptr_dev = N_VGetDeviceArrayPointer_Cuda(tmp1_);
-  double *tmp2_ptr_dev = N_VGetDeviceArrayPointer_Cuda(tmp2_);
-  double *tmp3_ptr_dev = N_VGetDeviceArrayPointer_Cuda(tmp3_);
+  double *y_ptr_dev = N_VGetDeviceArrayPointer_Hip(y);
+  double *ydot_ptr_dev = N_VGetDeviceArrayPointer_Hip(fy);
+  double *tmp1_ptr_dev = N_VGetDeviceArrayPointer_Hip(tmp1_);
+  double *tmp2_ptr_dev = N_VGetDeviceArrayPointer_Hip(tmp2_);
+  double *tmp3_ptr_dev = N_VGetDeviceArrayPointer_Hip(tmp3_);
 
   // set tmp1 to the strictly positive mass fraction array
   // set tmp2 to 1/C where C is the concentration for the strictly positive
@@ -1312,8 +1317,8 @@ int ReactorNVectorSerialCuda::SetupJacobianSparseDevice(realtype t, N_Vector y, 
 
   if(solve_temperature_) {
     //Copy reactor temperatures to tmp1 //TODO: Async
-    cudaMemcpy(&(tmp1_ptr_dev[num_species_*num_reactors_]),&(y_ptr_dev[num_species_*num_reactors_]),
-               sizeof(double)*num_reactors_,cudaMemcpyDeviceToDevice);
+    hipMemcpy(&(tmp1_ptr_dev[num_species_*num_reactors_]),&(y_ptr_dev[num_species_*num_reactors_]),
+               sizeof(double)*num_reactors_,hipMemcpyDeviceToDevice);
   }
 
   GetTimeDerivative(t,tmp1_,tmp3_);
@@ -1352,8 +1357,8 @@ int ReactorNVectorSerialCuda::SetupJacobianSparseDevice(realtype t, N_Vector y, 
 #ifdef ZERORK_REACTOR_NON_INTEGER_JACOBIAN_CPU
     //copy inverse concentrations and rates of progress to host
     forward_rates_of_production_ = forward_rates_of_production_dev_;
-    N_VCopyFromDevice_Cuda(tmp2_);
-    double* tmp2_ptr = N_VGetHostArrayPointer_Cuda(tmp2_);
+    N_VCopyFromDevice_Hip(tmp2_);
+    double* tmp2_ptr = N_VGetHostArrayPointer_Hip(tmp2_);
 
     //These hold transposed data for call to host non-integer routine
     std::vector<double> fwd_rop_trans(num_steps_);
@@ -1451,19 +1456,19 @@ int ReactorNVectorSerialCuda::SetupJacobianSparseDevice(realtype t, N_Vector y, 
   return 0;
 }
 
-void ReactorNVectorSerialCuda::Reset() {
-  csrfm_temperature_.reset();
-  csrfm_no_temperature_.reset();
+void ReactorNVectorSerialGpu::Reset() {
+//  csrfm_temperature_.reset();
+//  csrfm_no_temperature_.reset();
 }
 
 
-int ReactorNVectorSerialCuda::SetRootTime(double t)
+int ReactorNVectorSerialGpu::SetRootTime(double t)
 {
   root_time_ = t;
   return 0;
 }
 
-double ReactorNVectorSerialCuda::GetRootTime()
+double ReactorNVectorSerialGpu::GetRootTime()
 {
   return root_time_;
 }

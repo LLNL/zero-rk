@@ -11,9 +11,9 @@
 #endif
 
 //#ifdef ZERORK_GPU
-//#include "cuda_runtime_api.h"
+//#include "hip/hip_runtime_api.h"
 //static void cuda_exit() {
-//  cudaDeviceReset();
+//  hipDeviceReset();
 //}
 //#endif
 

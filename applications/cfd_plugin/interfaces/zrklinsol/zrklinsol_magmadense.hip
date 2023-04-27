@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* -----------------------------------------------------------------
  * Zero-RK Modification of Sundials Magma Linear Solver to include 
  * re-ordering of equations
@@ -391,8 +392,8 @@ int ZRKLinSolSolve_MagmaDense(SUNLinearSolver S, SUNMatrix A, N_Vector x,
     int blocks=(nblocks*M+threads-1)/threads;
     ZRKLINSOL_magma_bdmv_kernel<<<blocks,threads>>>(M, nblocks, SUNMatrix_MagmaDense_Data(Ainv), xdata, bdata);
 //#ifdef ZERORK_FULL_DEBUG
-//    cuda_err_check(cudaPeekAtLastError());
-//    cuda_err_check(cudaDeviceSynchronize());
+//    cuda_err_check(hipPeekAtLastError());
+//    cuda_err_check(hipDeviceSynchronize());
 //#endif
   }
   else

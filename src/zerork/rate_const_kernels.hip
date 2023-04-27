@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 #include <algorithm> //std::min
 #include "rate_const.h"
 #include "rate_const_kernels.h"
@@ -580,14 +581,14 @@ void __global__ concentrationSum
 
 void rate_const_updateArrheniusStep_CUDA(const int nStep, double *K_dev,
     const double* logAfact_dev, const double* Tpow_dev, const double* Tact_dev,
-    const double log_e_Tcurrent, const double invTcurrent, cudaStream_t arrhStream)
+    const double log_e_Tcurrent, const double invTcurrent, hipStream_t arrhStream)
 {
   int nThreads = THREADS_PER_BLOCK;
   int nBlocks = (nStep+nThreads-1)/nThreads;
   updateArrheniusStep_CUDA<<<nBlocks,nThreads,0,arrhStream>>>(nStep,K_dev,logAfact_dev,Tpow_dev,Tact_dev,log_e_Tcurrent,invTcurrent);
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateArrheniusGPU");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateArrheniusGPU");
 #endif
 }
 
@@ -595,7 +596,7 @@ void rate_const_updateFromKeqStep_CUDA(const int nFromKeqStep,const int keqPadSi
       const int *fromKeq_reacIdx_dev, const int *fromKeq_prodIdx_dev,
       const int *fromKeq_stepIdx_dev, const double *fromKeq_nDelta_dev,
       const double *Gibbs_RT_dev, double * K_dev, const double log_e_PatmInvRuT,
-      cudaStream_t kEqStream)
+      hipStream_t kEqStream)
 {
   int nThreads = THREADS_PER_BLOCK;
   int nBlocks = (nFromKeqStep+nThreads-1)/nThreads;
@@ -612,8 +613,8 @@ void rate_const_updateFromKeqStep_CUDA(const int nFromKeqStep,const int keqPadSi
       log_e_PatmInvRuT
   );
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateFromKeqStep_CUDA");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateFromKeqStep_CUDA");
 #endif
 }
 
@@ -625,7 +626,7 @@ void rate_const_updateFalloff_CUDA(const int nFalloffRxn, const int maxThirdBody
      const double *falloff_etbSpcEff_dev, const double *falloff_param_dev, 
      const double *logAfact_dev, const double * Tpow_dev, const double *Tact_dev,
      const double *C_dev, const double Csum, const double Tcurrent, double *K_dev,
-     cudaStream_t falloffStream)
+     hipStream_t falloffStream)
 {
   int nThreads = THREADS_PER_BLOCK;
   int nBlocks = (nFalloffRxn+nThreads-1)/nThreads;
@@ -650,8 +651,8 @@ void rate_const_updateFalloff_CUDA(const int nFalloffRxn, const int maxThirdBody
      K_dev
   );
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateFalloff_CUDA");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateFalloff_CUDA");
 #endif
 }
 
@@ -659,7 +660,7 @@ void rate_const_updateThirdBody_CUDA(const int nThirdBodyRxn, const int maxThird
      const int *thirdBody_nEnhanced_dev, const int *thirdBody_etbSpcIdx_dev,
      const int *thirdBody_fwdStepIdx_dev, const int *thirdBody_revStepIdx_dev,
      const double *thirdBody_etbSpcEff_dev, const double * C_dev, const double Csum,
-     double *K_dev, cudaStream_t thirdBodyStream)
+     double *K_dev, hipStream_t thirdBodyStream)
 {
   int nThreads = THREADS_PER_BLOCK;
   int nBlocks = (nThirdBodyRxn+nThreads-1)/nThreads;
@@ -677,8 +678,8 @@ void rate_const_updateThirdBody_CUDA(const int nThirdBodyRxn, const int maxThird
      K_dev
   );
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateThirdBody_CUDA");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateThirdBody_CUDA");
 #endif
 }
 
@@ -687,7 +688,7 @@ void rate_const_updateThirdBody_CUDA(const int nThirdBodyRxn, const int maxThird
 
 void rate_const_updateArrheniusStep_CUDA_mr(const int nReactors,const int nStep,
     double *K_dev, const double *logAfact_dev, const double *Tpow_dev, const double *Tact_dev,
-    const double *T_dev, cudaStream_t arrhStream)
+    const double *T_dev, hipStream_t arrhStream)
 {
   //Tuned on P100
   int threadsX = 256;
@@ -702,19 +703,19 @@ void rate_const_updateArrheniusStep_CUDA_mr(const int nReactors,const int nStep,
   updateArrheniusStep_CUDA_mr<<<nBlocks2D,nThreads2D, shrMemSize,arrhStream>>>
                  (nReactors,nStep,K_dev,logAfact_dev,Tpow_dev,Tact_dev,T_dev);
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateArrheniusStepCUDA_mr");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateArrheniusStepCUDA_mr");
 #endif
 }
 
-void rate_const_concentrationSum(const int nReactors, const int nSpc, const double * C_dev, double *Csum_dev, cudaStream_t thirdBodyStream)
+void rate_const_concentrationSum(const int nReactors, const int nSpc, const double * C_dev, double *Csum_dev, hipStream_t thirdBodyStream)
 {
   int nThreads = std::min(THREADS_PER_BLOCK,nReactors);
   int nBlocks = (nReactors+nThreads-1)/nThreads;
   concentrationSum<<<nBlocks,nThreads,0,thirdBodyStream>>>(nReactors, nSpc, C_dev, Csum_dev);
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"concentrationSum");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"concentrationSum");
 #endif
 }
 
@@ -723,7 +724,7 @@ void rate_const_updateFromKeqStep_CUDA_mr(const int nReactors, const int nSpc, c
           const int nFromKeqStep, const int keqPadSize, const int *fromKeq_reacIdx_dev,
           const int * fromKeq_prodIdx_dev, const int *fromKeq_stepIdx_dev,
           const double *fromKeq_nDelta_dev, const double *Gibbs_RT_dev, double *K_dev,
-          const double *T_dev, cudaStream_t kEqStream)
+          const double *T_dev, hipStream_t kEqStream)
 {
   if( nFromKeqStep == 0 ) return;
   int threadsX = 1;
@@ -748,8 +749,8 @@ void rate_const_updateFromKeqStep_CUDA_mr(const int nReactors, const int nSpc, c
       T_dev
   );
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateFromKeq_CUDA_mr");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateFromKeq_CUDA_mr");
 #endif
 }
 
@@ -758,7 +759,7 @@ void rate_const_updateFromKeqStepNI_CUDA_mr(const int nReactors, const int nSpc,
           const int * fromKeq_prodIdx_dev, const int *fromKeq_stepIdx_dev,
           const double *fromKeq_nDelta_dev, const double *fromKeq_stoich_fwd_dev,
           const double *fromKeq_stoich_rev_dev, const double *Gibbs_RT_dev, double *K_dev,
-          const double *T_dev, cudaStream_t kEqStream)
+          const double *T_dev, hipStream_t kEqStream)
 {
   if( nFromKeqStep == 0 ) return;
   int threadsX = 1;
@@ -785,8 +786,8 @@ void rate_const_updateFromKeqStepNI_CUDA_mr(const int nReactors, const int nSpc,
       T_dev
   );
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateFromKeq_CUDA_mr");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateFromKeq_CUDA_mr");
 #endif
 }
 
@@ -795,7 +796,7 @@ void rate_const_updateThirdBody_CUDA_mr(const int nReactors, const int nSpc, con
     const int nThirdBodyRxn, const int maxThirdBodySpc, const int *thirdBody_nEnhanced_dev,
     const int *thirdBody_etbSpcIdx_dev, const int *thirdBody_fwdStepIdx_dev,
     const int *thirdBody_revStepIdx_dev, const double *thirdBody_etbSpcEff_dev, 
-    const double *C_dev, const double *Csum_dev, double *K_dev, cudaStream_t thirdBodyStream)
+    const double *C_dev, const double *Csum_dev, double *K_dev, hipStream_t thirdBodyStream)
 {
   if( nThirdBodyRxn == 0 ) return;
   int threadsX = 1;
@@ -821,8 +822,8 @@ void rate_const_updateThirdBody_CUDA_mr(const int nReactors, const int nSpc, con
      K_dev
   );
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateThirdBody_CUDA_mr");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateThirdBody_CUDA_mr");
 #endif
 }
 
@@ -835,7 +836,7 @@ void rate_const_updateFalloff_CUDA_mr(const int nReactors, const int nSpc, const
          const double *falloff_param_dev, const double *logAfact_dev,
          const double *Tpow_dev, const double *Tact_dev, const double *C_dev,
          const double *Csum_dev, const double *T_dev, double *K_dev,
-         cudaStream_t falloffStream)
+         hipStream_t falloffStream)
 {
   if( nFalloffRxn == 0 ) return;
   int threadsX = 1;
@@ -869,8 +870,8 @@ void rate_const_updateFalloff_CUDA_mr(const int nReactors, const int nSpc, const
      K_dev
   );
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateFalloff_CUDA_mr");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateFalloff_CUDA_mr");
 #endif
 }
 
@@ -881,7 +882,7 @@ void rate_const_updatePLogInterpolationStep_CUDA_mr(
   const double * plog_signAfact_dev,
   const double * plog_logAfact_dev, const double *plog_Tpow_dev,
   const double * plog_Tact_dev, const double *Csum_dev,
-  const double *T_dev, double *K_dev, cudaStream_t PLogStream)
+  const double *T_dev, double *K_dev, hipStream_t PLogStream)
 {
   if(nPLogInterpolationStep == 0) return;
   int threadsX = 1;
@@ -900,8 +901,8 @@ void rate_const_updatePLogInterpolationStep_CUDA_mr(
           pressure_points_dev, plog_signAfact_dev, plog_logAfact_dev, plog_Tpow_dev, plog_Tact_dev,
           Csum_dev, T_dev, K_dev);
 #ifdef ZERORK_FULL_DEBUG
-  cudaDeviceSynchronize();
-  checkCudaError(cudaGetLastError(),"updateArrheniusStepCUDA_mr");
+  hipDeviceSynchronize();
+  checkCudaError(hipGetLastError(),"updateArrheniusStepCUDA_mr");
 #endif
 }
 

@@ -35,7 +35,7 @@
   #ifdef ZERORK_HAVE_MAGMA
     #include <sunmatrix/sunmatrix_magmadense.h>
     #include <sunlinsol/sunlinsol_magmadense.h>
-    #include <sunmemory/sunmemory_cuda.h>
+    #include <sunmemory/sunmemory_hip.h>
     #include "interfaces/zrklinsol/zrklinsol_magmadense.h"
   #endif
 #endif
@@ -104,8 +104,8 @@ int CvodeSolver::Integrate(const double end_time) {
     //Check for GPU
     if(num_batches > 1) {
         int NEQ = reactor_ref_.GetNumStateVariables();
-        SUNMemoryHelper memhelper = SUNMemoryHelper_Cuda();
-        //NULL is passed to use default cuda stream
+        SUNMemoryHelper memhelper = SUNMemoryHelper_Hip();
+        //NULL is passed to use default hip stream
         A = SUNMatrix_MagmaDenseBlock(num_batches, NEQ, NEQ, SUNMEMTYPE_DEVICE, memhelper, NULL);
         LS = ZRKLinSol_MagmaDense(state, A);
         ZRKLinSol_MagmaDense_SetAsync(LS, 0);

@@ -10,7 +10,7 @@ void setDoubleArrayVal
     const double val,
     const int idxStart = 0,
     const int idxEnd = 1,
-    const cudaStream_t stream = 0
+    const hipStream_t stream = 0
 );
 
 void printCudaArray(const int n, const double *A_dev);

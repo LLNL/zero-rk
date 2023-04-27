@@ -1,10 +1,12 @@
 
 #include <assert.h>
-
 #include <algorithm> //std::min
+
 #include "perf_net_kernels.h"
 #include "zerork_cuda_defs.h"
 #include "scatter_add_kernels.h"
+
+#include "hip/hip_runtime.h"
 
 namespace zerork {
 
@@ -25,9 +27,9 @@ void __global__ cuda_setup_memory
     while(tid < (nSpc+1)*nReactors)
     {
         //setDoubleArrayVal(C_dev,1.0,nSpc*nReactors,(nSpc+1)*nReactors, scatterAddStreams[1]);
-        //cudaMemcpyAsync(C_dev,C_out_dev,cpySpcSize,cudaMemcpyDeviceToDevice,scatterAddStreams[1]);
+        //hipMemcpyAsync(C_dev,C_out_dev,cpySpcSize,hipMemcpyDeviceToDevice,scatterAddStreams[1]);
 
-        //cudaMemsetAsync(createOut_out_dev,0,cpySpcSize,scatterAddStreams[0]);
+        //hipMemsetAsync(createOut_out_dev,0,cpySpcSize,scatterAddStreams[0]);
         if(tid < nSpc*nReactors) {
           C_dev[tid] = C_out_dev[tid]; 
           createOut_dev[tid] = 0.0;
@@ -173,7 +175,7 @@ void __global__ cuda_net_rates
 void perf_net_cuda_setup_memory(const int nReactors, const int nSpc,
                                 double* C_dev, const double* C_out_dev,
                                 double* createOut_dev, double* destroyOut_dev,
-                                cudaStream_t stream)
+                                hipStream_t stream)
 {
     int nThreads = MAX_THREADS_PER_BLOCK;
     int nBlocks  = ((nSpc+1)*nReactors+nThreads-1)/nThreads;
@@ -187,8 +189,8 @@ void perf_net_cuda_setup_memory(const int nReactors, const int nSpc,
         destroyOut_dev
     );
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_cuda_setup_memory");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_cuda_setup_memory");
 #endif
 }
 
@@ -207,8 +209,8 @@ void perf_net_cuda_rxn_conc_mult(const int nStep, const int maxReactants,
         stepOut_dev
     );
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_cuda_rxn_conc_mult");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_cuda_rxn_conc_mult");
 #endif
 }
 
@@ -318,15 +320,15 @@ void perf_net_cuda_rxn_conc_mult_mr(const int nReactors, const int nSpc,
       }
     }
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_cuda_rxn_conc_mult_mr");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_cuda_rxn_conc_mult_mr");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -338,15 +340,15 @@ void perf_net_scatterAdd_gpu_atomic_global(const int nOps,
     scatterAdd_gpu_atomic_global<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global_2op(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -358,15 +360,15 @@ void perf_net_scatterAdd_gpu_atomic_global_2op(const int nOps,
     scatterAdd_gpu_atomic_global_2op<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_2op");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_2op");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global_4op(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -378,15 +380,15 @@ void perf_net_scatterAdd_gpu_atomic_global_4op(const int nOps,
     scatterAdd_gpu_atomic_global_4op<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_4op");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_4op");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global_8op(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -398,15 +400,15 @@ void perf_net_scatterAdd_gpu_atomic_global_8op(const int nOps,
     scatterAdd_gpu_atomic_global_8op<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_8op");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_8op");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global_16op(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -418,15 +420,15 @@ void perf_net_scatterAdd_gpu_atomic_global_16op(const int nOps,
     scatterAdd_gpu_atomic_global_16op<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_16op");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_16op");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global_32op(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -438,15 +440,15 @@ void perf_net_scatterAdd_gpu_atomic_global_32op(const int nOps,
     scatterAdd_gpu_atomic_global_32op<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_32op");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_32op");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global_64op(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -458,15 +460,15 @@ void perf_net_scatterAdd_gpu_atomic_global_64op(const int nOps,
     scatterAdd_gpu_atomic_global_64op<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_64op");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_64op");
 #endif
 }
 
 void perf_net_scatterAdd_gpu_atomic_global_128op(const int nOps,
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( nOps == 0 ) return;
     int nThreads = std::min(256,nData);
@@ -478,8 +480,8 @@ void perf_net_scatterAdd_gpu_atomic_global_128op(const int nOps,
     scatterAdd_gpu_atomic_global_128op<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_128op");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_128op");
 #endif
 }
 
@@ -487,7 +489,7 @@ void perf_net_scatterAdd_gpu_atomic_global_fused(const int maxOps,
     const int nOps[],
     const int srcId[], const int destId[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( maxOps == 0 ) return;
     int nThreads = std::min(MAX_THREADS_PER_BLOCK,nData);
@@ -499,8 +501,8 @@ void perf_net_scatterAdd_gpu_atomic_global_fused(const int maxOps,
     scatterAdd_gpu_atomic_global_fused<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_fused");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_fused");
 #endif
 }
 
@@ -508,7 +510,7 @@ void perf_net_multScatterAdd_gpu_atomic_global_fused(const int maxOps,
     const int nOps[],
     const int srcId[], const int destId[], const double srcMult[], const int nData,
     const int srcSize, const double src[], const int destSize,
-    double dest[], cudaStream_t cuStream)
+    double dest[], hipStream_t cuStream)
 {
     if( maxOps == 0 ) return;
     int nThreads = std::min(MAX_THREADS_PER_BLOCK,nData);
@@ -520,8 +522,8 @@ void perf_net_multScatterAdd_gpu_atomic_global_fused(const int maxOps,
     multScatterAdd_gpu_atomic_global_fused<<<gridBlk, nThreads, 0, cuStream >>>
         (nOps, srcId, destId, srcMult, nData, srcSize, src, destSize, dest);
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_fused");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_scatterAdd_gpu_atomic_global_fused");
 #endif
 }
 
@@ -538,8 +540,8 @@ void perf_net_cuda_net_rates(const int nSpc, const double *createOut_dev,
         netOut_dev
     );
 #ifdef ZERORK_FULL_DEBUG
-    cudaDeviceSynchronize();
-    checkCudaError(cudaGetLastError(),"perf_net_cuda_net_rates");
+    hipDeviceSynchronize();
+    checkCudaError(hipGetLastError(),"perf_net_cuda_net_rates");
 #endif
 }
 

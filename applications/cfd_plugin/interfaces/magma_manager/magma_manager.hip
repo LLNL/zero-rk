@@ -1,5 +1,6 @@
+#include "hip/hip_runtime.h"
 #include "magma_manager.h"
-#include "../../cuda_err_check.h"
+#include "../../gpu_err_check.h"
 
 
 magma_manager::magma_manager() :
@@ -33,17 +34,17 @@ void magma_manager::setup_memory()
 
 void magma_manager::AllocateDeviceMemory()
 {
-  cudaDeviceSynchronize();
-  cuda_err_check(cudaGetLastError());
+  hipDeviceSynchronize();
+  gpu_err_check(hipGetLastError());
 
-  cuda_err_check(cudaMalloc((void**)&matrix_inverse_dev_,sizeof(double)*(n_*n_*num_batches_)));
-  cuda_err_check(cudaMalloc((void**)&matrix_inverse_pointers_dev_,sizeof(double*)*num_batches_));
-  cuda_err_check(cudaMalloc((void**)&matrix_pointers_dev_,sizeof(double*)*num_batches_));
-  cuda_err_check(cudaMalloc((void**)&info_dev_,sizeof(int)*num_batches_));
-  cuda_err_check(cudaMalloc((void**)&ipiv_dev_,sizeof(int)*n_*num_batches_));
-  cuda_err_check(cudaMalloc((void**)&tmp_dev_,sizeof(double)*num_batches_*n_));
-  cuda_err_check(cudaMalloc((void**)&tmp_pointers_dev_,sizeof(double*)*num_batches_));
-  cuda_err_check(cudaMalloc((void**)&ipiv_pointers_dev_,sizeof(int*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&matrix_inverse_dev_,sizeof(double)*(n_*n_*num_batches_)));
+  gpu_err_check(hipMalloc((void**)&matrix_inverse_pointers_dev_,sizeof(double*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&matrix_pointers_dev_,sizeof(double*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&info_dev_,sizeof(int)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&ipiv_dev_,sizeof(int)*n_*num_batches_));
+  gpu_err_check(hipMalloc((void**)&tmp_dev_,sizeof(double)*num_batches_*n_));
+  gpu_err_check(hipMalloc((void**)&tmp_pointers_dev_,sizeof(double*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&ipiv_pointers_dev_,sizeof(int*)*num_batches_));
 
   data_ptrs_.resize(num_batches_);
 
@@ -53,32 +54,32 @@ void magma_manager::AllocateDeviceMemory()
   for(int j = 0; j < num_batches_; ++j) {
     data_ptrs_[j] = matrix_inverse_dev_ + j*n_*n_;
   }
-  cudaMemcpy(matrix_inverse_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, cudaMemcpyHostToDevice);
-  cuda_err_check(cudaGetLastError());
+  hipMemcpy(matrix_inverse_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
+  gpu_err_check(hipGetLastError());
 
   for(int j = 0; j < num_batches_; ++j) {
     tmp_ptrs[j] = tmp_dev_ + j*n_;
   }
-  cudaMemcpy(tmp_pointers_dev_, tmp_ptrs.data(), sizeof(double*)*num_batches_, cudaMemcpyHostToDevice);
-  cuda_err_check(cudaGetLastError());
+  hipMemcpy(tmp_pointers_dev_, tmp_ptrs.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
+  gpu_err_check(hipGetLastError());
 
   for(int j = 0; j < num_batches_; ++j) {
     tmpi_ptrs[j] = ipiv_dev_ + j*n_;
   }
-  cudaMemcpy(ipiv_pointers_dev_, tmpi_ptrs.data(), sizeof(int*)*num_batches_, cudaMemcpyHostToDevice);
-  cuda_err_check(cudaGetLastError());
+  hipMemcpy(ipiv_pointers_dev_, tmpi_ptrs.data(), sizeof(int*)*num_batches_, hipMemcpyHostToDevice);
+  gpu_err_check(hipGetLastError());
 }
 
 void magma_manager::FreeDeviceMemory()
 {
-  cudaFree(matrix_inverse_dev_);
-  cudaFree(matrix_inverse_pointers_dev_);
-  cudaFree(matrix_pointers_dev_);
-  cudaFree(info_dev_);
-  cudaFree(ipiv_dev_);
-  cudaFree(ipiv_pointers_dev_);
-  cudaFree(tmp_dev_);
-  cudaFree(tmp_pointers_dev_);
+  hipFree(matrix_inverse_dev_);
+  hipFree(matrix_inverse_pointers_dev_);
+  hipFree(matrix_pointers_dev_);
+  hipFree(info_dev_);
+  hipFree(ipiv_dev_);
+  hipFree(ipiv_pointers_dev_);
+  hipFree(tmp_dev_);
+  hipFree(tmp_pointers_dev_);
 }
 
 int magma_manager::factor_invert(int num_batches, int n, double* values) {
@@ -99,7 +100,7 @@ int magma_manager::factor_invert(int num_batches, int n, double* values) {
     }
   }
   if(need_tx) {
-    cudaMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, cudaMemcpyHostToDevice);
+    hipMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
   }
 
   magma_dgetrf_batched(n_, /* number of rows per block */
@@ -125,7 +126,7 @@ int magma_manager::factor_invert(int num_batches, int n, double* values) {
   int ierr = 0;
 #ifdef ZERORK_FULL_DEBUG
   info_.resize(num_batches_);
-  cuda_err_check(cudaMemcpy(info_.data(), info_dev_, num_batches_*sizeof(int), cudaMemcpyDeviceToHost));
+  gpu_err_check(hipMemcpy(info_.data(), info_dev_, num_batches_*sizeof(int), hipMemcpyDeviceToHost));
   //Check for errors
   // factor_error > 0, singular matrix, zero diagonal at row,col = factor_error
   // factor_error = 0, success
@@ -160,7 +161,7 @@ int magma_manager::factor_lu(int num_batches, int n, double* values) {
     }
   }
   if(need_tx) {
-    cudaMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, cudaMemcpyHostToDevice);
+    hipMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
   }
 
   magma_dgetrf_batched(n_, /* number of rows per block */
@@ -175,7 +176,7 @@ int magma_manager::factor_lu(int num_batches, int n, double* values) {
   int ierr = 0;
 #ifdef ZERORK_FULL_DEBUG
   info_.resize(num_batches_);
-  cuda_err_check(cudaMemcpy(info_.data(), info_dev_, num_batches_*sizeof(int), cudaMemcpyDeviceToHost));
+  gpu_err_check(hipMemcpy(info_.data(), info_dev_, num_batches_*sizeof(int), hipMemcpyDeviceToHost));
   //Check for errors
   // factor_error > 0, singular matrix, zero diagonal at row,col = factor_error
   // factor_error = 0, success
@@ -235,8 +236,8 @@ void magma_manager::cuda_transpose(double* odata, const double* idata, const int
     nBlocks2D.y = (height+TRANSPOSE_TILE_DIM-1)/TRANSPOSE_TILE_DIM;
     MAGMA_MANAGER_TransposeNoBankConflicts<<<nBlocks2D,nThreads2D>>>(odata,idata,width,height);
 #ifdef ZERORK_FULL_DEBUG
-    cuda_err_check( cudaPeekAtLastError() );
-    cuda_err_check( cudaDeviceSynchronize() );
+    gpu_err_check( hipPeekAtLastError() );
+    gpu_err_check( hipDeviceSynchronize() );
 #endif
 }
 
@@ -272,8 +273,8 @@ int magma_manager::cuda_bdmv(int n, int nbatch, double* A_dev, double* B_dev, do
   int blocks=(nbatch*n+threads-1)/threads;
   MAGMA_MANAGER_cuda_bdmv_kernel<<<blocks,threads>>>(n, nbatch, A_dev, B_dev, Y_dev);
 #ifdef ZERORK_FULL_DEBUG
-  cuda_err_check(cudaPeekAtLastError());
-  cuda_err_check(cudaDeviceSynchronize());
+  gpu_err_check(hipPeekAtLastError());
+  gpu_err_check(hipDeviceSynchronize());
 #endif
   return 0;  
 }

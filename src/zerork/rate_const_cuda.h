@@ -3,7 +3,7 @@
 
 #include "nasa_poly_cuda.h"
 #include "rate_const.h"
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 
 namespace zerork {
@@ -67,7 +67,7 @@ class rate_const_cuda : public rate_const
   int *PLog_stepIdxs_dev;
 
   //Streams
-  cudaStream_t arrhStream,kEqStream,thirdBodyStream,falloffStream,PLogStream;
+  hipStream_t arrhStream,kEqStream,thirdBodyStream,falloffStream,PLogStream;
 
   void setGpuParams();
 

@@ -60,30 +60,30 @@ void mechanism_cuda::allocate_device_mem()
   //arrays should be calculated.
   checkCudaError
   (
-      cudaMalloc((void**)&molWt_dev,sizeof(double)*nSpc),
-      "cudaMalloc(... molWt_dev ...)"
+      hipMalloc((void**)&molWt_dev,sizeof(double)*nSpc),
+      "hipMalloc(... molWt_dev ...)"
   );
-  cudaMemcpy(molWt_dev,molWt,sizeof(double)*nSpc,cudaMemcpyHostToDevice);
+  hipMemcpy(molWt_dev,molWt,sizeof(double)*nSpc,hipMemcpyHostToDevice);
   checkCudaError
   (
-      cudaMalloc((void**)&invMolWt_dev,sizeof(double)*nSpc),
-      "cudaMalloc(... invMolWt_dev ...)"
+      hipMalloc((void**)&invMolWt_dev,sizeof(double)*nSpc),
+      "hipMalloc(... invMolWt_dev ...)"
   );
-  cudaMemcpy(invMolWt_dev,invMolWt,sizeof(double)*nSpc,cudaMemcpyHostToDevice);
+  hipMemcpy(invMolWt_dev,invMolWt,sizeof(double)*nSpc,hipMemcpyHostToDevice);
   checkCudaError
   (
-      cudaMalloc((void**)&RuInvMolWt_dev,sizeof(double)*nSpc),
-      "cudaMalloc(... RuInvMolWt_dev ...)"
+      hipMalloc((void**)&RuInvMolWt_dev,sizeof(double)*nSpc),
+      "hipMalloc(... RuInvMolWt_dev ...)"
   );
-  cudaMemcpy(RuInvMolWt_dev,RuInvMolWt,sizeof(double)*nSpc,cudaMemcpyHostToDevice);
+  hipMemcpy(RuInvMolWt_dev,RuInvMolWt,sizeof(double)*nSpc,hipMemcpyHostToDevice);
 }
 
 
 void mechanism_cuda::free_device_mem()
 {
-  cudaFree(molWt_dev);
-  cudaFree(invMolWt_dev);
-  cudaFree(RuInvMolWt_dev);
+  hipFree(molWt_dev);
+  hipFree(invMolWt_dev);
+  hipFree(RuInvMolWt_dev);
 }
 
 //Same as mechanism for now
@@ -174,8 +174,8 @@ void mechanism_cuda::getReactionRates_CUDA_mr_dev(const int nReactors, const dou
 void mechanism_cuda::getMassCpFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                       double cpSpc_dev[], double cpReactors_dev[]) const
 {
-  cudaMemsetAsync(cpReactors_dev,0,sizeof(double)*nReactors, (cudaStream_t) 0);
-  static_cast<nasa_poly_group_cuda*>(thermo)->getCp_R_CUDA_mr(nReactors,T_dev,cpSpc_dev, (cudaStream_t) 0);
+  hipMemsetAsync(cpReactors_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
+  static_cast<nasa_poly_group_cuda*>(thermo)->getCp_R_CUDA_mr(nReactors,T_dev,cpSpc_dev, (hipStream_t) 0);
   //Convert to mass based Cp and calculate means
   meanCpMass_mr(nReactors,nSpc,RuInvMolWt_dev,y_dev,cpSpc_dev,cpReactors_dev);
 }
@@ -184,21 +184,21 @@ void mechanism_cuda::getMassCpFromTY_mr_dev(const int nReactors, const double T_
 void mechanism_cuda::getMassCvFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                       double cvSpc_dev[], double cvReactors_dev[]) const
 {
-  cudaMemsetAsync(cvReactors_dev,0,sizeof(double)*nReactors, (cudaStream_t) 0);
-  static_cast<nasa_poly_group_cuda*>(thermo)->getCp_R_CUDA_mr(nReactors,T_dev,cvSpc_dev, (cudaStream_t) 0);
+  hipMemsetAsync(cvReactors_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
+  static_cast<nasa_poly_group_cuda*>(thermo)->getCp_R_CUDA_mr(nReactors,T_dev,cvSpc_dev, (hipStream_t) 0);
   Cv_from_Cp_mr(nReactors,nSpc,RuInvMolWt_dev,y_dev,cvSpc_dev,cvReactors_dev);
 }
 
 
 void mechanism_cuda::getEnthalpy_RT_mr_dev(const int nReactors, const double T_dev[], double h_RT_dev[]) const
 {
-  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev,h_RT_dev, (cudaStream_t) 0);
+  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev,h_RT_dev, (hipStream_t) 0);
 }
 
 
 void mechanism_cuda::getIntEnergy_RT_mr_dev(const int nReactors, const double T_dev[], double u_RT_dev[]) const
 {
-  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev,u_RT_dev, (cudaStream_t) 0);
+  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev,u_RT_dev, (hipStream_t) 0);
   minusEqualOne(nSpc*nReactors,u_RT_dev);
 }
 
@@ -212,22 +212,22 @@ void mechanism_cuda::getCfromVY_mr_dev(const int nReactors, const double v_dev[]
 void mechanism_cuda::getMassIntEnergyFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                                    double u_spc_dev[], double u_dev[] ) const
 {
-  cudaMemsetAsync(u_dev,0,sizeof(double)*nReactors, (cudaStream_t) 0);
-  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev, u_spc_dev, (cudaStream_t) 0);
+  hipMemsetAsync(u_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
+  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev, u_spc_dev, (hipStream_t) 0);
   getMassIntEnergyFromTY_mr_dev_wrapper(nReactors, nSpc, T_dev, y_dev, RuInvMolWt_dev, u_spc_dev, u_dev);
 }
 
 void mechanism_cuda::getMassEnthalpyFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                                   double h_spc_dev[], double h_dev[] ) const
 {
-  cudaMemsetAsync(h_dev,0,sizeof(double)*nReactors, (cudaStream_t) 0);
-  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev, h_spc_dev, (cudaStream_t) 0);
+  hipMemsetAsync(h_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
+  static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev, h_spc_dev, (hipStream_t) 0);
   getMassEnthalpyFromTY_mr_dev_wrapper(nReactors, nSpc, T_dev, y_dev, RuInvMolWt_dev, h_spc_dev, h_dev);
 }
 
 void mechanism_cuda::getMolWtMixFromY_mr_dev(const int nReactors, const double y_dev[], double molWtMix_dev[]) const
 {
-  cudaMemset(molWtMix_dev,0,sizeof(double)*nReactors);
+  hipMemset(molWtMix_dev,0,sizeof(double)*nReactors);
   getMolWtMixFromY_mr_dev_wrapper(nReactors,nSpc,y_dev,invMolWt_dev,molWtMix_dev);
 }
 

@@ -76,17 +76,21 @@ install(TARGETS zerork_cfd_plugin_tester.x
 
 if(ENABLE_GPU)
 if(${SUNDIALS_VERSION} EQUAL "5")
-  set(GPU_SRCS reactor_constant_volume_gpu.cu
-               reactor_constant_pressure_gpu.cu
-               reactor_nvector_serial_cuda.cu
-               interfaces/cuda_la_manager/cuda_la_manager.cpp
-               interfaces/cublas_manager/cublas_manager.cu
-               interfaces/cusolver_rf_manager/cusolver_rf_manager.cu
-               cuda_transpose.cu)
+  set(GPU_SRCS reactor_constant_volume_gpu.hip
+               reactor_constant_pressure_gpu.hip
+               reactor_nvector_serial_gpu.hip
+               interfaces/hip_la_manager/hip_la_manager.hip
+               interfaces/hipblas_manager/hipblas_manager.hip
+#               interfaces/cusolver_rf_manager/cusolver_rf_manager.cu
+               gpu_transpose.hip)
   if(${ZERORK_HAVE_MAGMA})
-    list(APPEND GPU_SRCS interfaces/zrklinsol/zrklinsol_magmadense.cu
-                         interfaces/magma_manager/magma_manager.cu)
+    list(APPEND GPU_SRCS interfaces/zrklinsol/zrklinsol_magmadense.hip
+                         interfaces/magma_manager/magma_manager.hip)
   endif()
+
+  set_source_files_properties(zerork_reactor_manager.cpp PROPERTIES COMPILE_OPTIONS "-x;hip")
+  set_source_files_properties(solver_cvode.cpp PROPERTIES COMPILE_OPTIONS "-x;hip")
+
   if(ENABLE_MPI)
     add_mpi_library(zerork_cfd_plugin_gpu SHARED ${COMMON_SRCS} ${GPU_SRCS} zerork_cfd_plugin.cpp)
     add_mpi_executable(zerork_cfd_plugin_tester_gpu.x zerork_cfd_plugin_tester.cpp ZeroRKCFDPluginTesterIFP.cpp)
@@ -98,10 +102,12 @@ if(${SUNDIALS_VERSION} EQUAL "5")
     add_executable(zerork_cfd_plugin_tester_gpu.x zerork_cfd_plugin_tester.cpp ZeroRKCFDPluginTesterIFP.cpp)
     target_compile_definitions(zerork_cfd_plugin_tester_gpu.x PRIVATE ZERORK_GPU)
   endif()
-  target_include_directories(zerork_cfd_plugin_gpu PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+  #target_include_directories(zerork_cfd_plugin_gpu PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
+  #target_link_libraries(zerork_cfd_plugin_gpu zerork_cuda zerork zerorkutilities superlu spify
+  #                      sundials_nveccuda sundials_cvode sundials_nvecserial cublas cusolver cudart)
   target_link_libraries(zerork_cfd_plugin_gpu zerork_cuda zerork zerorkutilities superlu spify
-                        sundials_nveccuda sundials_cvode sundials_nvecserial cublas cusolver cudart)
+                        sundials_nvechip sundials_cvode sundials_nvecserial hipblas hipsparse hip-lang::device)
   if(${ZERORK_ENABLE_SUNDIALS_LAPACK})
     target_link_libraries(zerork_cfd_plugin_gpu sundials_sunlinsollapackdense)
   endif()
@@ -111,7 +117,7 @@ if(${SUNDIALS_VERSION} EQUAL "5")
   endif()
 
   target_link_options(zerork_cfd_plugin_gpu PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)
-  target_link_libraries(zerork_cfd_plugin_tester_gpu.x zerork_cfd_plugin_gpu)
+  target_link_libraries(zerork_cfd_plugin_tester_gpu.x zerork_cfd_plugin_gpu omp /opt/cray/pe/cce/15.0.1/cce-clang/x86_64/lib/clang/15.0.6/lib/linux/libclang_rt.builtins-x86_64.a)
   set(SPIFY_PLUGIN_TARGETS "${SPIFY_PLUGIN_TARGETS};zerork_cfd_plugin_gpu")
   set(SPIFY_TESTER_TARGETS "${SPIFY_TESTER_TARGETS};zerork_cfd_plugin_tester_gpu.x")
   set_target_properties(zerork_cfd_plugin_gpu PROPERTIES PUBLIC_HEADER  "zerork_cfd_plugin.h")

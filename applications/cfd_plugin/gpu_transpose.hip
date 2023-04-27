@@ -1,5 +1,6 @@
+#include "hip/hip_runtime.h"
 
-#include "cuda_transpose.h"
+#include "gpu_transpose.h"
 
 //The following modified from cuda sdk-5.0
 #define TRANSPOSE_TILE_DIM    32
@@ -33,7 +34,7 @@ static __global__ void transposeNoBankConflicts(double *odata, const double *ida
     }
 }
 
-void cuda_transpose(double* odata, double* idata, const int width, const int height)
+void gpu_transpose(double* odata, double* idata, const int width, const int height)
 {
     // Put df/dy in "normal" order
     dim3 nBlocks2D,nThreads2D;
@@ -43,8 +44,8 @@ void cuda_transpose(double* odata, double* idata, const int width, const int hei
     nBlocks2D.y = (height+TRANSPOSE_TILE_DIM-1)/TRANSPOSE_TILE_DIM;
     transposeNoBankConflicts<<<nBlocks2D,nThreads2D>>>(odata,idata,width,height);
 #ifdef ZERORK_FULL_DEBUG
-    cudaErrChk( cudaPeekAtLastError() , 1);
-    cudaErrChk( cudaDeviceSynchronize() , 1);
+    gpuErrChk( hipPeekAtLastError() , 1);
+    gpuErrChk( hipDeviceSynchronize() , 1);
 #endif
 }
 

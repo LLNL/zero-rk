@@ -5,7 +5,7 @@
 #include "rate_const_cuda.h"
 #include "perf_net.h"
 #include "external_funcs.h"
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 namespace zerork {
 
@@ -56,7 +56,7 @@ class perf_net_cuda : public perf_net
 
 
   int scatterAddCount;
-  cudaStream_t * scatterAddStreams;
+  hipStream_t * scatterAddStreams;
   //scatter add starting indicies
   int sa64c,sa32c,sa16c,sa8c,sa4c,sa2c,sa1c;
   int sa64d,sa32d,sa16d,sa8d,sa4d,sa2d,sa1d;

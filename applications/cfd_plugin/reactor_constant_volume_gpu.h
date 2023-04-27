@@ -2,9 +2,9 @@
 #define REACTOR_CONSTANT_VOLUME_GPU_H
 
 #include "zerork/mechanism_cuda.h"
-#include "reactor_nvector_serial_cuda.h"
+#include "reactor_nvector_serial_gpu.h"
 
-class ReactorConstantVolumeGPU : public ReactorNVectorSerialCuda
+class ReactorConstantVolumeGPU : public ReactorNVectorSerialGpu
 {
  public:
   ReactorConstantVolumeGPU(std::shared_ptr<zerork::mechanism_cuda> mech_ptr);
