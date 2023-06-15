@@ -5,10 +5,14 @@ project(magma_build)
 include(ExternalProject)
 ExternalProject_Add(
   magma
-  URL http://icl.utk.edu/projectsfiles/magma/downloads/magma-2.6.2.tar.gz
+  URL http://icl.utk.edu/projectsfiles/magma/downloads/magma-2.7.0.tar.gz
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${magma_prefix}
-             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-             -DCMAKE_C_COMPILER=${MPI_C_COMPILER}
+             -DCMAKE_BUILD_TYPE=${ZERORK_EXTERNALS_BUILD_TYPE}
+             -DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}
+             -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+             -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
+             -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+             -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
              -DBUILD_SHARED_LIBS=OFF
              -DMAGMA_ENABLE_CUDA=ON
              -DGPU_TARGET="${GPU_TARGET}"

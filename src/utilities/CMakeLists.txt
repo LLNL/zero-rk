@@ -18,6 +18,7 @@ install(TARGETS zerorkutilities
     PUBLIC_HEADER DESTINATION include/utilities)
 
 
+if(ENABLE_MPI)
 add_mpi_library(zerorkmpiutilities mpi_utilities.cpp)
 
 target_include_directories(zerorkmpiutilities PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -31,3 +32,4 @@ install(TARGETS zerorkmpiutilities
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include/utilities)
+endif(ENABLE_MPI)

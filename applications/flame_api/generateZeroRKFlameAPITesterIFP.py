@@ -84,7 +84,7 @@ spify_parser_params.append(
     'shortDesc' : "Value used in temperature fix setting.  If Absolute, \
     temperature at which to anchor solution.  If Delta, temperature rise (from \
     inlet) at which to anchor solution.  If InOutMix, then use Tfix = alpha*Tinlet + (1-alpha)*Toutlet",
-    'defaultValue': 0.25,
+    'defaultValue': 0.85,
 }
 )
 
@@ -126,7 +126,7 @@ spify_parser_params.append(
     'name':'relative_tolerance',
     'type':'double',
     'shortDesc':"Relative Integrator Tolerance",
-    'defaultValue': 1.0e-2
+    'defaultValue': 1.0e-3
 }
 )
 
@@ -152,7 +152,7 @@ spify_parser_params.append(
 {
     'name':"pseudo_unsteady",
     'type':'int',
-    'shortDesc':"Run psuedo_unsteady at first",
+    'shortDesc':"Run pseudo_unsteady if steady solution fails",
     'defaultValue': 1
 }
 )
@@ -162,7 +162,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_dt",
     'type':'double',
     'shortDesc' : "Initial pseudo-unsteady time step",
-    'defaultValue': 1.0e-4
+    'defaultValue': 1.0e-7
 }
 )
 
@@ -171,7 +171,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_min_dt",
     'type':'double',
     'shortDesc' : "Minimum pseudo-unsteady time step",
-    'defaultValue': 1.0e-8
+    'defaultValue': 1.0e-10
 }
 )
 
@@ -180,7 +180,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_max_dt",
     'type':'double',
     'shortDesc' : "Maximum pseudo-unsteady time step",
-    'defaultValue': 2.0e-3
+    'defaultValue': 5.0e-2
 }
 )
 
@@ -189,7 +189,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_max_iterations",
     'type':'int',
     'shortDesc':"Number of iterations for psuedo unsteady solution",
-    'defaultValue': 40
+    'defaultValue': 20
 }
 )
 
@@ -198,7 +198,7 @@ spify_parser_params.append(
     'name':"pseudo_unsteady_time",
     'type':'double',
     'shortDesc' : "Time duration for pseudo-unsteady solution",
-    'defaultValue': 0.05
+    'defaultValue': 1.0
 }
 )
 
@@ -244,7 +244,7 @@ spify_parser_params.append(
     'name':"reference_temperature",
     'type':'double',
     'shortDesc' : "Reference temperature to normalize the ODE dT/dt equation",
-    'defaultValue' : 2500.0
+    'defaultValue' : 4000.0
 }
 )
 

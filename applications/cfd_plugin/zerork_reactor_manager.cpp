@@ -621,7 +621,9 @@ zerork_status_t ZeroRKReactorManager::FinishInit() {
 
 #ifndef USE_MPI
 zerork_status_t ZeroRKReactorManager::LoadBalance()
-{}; //pass
+{
+  return ZERORK_STATUS_SUCCESS;
+}
 #else
 zerork_status_t ZeroRKReactorManager::LoadBalance()
 {

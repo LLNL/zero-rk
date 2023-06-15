@@ -43,7 +43,7 @@ void kin_err_handler(int error_code, const char *module,
   FlameParams* flame_params = (FlameParams*) user_data;
   int verbosity = 0;
   flame_params->GetIntOption("verbosity",&verbosity);
-  if(verbosity > 0) {
+  if(verbosity > 0 && flame_params->my_pe_ == 0) {
     fprintf(stderr, "[%s ERROR] %s\n", module, function);
     fprintf(stderr, "  %s\n", msg);
   }
@@ -61,16 +61,16 @@ ZeroRKFlameManager::ZeroRKFlameManager() {
 
   //Default options
   int_options_["verbosity"] = 0;
-  double_options_["reference_temperature"] = 2500.0;
+  double_options_["reference_temperature"] = 4000.0;
   string_options_["mechanism_filename"] = std::string("mech.dat");
   string_options_["therm_filename"] = std::string("therm.dat");
   string_options_["transport_filename"] = std::string("tran.dat");
   string_options_["transport_model"] = "ConstantLewis";
-  string_options_["constant_lewis_setting"] = "GridPoint"; //Tfix, Default
-  string_options_["temperature_fix_setting"] = "Delta"; //Absolute, InOutMix
+  string_options_["constant_lewis_setting"] = "Tfix"; //GridPoint, Tfix, Default
+  string_options_["temperature_fix_setting"] = "InOutMix"; //Absolute, InOutMix
   string_options_["kinsol_strategy"] = "NONE"; //"LINESEARCH"
   int_options_["constant_lewis_grid_point"] = 0;
-  double_options_["temperature_fix_value"] = 250.0; //legacy value
+  double_options_["temperature_fix_value"] = 0.85;
 
   //Solver options
   int_options_["integrator_type"] = 3;
@@ -78,15 +78,15 @@ ZeroRKFlameManager::ZeroRKFlameManager() {
   int_options_["convective_scheme_type"] = 0;
   int_options_["max_subiterations"] = 10;
   int_options_["steady_max_iterations"] = 100;
-  double_options_["relative_tolerance"] = 1.0e-2;
+  double_options_["relative_tolerance"] = 1.0e-3;
   double_options_["absolute_tolerance"] = 1.0e-20;
   double_options_["step_limiter"] = 1.0e300;
   int_options_["pseudo_unsteady"] = 1;
-  double_options_["pseudo_unsteady_dt"] = 1.0e-4;
-  double_options_["pseudo_unsteady_min_dt"] = 1.0e-8;
-  double_options_["pseudo_unsteady_max_dt"] = 2.0e-3;
-  int_options_["pseudo_unsteady_max_iterations"] = 40;
-  double_options_["pseudo_unsteady_time"] = 0.05;
+  double_options_["pseudo_unsteady_dt"] = 1.0e-7;
+  double_options_["pseudo_unsteady_min_dt"] = 1.0e-10;
+  double_options_["pseudo_unsteady_max_dt"] = 5.0e-2;
+  int_options_["pseudo_unsteady_max_iterations"] = 20;
+  double_options_["pseudo_unsteady_time"] = 1.0;
 
   //File-output Options
   string_options_["mechanism_parsing_log_filename"] = std::string(zerork::utilities::null_filename);
@@ -320,7 +320,7 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
 
   N_VScale(1.0, flame_state, flame_state_old);
 
-  if(int_options_["verbosity"] > 0) {
+  if(int_options_["verbosity"] > 0 && flame_params.my_pe_ == 0) {
     printf("Starting steady solve\n");
   }
   kinsol_flag = KINSol(kinsol_ptr,
@@ -331,29 +331,37 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
 
   // Kinsol error
   if(kinsol_flag<0) {
-    if(int_options_["verbosity"] > 0) {
+    if(int_options_["verbosity"] > 0 && flame_params.my_pe_ == 0) {
       printf("Failed steady solve\n");
     }
 
     strategy = KIN_LINESEARCH;
 
     N_VScale(1.0, flame_state_old, flame_state);
+    if(flame_params.my_pe_ == 0) {
+      flame_params.flame_speed_ = flame_params.y_[num_species]*flame_params.inlet_relative_volume_;
+    }
+#ifdef ZERORK_MPI
+    MPI_Bcast(&flame_params.flame_speed_, 1, MPI_DOUBLE, 0, flame_params.comm_);
+#endif
 
     flame_params.pseudo_unsteady_ = int_options_["pseudo_unsteady"] != 0;
     // Pseudo-unsteady
     if(flame_params.pseudo_unsteady_) {
       kinsol_flag = KINSetNumMaxIters(kinsol_ptr, int_options_["pseudo_unsteady_max_iterations"]);
       double pseudo_time = 0.0;
+      int pseudo_successful_steps = 0;
       double kinstart_time, kinend_time;
       flame_params.dt_ = double_options_["pseudo_unsteady_dt"];
 
       while(pseudo_time < double_options_["pseudo_unsteady_time"]) {
         N_VScale(1.0, flame_state, flame_state_old);
+        double flame_speed_old = flame_params.flame_speed_;
 
         // Solve system
         kinstart_time = zerork::getHighResolutionTime();
-        if(int_options_["verbosity"] > 0) {
-          printf("Starting pseudo_unsteady solve at time %g s with step %g s\n", pseudo_time, flame_params.dt_);
+        if(int_options_["verbosity"] > 0 && flame_params.my_pe_ == 0) {
+          printf("Starting pseudo_unsteady solve at time %g s with step %g s (flame speed %g)\n", pseudo_time, flame_params.dt_, flame_params.flame_speed_);
         }
         kinsol_flag = KINSol(kinsol_ptr,
                       flame_state,
@@ -365,29 +373,36 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
         KINGetNumFuncEvals(kinsol_ptr,&nfevals);
         KINGetFuncNorm(kinsol_ptr, &fnorm);
 
+        if(pseudo_successful_steps>  5 &&
+           fabs((flame_speed_old-flame_params.flame_speed_)/flame_params.flame_speed_) < 1.0e-5 &&
+           flame_params.dt_ > 1.0e-6) {
+          break;
+        }
         if((kinsol_flag==0 || kinsol_flag==1) && fnorm != 0.0){
           // Success
           pseudo_time += flame_params.dt_;
+          pseudo_successful_steps += 1;
 
           // Increase time step if it's converging quickly
-          if(nfevals <= 5 || pseudo_time == flame_params.dt_) {
-            flame_params.dt_ *= 3.0;
+          if(nfevals <= 5) {
+            flame_params.dt_ *= 2.0;
           } else if (nfevals <= 10) {
-            flame_params.dt_ *= 1.3;
+            flame_params.dt_ *= 1.2;
           }
           flame_params.dt_ = std::min(flame_params.dt_,double_options_["pseudo_unsteady_max_dt"]);
         } else {
           // Failure, reset state and decrease timestep
-          if(int_options_["verbosity"] > 0) {
-            printf("Failed pseudo_unsteady solve at time %g s\n", pseudo_time);
+          if(int_options_["verbosity"] > 0 && flame_params.my_pe_ == 0) {
+            printf("Failed pseudo_unsteady solve at time %g s (flame speed %g)\n", pseudo_time, flame_params.flame_speed_);
           }
           N_VScale(1.0, flame_state_old, flame_state);
+          flame_params.flame_speed_ = flame_speed_old;
           flame_params.dt_ *= 0.5;
+          pseudo_successful_steps = 0;
           if(flame_params.dt_ < double_options_["pseudo_unsteady_min_dt"]){
             return ZERORK_FLAME_STATUS_FAILED_SOLVE;
           }
         }
-        flame_params.SetTfix();
       }
     }
 
@@ -396,7 +411,7 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
 
     kinsol_flag = KINSetNumMaxIters(kinsol_ptr, int_options_["steady_max_iterations"]);
 
-    if(int_options_["verbosity"] > 0) {
+    if(int_options_["verbosity"] > 0 && flame_params.my_pe_ == 0) {
       printf("Starting steady solve\n");
     }
     kinsol_flag = KINSol(kinsol_ptr,
@@ -404,6 +419,15 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
                          strategy,
                          scaler,
                          scaler);
+
+    if(kinsol_flag < 0 && strategy != KIN_NONE) {
+      //sometimes linesearch fails when KIN_NONE succeeds
+      kinsol_flag = KINSol(kinsol_ptr,
+                           flame_state,
+                           KIN_NONE,
+                           scaler,
+                           scaler);
+    }
   }
 
   KINFree(&kinsol_ptr);
@@ -417,7 +441,7 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
 
   // Kinsol error
   if(kinsol_flag<0) {
-    if(int_options_["verbosity"] > 0) {
+    if(int_options_["verbosity"] > 0 && flame_params.my_pe_ == 0) {
       printf("Failed steady solve\n");
     }
     return ZERORK_FLAME_STATUS_FAILED_SOLVE;
@@ -426,7 +450,7 @@ zerork_flame_status_t ZeroRKFlameManager::Solve(int num_grid_points, const doubl
     *flame_speed = flame_params.flame_speed_;
     flame_params.GetTemperatureAndMassFractions(T, mass_fractions);
 
-    if(int_options_["verbosity"] > 0) {
+    if(int_options_["verbosity"] > 0 && flame_params.my_pe_ == 0) {
       printf("Succeeded steady solve\n");
     }
     return ZERORK_FLAME_STATUS_SUCCESS;

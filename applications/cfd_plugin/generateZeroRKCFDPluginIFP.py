@@ -30,8 +30,7 @@ spify_parser_params.append(
     'type':'int',
     'shortDesc' : "Maximum number of reactors to solve",
     'boundMin': 1,
-    'boundMax': 8192,
-    'defaultValue': 8192
+    'defaultValue': 2048
 }
 )
 

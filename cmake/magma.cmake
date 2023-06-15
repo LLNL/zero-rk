@@ -11,7 +11,7 @@ if(EXISTS ${SYSTEM_SUPERLU_ROOT})
     set(magma_system_working OFF)
   endif()
 else()
-  set(magma_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/magma)
+  set(magma_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/magma/${ZERORK_EXTERNALS_BUILD_TYPE})
 endif()
 
 if((NOT EXISTS ${magma_prefix}) OR (NOT ${magma_system_working}))
@@ -28,7 +28,7 @@ if((NOT EXISTS ${magma_prefix}) OR (NOT ${magma_system_working}))
   if(result)
     message(FATAL_ERROR "CMake step for Magma failed: ${result}")
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  execute_process(COMMAND ${CMAKE_COMMAND} --build . --config ${ZERORK_EXTERNALS_BUILD_TYPE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/magma-build)
   if(result)

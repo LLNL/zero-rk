@@ -441,12 +441,46 @@ int ConstPressureFlameLocal(int nlocal,
     }
   }
 
+  //------------------------------------------------------------------
+  // Parallel communication for finite difference jacobian
+  // TO DO: Move to a separate function?
+  if(params->integrator_type_ == 2 || params->integrator_type_ == 3) {
+#ifdef ZERORK_MPI
+    MPI_Status status;
+#endif
+    long int dsize = num_states*nover;
+
+    // Copy y_ptr and ydot_ptr into larger arrays
+    for (int j=0; j<num_states*num_local_points; ++j)
+      params->rhs_ext_[num_states*nover + j] = ydot_ptr[j];
+#ifdef ZERORK_MPI
+    // MPI sendrecv
+    int nodeDest = my_pe-1;
+    if (nodeDest < 0) nodeDest = npes-1;
+    int nodeFrom = my_pe+1;
+    if (nodeFrom > npes-1) nodeFrom = 0;
+    MPI_Sendrecv(&params->rhs_ext_[nover*num_states], dsize, PVEC_REAL_MPI_TYPE, nodeDest, 0,
+		 &params->rhs_ext_[num_states*(num_local_points+nover)], dsize, PVEC_REAL_MPI_TYPE,
+		 nodeFrom, 0, comm, &status);
+
+    nodeDest = my_pe+1;
+    if (nodeDest > npes-1) nodeDest = 0;
+    nodeFrom = my_pe-1;
+    if (nodeFrom < 0) nodeFrom = npes-1;
+    MPI_Sendrecv(&params->rhs_ext_[num_states*num_local_points], dsize, PVEC_REAL_MPI_TYPE, nodeDest,
+		 0, &params->rhs_ext_[0], dsize, PVEC_REAL_MPI_TYPE, nodeFrom, 0, comm, &status);
+#endif
+  }
+
   // -------------------------------------------------------------------------
   // Post-processing for output
   // Compute laminar flame speed from mass flux (only on rank = 0)
   if(my_pe == 0) {
     params->flame_speed_ = y_ptr[num_species]*params->inlet_relative_volume_;
   }
+#ifdef ZERORK_MPI
+  MPI_Bcast(&params->flame_speed_, 1, MPI_DOUBLE, 0, comm);
+#endif
 
   // Compute flame thick l_F = (T_max - T_min)/|gradT|_max
   double local_temperature;
@@ -545,31 +579,6 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
   // Compute RHS
   ConstPressureFlame(y, ydot, user_data);
 
-  //------------------------------------------------------------------
-  // Parallel communication for finite difference jacobian
-  for (int j=0; j<num_states*num_local_points; ++j) {
-    params->rhs_ext_[num_states*nover + j] = ydot_ptr[j];
-  }
-#ifdef ZERORK_MPI
-  MPI_Status status;
-  const long int dsize = num_states*nover;
-  // MPI sendrecv
-  int nodeDest = my_pe-1;
-  if (nodeDest < 0) nodeDest = npes-1;
-  int nodeFrom = my_pe+1;
-  if (nodeFrom > npes-1) nodeFrom = 0;
-  MPI_Sendrecv(&params->rhs_ext_[nover*num_states], dsize, PVEC_REAL_MPI_TYPE, nodeDest, 0,
-               &params->rhs_ext_[num_states*(num_local_points+nover)], dsize, PVEC_REAL_MPI_TYPE,
-               nodeFrom, 0, params->comm_, &status);
-
-  nodeDest = my_pe+1;
-  if (nodeDest > npes-1) nodeDest = 0;
-  nodeFrom = my_pe-1;
-  if (nodeFrom < 0) nodeFrom = npes-1;
-  MPI_Sendrecv(&params->rhs_ext_[num_states*num_local_points], dsize, PVEC_REAL_MPI_TYPE, nodeDest,
-               0, &params->rhs_ext_[0], dsize, PVEC_REAL_MPI_TYPE, nodeFrom, 0, params->comm_, &status);
-#endif
-
   // Save copy of state vector and rhs
   for (int j=0; j<num_local_states; ++j)
     y_saved[j] = y_ptr[j];
@@ -592,29 +601,6 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
 
     // Compute RHS
     ConstPressureFlame(y, ydot, user_data);
-
-    //------------------------------------------------------------------
-    // Parallel communication for finite difference jacobian
-    for (int j=0; j<num_states*num_local_points; ++j) {
-      params->rhs_ext_[num_states*nover + j] = ydot_ptr[j];
-    }
-#ifdef ZERORK_MPI
-    // MPI sendrecv
-    nodeDest = my_pe-1;
-    if (nodeDest < 0) nodeDest = npes-1;
-    nodeFrom = my_pe+1;
-    if (nodeFrom > npes-1) nodeFrom = 0;
-    MPI_Sendrecv(&params->rhs_ext_[nover*num_states], dsize, PVEC_REAL_MPI_TYPE, nodeDest, 0,
-                 &params->rhs_ext_[num_states*(num_local_points+nover)], dsize, PVEC_REAL_MPI_TYPE,
-                 nodeFrom, 0, params->comm_, &status);
-
-    nodeDest = my_pe+1;
-    if (nodeDest > npes-1) nodeDest = 0;
-    nodeFrom = my_pe-1;
-    if (nodeFrom < 0) nodeFrom = npes-1;
-    MPI_Sendrecv(&params->rhs_ext_[num_states*num_local_points], dsize, PVEC_REAL_MPI_TYPE, nodeDest,
-                 0, &params->rhs_ext_[0], dsize, PVEC_REAL_MPI_TYPE, nodeFrom, 0, params->comm_, &status);
-#endif
 
     // Compute jacobian
     // here j is the COLUMN and i is the ROW
@@ -647,12 +633,13 @@ int ReactorBBDSetup(N_Vector y, // [in] state vector
 #ifdef ZERORK_MPI
   // Perform parallel communication of jacobian
   MPI_Comm comm = params->comm_;
+  MPI_Status status;
   long int dsize_jac_bnd = nover*num_states*width;
 
   // MPI sendrecv
-  nodeDest = my_pe-1;
+  int nodeDest = my_pe-1;
   if (nodeDest < 0) nodeDest = npes-1;
-  nodeFrom = my_pe+1;
+  int nodeFrom = my_pe+1;
   if (nodeFrom > npes-1) nodeFrom = 0;
   MPI_Sendrecv(&jac_bnd[nover*num_states*width], dsize_jac_bnd, PVEC_REAL_MPI_TYPE, nodeDest, 0, &jac_bnd[num_states*(num_local_points+nover)*width], dsize_jac_bnd, PVEC_REAL_MPI_TYPE, nodeFrom, 0, comm, &status);
 
@@ -1024,22 +1011,9 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
 	return error_flag;
       }
 
-      // Add/Subtract identity to/from transport jacobian
-      for(int k=0; k<num_states; ++k) {
-        params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 + 0] += constant;
-      }
-
-      // Multiply by inverse of chemical jacobian
-      double inverse_chem_jacobian;
-      for(int k=0; k<num_states; ++k) {
-        inverse_chem_jacobian = 1.0/params->reactor_jacobian_chem_[params->diagonal_id_chem_[k]];
-        params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 + 0] *= inverse_chem_jacobian;
-        params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 - 1] *= inverse_chem_jacobian;
-        params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 + 1] *= inverse_chem_jacobian;
-      }
     } // for j<num_local_points
 
-  } else { //!store_jacobian_
+  } else {
     // recompute and factor the Jacobian, there is no saved data
     for(int j=0; j<num_local_points; ++j) {
       int jglobal = j + my_pe*num_local_points;
@@ -1110,23 +1084,26 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
 //				error_flag);
 	return error_flag;
       }
+    } // for(int j=0; j<num_local_points; ++j)
+  } // if(params->store_jacobian_)
 
       // Add/Subtract identity to/from transport jacobian
+  for(int j=0; j<num_local_points; ++j) {
       for(int k=0; k<num_states; ++k) {
         params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 + 0] += constant;
       }
+  }
 
       // Multiply by inverse of chemical jacobian
       double inverse_chem_jacobian;
+  for(int j=0; j<num_local_points; ++j) {
       for(int k=0; k<num_states; ++k) {
-        inverse_chem_jacobian = 1.0/params->reactor_jacobian_chem_[params->diagonal_id_chem_[k]];
+      inverse_chem_jacobian = 1.0/params->saved_jacobian_chem_[j*num_nonzeros_zerod+params->diagonal_id_chem_[k]];
         params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 + 0] *= inverse_chem_jacobian;
         params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 - 1] *= inverse_chem_jacobian;
         params->banded_jacobian_[k*(num_local_points*5) + j*5 + 1 + 2 + 1] *= inverse_chem_jacobian;
       }
-    } // for(int j=0; j<num_local_points; ++j)
-  } // if(params->store_jacobian_)
-
+  }
 
   // Add identity
   for(int j=0; j<num_local_points; ++j) {
