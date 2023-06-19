@@ -171,8 +171,8 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     /**/
 
     // Relative positions where to begin/end linear ramp
-    double ramp_start = 0.3*flame_params.length_;
-    double ramp_end = 0.5*flame_params.length_;
+    double ramp_start = flame_params.parser_->initial_inlet_extent();
+    double ramp_end = ramp_start + flame_params.parser_->thickness();
 
     for(int j=0; j<num_local_points; j++) {
       int jglobal = j + my_pe*num_local_points;

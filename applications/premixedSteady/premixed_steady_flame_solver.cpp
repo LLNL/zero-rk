@@ -440,9 +440,9 @@ int main(int argc, char *argv[])
 
         // Increase time step if it's converging quickly
         if(nfevals <= 5 || pseudo_time == flame_params.dt_) {
-          flame_params.dt_ *= 3.0;
+          flame_params.dt_ *= 2.0;
         } else if (nfevals <= 10) {
-          flame_params.dt_ *= 1.3;
+          flame_params.dt_ *= 1.2;
         }
       } else {
         // Failure, reset state and decrease timestep
@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
           flame_state_ptr[j] = flame_params.y_old_[j];
         }
         flame_params.dt_ *= 0.5;
-        if(flame_params.dt_ < 1.0e-5){
+        if(flame_params.dt_ < 1.0e-10){
           if(my_pe==0) {printf("# Error, pseudo-unsteady solver is not converging\n");}
           exit(-1);
         }

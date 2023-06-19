@@ -12,5 +12,6 @@ fi
 app=zerork_flame_api_tester.x
 inp=input.yml
 
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"@CMAKE_INSTALL_PREFIX@/lib"
 "@CMAKE_INSTALL_PREFIX@/bin/$app" $inp
 
