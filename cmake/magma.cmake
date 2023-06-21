@@ -11,13 +11,12 @@ if(EXISTS ${SYSTEM_SUPERLU_ROOT})
     set(magma_system_working OFF)
   endif()
 else()
-  set(magma_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/magma)
+  set(magma_prefix ${CMAKE_CURRENT_BINARY_DIR}/external/magma/${ZERORK_EXTERNALS_BUILD_TYPE})
 endif()
 
 if((NOT EXISTS ${magma_prefix}) OR (NOT ${magma_system_working}))
   message(STATUS "Building: Magma...")
   set(GPU_TARGET_LIST "${HIP_ARCHITECTURES}")
-  #list(TRANSFORM GPU_TARGET_LIST PREPEND sm_)
   string(REPLACE ";" " " GPU_TARGET "${GPU_TARGET_LIST}")
   configure_file(
 	${CMAKE_CURRENT_LIST_DIR}/magma.CMakeLists.txt
@@ -28,7 +27,7 @@ if((NOT EXISTS ${magma_prefix}) OR (NOT ${magma_system_working}))
   if(result)
     message(FATAL_ERROR "CMake step for Magma failed: ${result}")
   endif()
-  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  execute_process(COMMAND ${CMAKE_COMMAND} --build . --config ${ZERORK_EXTERNALS_BUILD_TYPE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/external/magma-build)
   if(result)
@@ -52,7 +51,9 @@ set_target_properties(magma PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS ZERORK_HAVE_MAGMA)
 
 
+#OpenMP is included by Magma if it's found
 find_package(OpenMP)
-#target_link_libraries(magma INTERFACE lapack blas OpenMP::OpenMP_CXX omp)
-target_link_libraries(magma INTERFACE lapack blas OpenMP::OpenMP_CXX)
+if (OPENMP_FOUND)
+target_link_libraries(magma INTERFACE lapack blas OpenMP::OpenMP_CXX omp)
+endif()
 
