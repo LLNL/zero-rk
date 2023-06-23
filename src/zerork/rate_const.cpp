@@ -107,12 +107,12 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   Tcurrent = 0;
 
   int allocSize = nDistinctArrhenius;
-  allocSize = ((allocSize + 15)/16)*16; //round to next even multiple of 16
-  arrWorkArray = (double*)aligned_alloc(16, sizeof(double)*allocSize);
+  allocSize = ((allocSize + 15)/16)*32; //round to next even multiple of 32
+  arrWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
   memset(arrWorkArray,0.0,sizeof(double)*allocSize);
   allocSize = nFromKeqStep;
-  allocSize = ((allocSize + 15)/16)*16; //round to next even multiple of 16
-  keqWorkArray = (double*)aligned_alloc(16, sizeof(double)*allocSize);
+  allocSize = ((allocSize + 15)/16)*32; //round to next even multiple of 32
+  keqWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
   memset(keqWorkArray,0.0,sizeof(double)*allocSize);
 
   use_external_arrh = false;
@@ -658,7 +658,7 @@ void rate_const::updateArrheniusStep()
                  	     +distinctArrheniusTpow[j]*local_log_e_Tcurrent
      	             -distinctArrheniusTact[j]*local_invTcurrent;
     }
-    fast_vec_exp(arrWorkArray,nDistinctArrhenius+nDistinctArrhenius%2);
+    fast_vec_exp(arrWorkArray,nDistinctArrhenius+nDistinctArrhenius%4);
   }
   for(j=0; j<nArrheniusStep; ++j) {
       Kwork[arrheniusStepList[j].stepIdx] =
@@ -701,7 +701,7 @@ void rate_const::updateFromKeqStep()
       }
       keqWorkArray[j] = thermo_sum-fromKeqStepList[j].nDelta*log_e_PatmInvRuT;
     }
-    fast_vec_exp(keqWorkArray,nFromKeqStep+nFromKeqStep%2);
+    fast_vec_exp(keqWorkArray,nFromKeqStep+nFromKeqStep%4);
   }
   for(j=0; j<nFromKeqStep; j++) {
 
@@ -796,7 +796,7 @@ void rate_const::write_funcs(FILE *fptr)
 
 
   fprintf(fptr,"\n");
-  fprintf(fptr,"    fast_vec_exp(arrWorkArray,%d);\n",(nDistinctArrhenius+nDistinctArrhenius%2));
+  fprintf(fptr,"    fast_vec_exp(arrWorkArray,%d);\n",(nDistinctArrhenius+nDistinctArrhenius%4));
   fprintf(fptr,"\n");
   for(j=0; j<nArrheniusStep; ++j)
     {
@@ -826,7 +826,7 @@ void rate_const::write_funcs(FILE *fptr)
       fprintf(fptr,") + %18.10g*log_e_PatmInvRuT);\n",fromKeqStepList[j].nDelta);
     }
   fprintf(fptr,"\n");
-  fprintf(fptr,"    fast_vec_exp(keqWorkArray,%d);\n",(nFromKeqStep+nFromKeqStep%2));
+  fprintf(fptr,"    fast_vec_exp(keqWorkArray,%d);\n",(nFromKeqStep+nFromKeqStep%4));
   fprintf(fptr,"\n");
   for(j=0; j<nFromKeqStep; j++)
     {
