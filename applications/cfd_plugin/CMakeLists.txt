@@ -88,9 +88,6 @@ if(${SUNDIALS_VERSION} EQUAL "5")
                          interfaces/magma_manager/magma_manager.hip)
   endif()
 
-  set_source_files_properties(zerork_reactor_manager.cpp PROPERTIES COMPILE_OPTIONS "-x;hip")
-  set_source_files_properties(solver_cvode.cpp PROPERTIES COMPILE_OPTIONS "-x;hip")
-
   if(ENABLE_MPI)
     add_mpi_library(zerork_cfd_plugin_gpu SHARED ${COMMON_SRCS} ${GPU_SRCS} zerork_cfd_plugin.cpp)
     add_mpi_executable(zerork_cfd_plugin_tester_gpu.x zerork_cfd_plugin_tester.cpp ZeroRKCFDPluginTesterIFP.cpp)
@@ -103,6 +100,9 @@ if(${SUNDIALS_VERSION} EQUAL "5")
     target_compile_definitions(zerork_cfd_plugin_tester_gpu.x PRIVATE ZERORK_GPU)
   endif()
   #target_include_directories(zerork_cfd_plugin_gpu PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+
+  set_source_files_properties(zerork_reactor_manager.cpp TARGET_DIRECTORY zerork_cfd_plugin_gpu PROPERTIES LANGUAGE HIP)
+  set_source_files_properties(solver_cvode.cpp TARGET_DIRECTORY zerork_cfd_plugin_gpu PROPERTIES LANGUAGE HIP)
 
   #target_link_libraries(zerork_cfd_plugin_gpu zerork_cuda zerork zerorkutilities superlu spify
   #                      sundials_nveccuda sundials_cvode sundials_nvecserial cublas cusolver cudart)
