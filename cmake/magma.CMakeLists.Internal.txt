@@ -135,14 +135,14 @@ endif()
 
 # ----------------------------------------
 # locate OpenMP
-find_package( OpenMP )
-if (OPENMP_FOUND)
-    message( STATUS "Found OpenMP" )
-    message( STATUS "    OpenMP_C_FLAGS   ${OpenMP_C_FLAGS}" )
-    message( STATUS "    OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS}" )
-    set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}" )
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
-endif()
+#find_package( OpenMP )
+#if (OPENMP_FOUND)
+#    message( STATUS "Found OpenMP" )
+#    message( STATUS "    OpenMP_C_FLAGS   ${OpenMP_C_FLAGS}" )
+#    message( STATUS "    OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS}" )
+#    set( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}" )
+#    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
+#endif()
 
 if (MAGMA_ENABLE_CUDA)
   enable_language(CUDA)

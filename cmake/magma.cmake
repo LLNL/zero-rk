@@ -52,8 +52,8 @@ set_target_properties(magma PROPERTIES
 
 
 #OpenMP is included by Magma if it's found
-find_package(OpenMP)
-if (OPENMP_FOUND)
-target_link_libraries(magma INTERFACE lapack blas OpenMP::OpenMP_CXX omp)
-endif()
+#find_package(OpenMP)
+#if (OPENMP_FOUND)
+#target_link_libraries(magma INTERFACE lapack blas OpenMP::OpenMP_CXX omp)
+#endif()
 
