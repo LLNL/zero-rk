@@ -392,19 +392,17 @@ if (MAGMA_ENABLE_HIP)
     set(VALID_GFXS "700;701;702;703;704;705;801;802;803;805;810;900;902;904;906;908;909;90a;90c;1010;1011;1012;1030;1031;1032;1033")
     foreach( GFX ${VALID_GFXS} )
       if ( GPU_TARGET MATCHES gfx${GFX} )
-	set( DEVCCFLAGS ${DEVCCFLAGS} --amdgpu-target=gfx${GFX} )
+	set( DEVCCFLAGS "${DEVCCFLAGS} --offload-arch=gfx${GFX}" )
       endif()
     endforeach()
 
-    set( DEVCCFLAGS ${DEVCCFLAGS} -fPIC ${FORTRAN_CONVENTION} )
     set(MAGMA_HAVE_HIP "1")
     message( STATUS "Define -DMAGMA_HAVE_HIP" )
 
     set_property(TARGET hip::device APPEND PROPERTY COMPATIBLE_INTERFACE_BOOL INTERFACE_HIP_DEVICE_COMPILE)
     set_property(TARGET hip::device PROPERTY INTERFACE_HIP_DEVICE_COMPILE ON)
-    set(GPU_ARCH_FLAGS ${DEVCCFLAGS})
-    
-    #add_compile_options(${GPU_ARCH_FLAGS})
+
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DEVCCFLAGS}" )
   else()
     message( STATUS "Could not find HIP" )
   endif()
