@@ -9,12 +9,7 @@ endif()
 
 cmake_minimum_required(VERSION 3.12)
 
-# enable MSVC_RUNTIME_LIBRARY target property
-# see https://cmake.org/cmake/help/latest/policy/CMP0091.html
-if(POLICY CMP0091)
-  cmake_policy(SET CMP0091 NEW)
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
+include(cmake/policies.cmake)
 
 project(zerork LANGUAGES C CXX Fortran VERSION 3.0.8)
 include(CMakeDependentOption)
