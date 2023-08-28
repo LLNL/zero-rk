@@ -15,7 +15,7 @@ static inline void* aligned_alloc(size_t alignment, size_t size)
         int flag = posix_memalign(&p, alignment, size);
         return (flag == 0) ? p : 0;
 }
-#elif defined(WIN32)
+#elif defined(_WIN32)
 static inline void* aligned_alloc(size_t alignment, size_t size)
 {
         void* p = _aligned_malloc(size, alignment);
@@ -23,11 +23,11 @@ static inline void* aligned_alloc(size_t alignment, size_t size)
 }
 #endif
 #endif
-#ifndef WIN32
+#ifndef _WIN32
 #define _aligned_free free
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 #define unlikely(expr) __builtin_expect(!!(expr), 0)
 #define likely(expr) __builtin_expect(!!(expr), 1)
 #else

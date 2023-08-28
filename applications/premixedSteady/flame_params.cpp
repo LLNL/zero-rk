@@ -16,13 +16,11 @@ FlameParams::FlameParams(const std::string &input_name)
 {
   npes_ = 1;
   my_pe_ = 0;
-#ifdef ZERORK_MPI
-  comm_ = MPI_COMM_WORLD; // not nice
-  MPI_Comm_size(comm_, &npes_);
-  MPI_Comm_rank(comm_, &my_pe_);
-#endif
-  nover_ = 2;
 
+  comm_rank_ = 0;
+  num_comms_ = 1;
+
+  nover_ = 2;
   int error_code;
 
   parser_  = NULL;
@@ -48,6 +46,33 @@ FlameParams::FlameParams(const std::string &input_name)
     printf("# ERROR: Parser for file %s is not created\n",input_name.c_str());
     exit(-1);
   }
+
+#ifdef ZERORK_MPI
+  comm_ = MPI_COMM_WORLD;
+  inter_comm_ = MPI_COMM_WORLD;
+  MPI_Comm_size(comm_, &npes_);
+  MPI_Comm_rank(comm_, &my_pe_);
+
+  if(parser_->sensitivity_analysis() && 
+    parser_->sensitivity_processors_per_solution() > 0) {
+    if(npes_ % parser_->sensitivity_processors_per_solution() !=0 ) {
+      printf("Warning: Total number of processors not evenly divisible by sensitivity_processors_per_solution\n");
+      printf("         Continuing without parallelizing sensitivity analysis\n");
+    } else if(npes_ / parser_->sensitivity_processors_per_solution() <= 1) {
+      printf("Warning: Total number of processors less than or equal to sensitivity_processors_per_solution\n");
+      printf("         Continuing without parallelizing sensitivity analysis\n");
+    } else {
+      num_comms_ = npes_ / parser_->sensitivity_processors_per_solution();
+      comm_rank_ = my_pe_ / parser_->sensitivity_processors_per_solution();
+      MPI_Comm_split(MPI_COMM_WORLD, comm_rank_, my_pe_, &comm_);
+      MPI_Comm_rank(comm_, &my_pe_);
+      MPI_Comm_size(comm_, &npes_);
+      int inter_comm_rank = 0;
+      if(my_pe_ != 0) inter_comm_rank = 1;
+      MPI_Comm_split(MPI_COMM_WORLD, inter_comm_rank, comm_rank_, &inter_comm_);
+    }
+  }
+#endif
 
   // setup constant pressure reactor
   reactor_ = new ConstPressureReactor(parser_->mech_file().c_str(),
@@ -614,7 +639,7 @@ void FlameParams::SetGrid()
 
   const int num_states   = reactor_->GetNumStates();
   num_points = z_.size();
-  num_points_ = num_points; //stupid
+  num_points_ = num_points;
   num_local_points_ = num_points/npes_;
 
   if(num_points % npes_ != 0 ) {
@@ -895,7 +920,6 @@ void FlameParams::SetMemory()
   simulation_type_ = parser_->simulation_type();
 
   // Sensitivity analysis flags
-  flame_speed_sensitivity_ = parser_->flame_speed_sensitivity();
   sensitivity_ = parser_->sensitivity();
 
   // Step limiter array

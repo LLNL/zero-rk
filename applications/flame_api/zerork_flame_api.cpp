@@ -2,7 +2,7 @@
 #include <memory> //unique_ptr
 
 
-#ifndef WIN32
+#ifndef _WIN32
 #ifndef NDEBUG
 #define ZERORK_TRAP_FE
 #include <fenv.h> //for fpe trapping

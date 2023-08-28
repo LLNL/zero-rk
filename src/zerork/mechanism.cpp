@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h> // for memcpy
 #include <assert.h>
-#ifndef WIN32
+#ifndef _WIN32
 #include <dlfcn.h> // for loading external func lib
 #endif
 
@@ -82,7 +82,7 @@ mechanism::~mechanism()
 
   delete thermo;
   //delete rxnNet;
-#ifndef WIN32
+#ifndef _WIN32
   if(externalFuncLibHandle) dlclose(externalFuncLibHandle);
 #endif
 }
@@ -1087,7 +1087,7 @@ void mechanism::getSpeciesHeliumCount(int num_atoms[]) const
 
 void mechanism::initExternalFuncs()
 {
-#ifndef WIN32
+#ifndef _WIN32
   char * externalFuncLibPath;
   char * dl_error;
   char * ext_flags;

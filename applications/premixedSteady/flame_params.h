@@ -35,7 +35,9 @@ class FlameParams
   //MPI
 #ifdef ZERORK_MPI
   MPI_Comm comm_;
+  MPI_Comm inter_comm_;
 #endif
+  int comm_rank_,num_comms_;
   int my_pe_,npes_;
   int num_procs_;
   int num_local_points_;
@@ -88,6 +90,7 @@ class FlameParams
   double max_temperature_;
   double mass_change_;
   double continuity_error_;
+  double max_svf_;
 
   double temperature_fix_;
   int j_fix_;
@@ -133,7 +136,6 @@ class FlameParams
 
   bool pseudo_unsteady_;
 
-  bool flame_speed_sensitivity_;
   bool sensitivity_;
 
   std::vector<double> step_limiter_;

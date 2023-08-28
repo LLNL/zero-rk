@@ -1537,7 +1537,7 @@ int SensitivityAnalysis(N_Vector y,
 #else
     high = local_high;
 #endif
-    rxnSensList[k].relSens = high;
+    rxnSensList[k].relSensAbs = high;
     rxnSensList[k].rxnId = k;
   }
 
@@ -1553,7 +1553,7 @@ int SensitivityAnalysis(N_Vector y,
       fprintf(sensFile,"%d  %s  %14.7e\n",
               rxnSensList[j].rxnId,
               params->mechanism_->getReactionName(rxnSensList[j].rxnId),
-              rxnSensList[j].relSens);
+              rxnSensList[j].relSensAbs);
     }
     fclose(sensFile);
   }
@@ -1565,10 +1565,10 @@ int compare_rxnSens_t(const void *A, const void *B)
 {
   rxnSens_t *Aptr =(rxnSens_t *)A;
   rxnSens_t *Bptr =(rxnSens_t *)B;
-  if(Aptr->relSens < Bptr->relSens) {
+  if(Aptr->relSensAbs < Bptr->relSensAbs) {
     return 1;
   }
-  else if (Aptr->relSens > Bptr->relSens) {
+  else if (Aptr->relSensAbs > Bptr->relSensAbs) {
     return -1;
   }
   return 0;

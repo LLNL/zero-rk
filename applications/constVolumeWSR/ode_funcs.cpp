@@ -53,6 +53,11 @@ int tempRootFunc(realtype t, N_Vector y, realtype *rootFunc,
   for(int i = 0; i < cvp->numTempRoots; ++i) { 
       rootFunc[i]=(cvp->tempRoots[i])-(NV_Ith_S(y,cvp->nSpc)*cvp->Tref);
   }
+
+  if(cvp->temperaturePrintResolution != 0) {
+    rootFunc[cvp->numTempRoots+0] = cvp->temperatureBracket[0]-NV_Ith_S(y,cvp->nSpc)*cvp->Tref;
+    rootFunc[cvp->numTempRoots+1] = cvp->temperatureBracket[1]-NV_Ith_S(y,cvp->nSpc)*cvp->Tref;
+  }
   return 0;
 }
 

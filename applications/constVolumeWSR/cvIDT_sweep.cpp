@@ -177,6 +177,7 @@ void cvReactor(int inp_argc, char **inp_argv)
   systemParam.mech=idt_ctrl.getMechPtr();
   systemParam.numTempRoots = idt_ctrl.getTemperatureDeltas().size();
   systemParam.tempRoots.resize(systemParam.numTempRoots);
+  systemParam.temperaturePrintResolution = idt_ctrl.getTemperaturePrintResolution();
 
   // don't forget to reset densities for each calculations
   //systemParam.Dens=gasMech->getDensityFromTPY(tempSweep[0],pres0,massFracPtr);
@@ -228,7 +229,11 @@ void cvReactor(int inp_argc, char **inp_argv)
   if (check_flag(&flag, "CVodeSStolerances", 1)) exit(-1);
 
   /* Call CVodeRootInit to specify the root function */
-  flag = CVodeRootInit(cvode_mem, systemParam.numTempRoots, tempRootFunc);
+  int num_roots = systemParam.numTempRoots;
+  if(systemParam.temperaturePrintResolution) {
+    num_roots += 2;
+  }	   
+  flag = CVodeRootInit(cvode_mem, num_roots, tempRootFunc);
   //flag = CVodeRootInit(cvode_mem, 2, tempRoot2);
   if (check_flag(&flag, "CVodeRootInit", 1)) exit(-1);
 
@@ -391,6 +396,10 @@ void cvReactor(int inp_argc, char **inp_argv)
       }
       idts.clear();
       idts.resize(systemParam.numTempRoots);
+      if(systemParam.temperaturePrintResolution != 0) {
+        systemParam.temperatureBracket[0] = initTemp - systemParam.temperaturePrintResolution;
+        systemParam.temperatureBracket[1] = initTemp + systemParam.temperaturePrintResolution;
+      }
 
       // reset the preconditioner threshold
       change_JsparseThresh(systemParam.sparseMtx,idt_ctrl.getThresh());
@@ -495,6 +504,13 @@ void cvReactor(int inp_argc, char **inp_argv)
                idt_ctrl.continueAfterIDT() == 0) {
               tcurr=2.0*tmax; // advance time past the stopping criteria
 	    }
+            if(systemParam.temperaturePrintResolution != 0) {
+              if(roots_found[systemParam.numTempRoots+0] != 0 ||
+                 roots_found[systemParam.numTempRoots+1] != 0) {
+                 systemParam.temperatureBracket[0] = NV_Ith_S(systemState,systemParam.nSpc)*systemParam.Tref - systemParam.temperaturePrintResolution;
+                 systemParam.temperatureBracket[1] = NV_Ith_S(systemState,systemParam.nSpc)*systemParam.Tref + systemParam.temperaturePrintResolution;
+              }
+            }
           }
   	  else if(!idt_ctrl.oneStep() && isBadStep==0)
   	    {tnext+=dtprint;}

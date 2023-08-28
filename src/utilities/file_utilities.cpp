@@ -11,7 +11,7 @@ namespace zerork
 namespace utilities 
 {
 
-#ifdef WIN32
+#ifdef _WIN32
 const char* null_filename = "nul";
 #else
 const char* null_filename = "/dev/null";

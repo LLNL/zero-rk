@@ -92,9 +92,16 @@ spify_parser_params.append(
 {
     'name':'temperature_deltas',
     'type':'v_double',
-    'defaultValue': [400.0],
-    'boundMin': 5.0,
-    'boundMax': 100000.0
+    'defaultValue': [400.0]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'temperature_print_resolution',
+    'type':'double',
+    'defaultValue': 0,
+    'boundMin': 0
 }
 )
 

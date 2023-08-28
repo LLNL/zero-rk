@@ -95,6 +95,7 @@ typedef struct
 {
   int rxnId;
   double relSens;
+  double relSensAbs;
 } rxnSens_t;
 
 int compare_rxnSens_t(const void *A, const void *B);

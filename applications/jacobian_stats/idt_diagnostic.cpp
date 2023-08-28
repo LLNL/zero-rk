@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <fenv.h>
-#ifdef WIN32
+#ifdef _WIN32
 #include <io.h>
 #define F_OK 00
 #define R_OK 04
