@@ -1,0 +1,2808 @@
+diff --git a/SRC/ccolumn_dfs.c b/SRC/ccolumn_dfs.c
+index 71bfe9b..d94a89a 100644
+--- a/SRC/ccolumn_dfs.c
++++ b/SRC/ccolumn_dfs.c
+@@ -58,7 +58,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -118,10 +118,10 @@ ccolumn_dfs(
+     marker2 = &marker[2*m];
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-    	lsub_col[k] = EMPTY;
++    	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];    	
+ 
+ 	/* krow was visited before, go to the next nonz */
+@@ -133,14 +133,14 @@ ccolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-   	if ( kperm == EMPTY ) {
++   	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow; 	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		mem_error = cLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu);
+ 		if ( mem_error ) return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-            if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++            if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+   	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -148,13 +148,13 @@ ccolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 	    	if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 	 	parent[krep] = oldrep;
+ 	  	repfnz[krep] = kperm;
+ 		xdfs = xlsub[krep];
+@@ -175,7 +175,7 @@ ccolumn_dfs(
+ 		   	    chperm = perm_r[kchild];
+ 
+ 		   	    /* Case kchild is in L: place it in L[*,k] */
+-		   	    if ( chperm == EMPTY ) {
++		   	    if ( chperm == SUPERLU_EMPTY ) {
+ 			    	lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    mem_error =
+@@ -183,7 +183,7 @@ ccolumn_dfs(
+ 				    if ( mem_error ) return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 		    	    	/* Case kchild is in U: 
+ 				 *   chrep = its supernode-rep. If its rep has 
+@@ -191,7 +191,7 @@ ccolumn_dfs(
+ 			         */
+ 		   	    	chrep = xsup[supno[chperm]+1] - 1;
+ 		   		myfnz = repfnz[chrep];
+-		   		if ( myfnz != EMPTY ) { /* Visited before */
++		   		if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+      				  	repfnz[chrep] = chperm;
+ 				} else {
+@@ -218,12 +218,12 @@ ccolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xprune[krep];
+ 
+-		} while ( kpar != EMPTY ); 	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY ); 	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -240,18 +240,18 @@ ccolumn_dfs(
+ 	jm1ptr = xlsub[jcolm1];
+ 
+ #ifdef T2_SUPER
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ #endif
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first and last columns of
+    	 * a supernode. (first for num values, last for pruning)
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1-1) ) {	/* >= 3 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/ccopy_to_ucol.c b/SRC/ccopy_to_ucol.c
+index 8be26e2..2b53190 100644
+--- a/SRC/ccopy_to_ucol.c
++++ b/SRC/ccopy_to_ucol.c
+@@ -76,7 +76,7 @@ ccopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 	    	fsupc = xsup[ksupno];
+ 	        isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/cgsitrf.c b/SRC/cgsitrf.c
+index a1df60a..5034c8a 100644
+--- a/SRC/cgsitrf.c
++++ b/SRC/cgsitrf.c
+@@ -310,14 +310,14 @@ cgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     else
+ 	ilu_relax_snode(n, etree, relax, marker, relax_end, relax_fsupc);
+ 
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+ 
+     /* Mark the rows used by relaxed supernodes */
+-    ifill (marker_relax, m, EMPTY);
++    ifill (marker_relax, m, SUPERLU_EMPTY);
+     i = mark_relax(m, relax_end, relax_fsupc, xa_begin, xa_end,
+ 	         asub, marker_relax);
+ #if ( PRNTlevel >= 1)
+@@ -331,7 +331,7 @@ cgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+ 	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -439,7 +439,7 @@ cgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++)
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -610,7 +610,7 @@ cgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     if ( m > n ) {
+ 	k = 0;
+ 	for (i = 0; i < m; ++i)
+-	    if ( perm_r[i] == EMPTY ) {
++	    if ( perm_r[i] == SUPERLU_EMPTY ) {
+ 		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/cgstrf.c b/SRC/cgstrf.c
+index 2cd14a9..8d1df20 100644
+--- a/SRC/cgstrf.c
++++ b/SRC/cgstrf.c
+@@ -284,8 +284,8 @@ cgstrf (superlu_options_t *options, SuperMatrix *A,
+         relax_snode(n, etree, relax, marker, relax_end); 
+     }
+     
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+@@ -297,7 +297,7 @@ cgstrf (superlu_options_t *options, SuperMatrix *A,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+    	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -349,7 +349,7 @@ cgstrf (superlu_options_t *options, SuperMatrix *A,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++) 
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -413,7 +413,7 @@ cgstrf (superlu_options_t *options, SuperMatrix *A,
+     if ( m > n ) {
+ 	k = 0;
+         for (i = 0; i < m; ++i) 
+-            if ( perm_r[i] == EMPTY ) {
++            if ( perm_r[i] == SUPERLU_EMPTY ) {
+     		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/colamd.c b/SRC/colamd.c
+index 3cd1c61..c98e44f 100644
+--- a/SRC/colamd.c
++++ b/SRC/colamd.c
+@@ -671,7 +671,7 @@ at the top-level directory.
+ 
+ /* -------------------------------------------------------------------------- */
+ 
+-#define EMPTY	(-1)
++#define SUPERLU_EMPTY	(-1)
+ 
+ /* Row and column status */
+ #define ALIVE	(0)
+@@ -1557,8 +1557,8 @@ PRIVATE int init_rows_cols	/* returns TRUE if OK, or FALSE otherwise */
+ 
+ 	Col [col].shared1.thickness = 1 ;
+ 	Col [col].shared2.score = 0 ;
+-	Col [col].shared3.prev = EMPTY ;
+-	Col [col].shared4.degree_next = EMPTY ;
++	Col [col].shared3.prev = SUPERLU_EMPTY ;
++	Col [col].shared4.degree_next = SUPERLU_EMPTY ;
+     }
+ 
+     /* p [0..n_col] no longer needed, used as "head" in subsequent routines */
+@@ -1937,7 +1937,7 @@ PRIVATE void init_scoring
+     /* clear the hash buckets */
+     for (c = 0 ; c <= n_col ; c++)
+     {
+-	head [c] = EMPTY ;
++	head [c] = SUPERLU_EMPTY ;
+     }
+     min_score = n_col ;
+     /* place in reverse order, so low column indices are at the front */
+@@ -1958,16 +1958,16 @@ PRIVATE void init_scoring
+ 	    ASSERT (min_score <= n_col) ;
+ 	    ASSERT (score >= 0) ;
+ 	    ASSERT (score <= n_col) ;
+-	    ASSERT (head [score] >= EMPTY) ;
++	    ASSERT (head [score] >= SUPERLU_EMPTY) ;
+ 
+ 	    /* now add this column to dList at proper score location */
+ 	    next_col = head [score] ;
+-	    Col [c].shared3.prev = EMPTY ;
++	    Col [c].shared3.prev = SUPERLU_EMPTY ;
+ 	    Col [c].shared4.degree_next = next_col ;
+ 
+ 	    /* if there already was a column with the same score, set its */
+ 	    /* previous pointer to this new column */
+-	    if (next_col != EMPTY)
++	    if (next_col != SUPERLU_EMPTY)
+ 	    {
+ 		Col [next_col].shared3.prev = c ;
+ 	    }
+@@ -2096,17 +2096,17 @@ PRIVATE int find_ordering	/* return the number of garbage collections */
+ 	/* make sure degree list isn't empty */
+ 	ASSERT (min_score >= 0) ;
+ 	ASSERT (min_score <= n_col) ;
+-	ASSERT (head [min_score] >= EMPTY) ;
++	ASSERT (head [min_score] >= SUPERLU_EMPTY) ;
+ 
+ #ifndef NDEBUG
+ 	for (debug_d = 0 ; debug_d < min_score ; debug_d++)
+ 	{
+-	    ASSERT (head [debug_d] == EMPTY) ;
++	    ASSERT (head [debug_d] == SUPERLU_EMPTY) ;
+ 	}
+ #endif /* NDEBUG */
+ 
+ 	/* get pivot column from head of minimum degree list */
+-	while (head [min_score] == EMPTY && min_score < n_col)
++	while (head [min_score] == SUPERLU_EMPTY && min_score < n_col)
+ 	{
+ 	    min_score++ ;
+ 	}
+@@ -2114,9 +2114,9 @@ PRIVATE int find_ordering	/* return the number of garbage collections */
+ 	ASSERT (pivot_col >= 0 && pivot_col <= n_col) ;
+ 	next_col = Col [pivot_col].shared4.degree_next ;
+ 	head [min_score] = next_col ;
+-	if (next_col != EMPTY)
++	if (next_col != SUPERLU_EMPTY)
+ 	{
+-	    Col [next_col].shared3.prev = EMPTY ;
++	    Col [next_col].shared3.prev = SUPERLU_EMPTY ;
+ 	}
+ 
+ 	ASSERT (COL_IS_ALIVE (pivot_col)) ;
+@@ -2229,7 +2229,7 @@ PRIVATE int find_ordering	/* return the number of garbage collections */
+ 	else
+ 	{
+ 	    /* there is no pivot row, since it is of zero length */
+-	    pivot_row = EMPTY ;
++	    pivot_row = SUPERLU_EMPTY ;
+ 	    ASSERT (pivot_row_length == 0) ;
+ 	}
+ 	ASSERT (Col [pivot_col].length > 0 || pivot_row_length == 0) ;
+@@ -2281,8 +2281,8 @@ PRIVATE int find_ordering	/* return the number of garbage collections */
+ 	    next_col = Col [col].shared4.degree_next ;
+ 	    ASSERT (cur_score >= 0) ;
+ 	    ASSERT (cur_score <= n_col) ;
+-	    ASSERT (cur_score >= EMPTY) ;
+-	    if (prev_col == EMPTY)
++	    ASSERT (cur_score >= SUPERLU_EMPTY) ;
++	    if (prev_col == SUPERLU_EMPTY)
+ 	    {
+ 		head [cur_score] = next_col ;
+ 	    }
+@@ -2290,7 +2290,7 @@ PRIVATE int find_ordering	/* return the number of garbage collections */
+ 	    {
+ 		Col [prev_col].shared4.degree_next = next_col ;
+ 	    }
+-	    if (next_col != EMPTY)
++	    if (next_col != SUPERLU_EMPTY)
+ 	    {
+ 		Col [next_col].shared3.prev = prev_col ;
+ 	    }
+@@ -2415,7 +2415,7 @@ PRIVATE int find_ordering	/* return the number of garbage collections */
+ 		ASSERT (hash <= n_col) ;
+ 
+ 		head_column = head [hash] ;
+-		if (head_column > EMPTY)
++		if (head_column > SUPERLU_EMPTY)
+ 		{
+ 		    /* degree list "hash" is non-empty, use prev (shared3) of */
+ 		    /* first column in degree list as head of hash bucket */
+@@ -2515,11 +2515,11 @@ PRIVATE int find_ordering	/* return the number of garbage collections */
+ 	    ASSERT (min_score <= n_col) ;
+ 	    ASSERT (cur_score >= 0) ;
+ 	    ASSERT (cur_score <= n_col) ;
+-	    ASSERT (head [cur_score] >= EMPTY) ;
++	    ASSERT (head [cur_score] >= SUPERLU_EMPTY) ;
+ 	    next_col = head [cur_score] ;
+ 	    Col [col].shared4.degree_next = next_col ;
+-	    Col [col].shared3.prev = EMPTY ;
+-	    if (next_col != EMPTY)
++	    Col [col].shared3.prev = SUPERLU_EMPTY ;
++	    if (next_col != SUPERLU_EMPTY)
+ 	    {
+ 		Col [next_col].shared3.prev = col ;
+ 	    }
+@@ -2594,7 +2594,7 @@ PRIVATE void order_children
+     {
+ 	/* find an un-ordered non-principal column */
+ 	ASSERT (COL_IS_DEAD (i)) ;
+-	if (!COL_IS_DEAD_PRINCIPAL (i) && Col [i].shared2.order == EMPTY)
++	if (!COL_IS_DEAD_PRINCIPAL (i) && Col [i].shared2.order == SUPERLU_EMPTY)
+ 	{
+ 	    parent = i ;
+ 	    /* once found, find its principal parent */
+@@ -2611,7 +2611,7 @@ PRIVATE void order_children
+ 
+ 	    do
+ 	    {
+-		ASSERT (Col [c].shared2.order == EMPTY) ;
++		ASSERT (Col [c].shared2.order == SUPERLU_EMPTY) ;
+ 
+ 		/* order this column */
+ 		Col [c].shared2.order = order++ ;
+@@ -2624,7 +2624,7 @@ PRIVATE void order_children
+ 		/* continue until we hit an ordered column.  There are */
+ 		/* guarranteed not to be anymore unordered columns */
+ 		/* above an ordered column */
+-	    } while (Col [c].shared2.order == EMPTY) ;
++	    } while (Col [c].shared2.order == SUPERLU_EMPTY) ;
+ 
+ 	    /* re-order the super_col parent to largest order for this group */
+ 	    Col [parent].shared2.order = order ;
+@@ -2725,7 +2725,7 @@ PRIVATE void detect_super_cols
+ 	/* === Get the first column in this hash bucket ===================== */
+ 
+ 	head_column = head [hash] ;
+-	if (head_column > EMPTY)
++	if (head_column > SUPERLU_EMPTY)
+ 	{
+ 	    first_col = Col [head_column].shared3.headhash ;
+ 	}
+@@ -2736,7 +2736,7 @@ PRIVATE void detect_super_cols
+ 
+ 	/* === Consider each column in the hash bucket ====================== */
+ 
+-	for (super_c = first_col ; super_c != EMPTY ;
++	for (super_c = first_col ; super_c != SUPERLU_EMPTY ;
+ 	    super_c = Col [super_c].shared4.hash_next)
+ 	{
+ 	    ASSERT (COL_IS_ALIVE (super_c)) ;
+@@ -2749,7 +2749,7 @@ PRIVATE void detect_super_cols
+ 	    /* === Compare super_c with all columns after it ================ */
+ 
+ 	    for (c = Col [super_c].shared4.hash_next ;
+-		 c != EMPTY ; c = Col [c].shared4.hash_next)
++		 c != SUPERLU_EMPTY ; c = Col [c].shared4.hash_next)
+ 	    {
+ 		ASSERT (c != super_c) ;
+ 		ASSERT (COL_IS_ALIVE (c)) ;
+@@ -2795,7 +2795,7 @@ PRIVATE void detect_super_cols
+ 		Col [c].shared1.parent = super_c ;
+ 		KILL_NON_PRINCIPAL_COL (c) ;
+ 		/* order c later, in order_children() */
+-		Col [c].shared2.order = EMPTY ;
++		Col [c].shared2.order = SUPERLU_EMPTY ;
+ 		/* remove c from hash bucket */
+ 		Col [prev_c].shared4.hash_next = Col [c].shared4.hash_next ;
+ 	    }
+@@ -2803,15 +2803,15 @@ PRIVATE void detect_super_cols
+ 
+ 	/* === Empty this hash bucket ======================================= */
+ 
+-	if (head_column > EMPTY)
++	if (head_column > SUPERLU_EMPTY)
+ 	{
+ 	    /* corresponding degree list "hash" is not empty */
+-	    Col [head_column].shared3.headhash = EMPTY ;
++	    Col [head_column].shared3.headhash = SUPERLU_EMPTY ;
+ 	}
+ 	else
+ 	{
+ 	    /* corresponding degree list "hash" is empty */
+-	    head [hash] = EMPTY ;
++	    head [hash] = SUPERLU_EMPTY ;
+ 	}
+     }
+ }
+@@ -3260,12 +3260,12 @@ PRIVATE void debug_deg_lists
+     for (deg = 0 ; deg <= n_col ; deg++)
+     {
+ 	col = head [deg] ;
+-	if (col == EMPTY)
++	if (col == SUPERLU_EMPTY)
+ 	{
+ 	    continue ;
+ 	}
+ 	DEBUG4 (("%d:", deg)) ;
+-	while (col != EMPTY)
++	while (col != SUPERLU_EMPTY)
+ 	{
+ 	    DEBUG4 ((" %d", col)) ;
+ 	    have += Col [col].shared1.thickness ;
+diff --git a/SRC/cpanel_bmod.c b/SRC/cpanel_bmod.c
+index 6355844..d7160ce 100644
+--- a/SRC/cpanel_bmod.c
++++ b/SRC/cpanel_bmod.c
+@@ -153,7 +153,7 @@ cpanel_bmod (
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp ) {
+ 
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 	    
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+@@ -264,7 +264,7 @@ cpanel_bmod (
+ 		     repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		    
+ 		    kfnz = repfnz_col[krep];
+-		    if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		    if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		    
+ 		    segsze = krep - kfnz + 1;
+ 		    if ( segsze <= 3 ) continue;   /* skip unrolled cases */
+@@ -316,7 +316,7 @@ cpanel_bmod (
+ 	    for (jj = jcol; jj < jcol + w; jj++,
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		if ( segsze <= 3 ) continue; /* skip unrolled cases */
+@@ -340,7 +340,7 @@ cpanel_bmod (
+ 		 repfnz_col += m, dense_col += m) {
+ 		
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+diff --git a/SRC/cpanel_dfs.c b/SRC/cpanel_dfs.c
+index 988dad7..c68c74e 100644
+--- a/SRC/cpanel_dfs.c
++++ b/SRC/cpanel_dfs.c
+@@ -138,7 +138,7 @@ cpanel_dfs (
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 	    
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /* 
+@@ -153,13 +153,13 @@ cpanel_dfs (
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) {	/* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) {	/* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[krep];
+@@ -185,7 +185,7 @@ cpanel_dfs (
+ 				chperm = perm_r[kchild];
+ 			      
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				} 
+ 				/* Case kchild is in U: 
+@@ -199,7 +199,7 @@ cpanel_dfs (
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -238,7 +238,7 @@ cpanel_dfs (
+ 			}
+ 			
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xprune[krep];
+@@ -248,7 +248,7 @@ cpanel_dfs (
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 		    
+ 		} /* else */
+ 		
+diff --git a/SRC/cpivotL.c b/SRC/cpivotL.c
+index 46bf8e9..c44775e 100644
+--- a/SRC/cpivotL.c
++++ b/SRC/cpivotL.c
+@@ -120,7 +120,7 @@ if ( jcol == MIN_COL ) {
+     diagind = iperm_c[jcol];
+     pivmax = 0.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+         rtemp = c_abs1 (&lu_col_ptr[isub]);
+diff --git a/SRC/cpruneL.c b/SRC/cpruneL.c
+index 0816920..0f3eeab 100644
+--- a/SRC/cpruneL.c
++++ b/SRC/cpruneL.c
+@@ -84,7 +84,7 @@ cpruneL(
+ 	do_prune = FALSE;
+ 
+ 	/* Don't prune with a zero U-segment */
+- 	if ( repfnz[irep] == EMPTY )
++ 	if ( repfnz[irep] == SUPERLU_EMPTY )
+ 		continue;
+ 
+      	/* If a snode overlaps with the next panel, then the U-segment 
+@@ -119,9 +119,9 @@ cpruneL(
+ 
+ 	        while ( kmin <= kmax ) {
+ 
+-	    	    if ( perm_r[lsub[kmax]] == EMPTY ) 
++	    	    if ( perm_r[lsub[kmax]] == SUPERLU_EMPTY ) 
+ 			kmax--;
+-		    else if ( perm_r[lsub[kmin]] != EMPTY )
++		    else if ( perm_r[lsub[kmin]] != SUPERLU_EMPTY )
+ 			kmin++;
+ 		    else { /* kmin below pivrow (not yet pivoted), and kmax
+                             * above pivrow: interchange the two subscripts
+diff --git a/SRC/dcolumn_dfs.c b/SRC/dcolumn_dfs.c
+index ada1248..3e79490 100644
+--- a/SRC/dcolumn_dfs.c
++++ b/SRC/dcolumn_dfs.c
+@@ -58,7 +58,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -118,10 +118,10 @@ dcolumn_dfs(
+     marker2 = &marker[2*m];
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-    	lsub_col[k] = EMPTY;
++    	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];    	
+ 
+ 	/* krow was visited before, go to the next nonz */
+@@ -133,14 +133,14 @@ dcolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-   	if ( kperm == EMPTY ) {
++   	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow; 	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		mem_error = dLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu);
+ 		if ( mem_error ) return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-            if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++            if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+   	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -148,13 +148,13 @@ dcolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 	    	if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 	 	parent[krep] = oldrep;
+ 	  	repfnz[krep] = kperm;
+ 		xdfs = xlsub[krep];
+@@ -175,7 +175,7 @@ dcolumn_dfs(
+ 		   	    chperm = perm_r[kchild];
+ 
+ 		   	    /* Case kchild is in L: place it in L[*,k] */
+-		   	    if ( chperm == EMPTY ) {
++		   	    if ( chperm == SUPERLU_EMPTY ) {
+ 			    	lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    mem_error =
+@@ -183,7 +183,7 @@ dcolumn_dfs(
+ 				    if ( mem_error ) return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 		    	    	/* Case kchild is in U: 
+ 				 *   chrep = its supernode-rep. If its rep has 
+@@ -191,7 +191,7 @@ dcolumn_dfs(
+ 			         */
+ 		   	    	chrep = xsup[supno[chperm]+1] - 1;
+ 		   		myfnz = repfnz[chrep];
+-		   		if ( myfnz != EMPTY ) { /* Visited before */
++		   		if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+      				  	repfnz[chrep] = chperm;
+ 				} else {
+@@ -218,12 +218,12 @@ dcolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xprune[krep];
+ 
+-		} while ( kpar != EMPTY ); 	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY ); 	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -240,18 +240,18 @@ dcolumn_dfs(
+ 	jm1ptr = xlsub[jcolm1];
+ 
+ #ifdef T2_SUPER
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ #endif
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first and last columns of
+    	 * a supernode. (first for num values, last for pruning)
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1-1) ) {	/* >= 3 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/dcopy_to_ucol.c b/SRC/dcopy_to_ucol.c
+index 990e98d..d99ca6d 100644
+--- a/SRC/dcopy_to_ucol.c
++++ b/SRC/dcopy_to_ucol.c
+@@ -76,7 +76,7 @@ dcopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 	    	fsupc = xsup[ksupno];
+ 	        isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/dgsitrf.c b/SRC/dgsitrf.c
+index 0d7ba81..8ec722f 100644
+--- a/SRC/dgsitrf.c
++++ b/SRC/dgsitrf.c
+@@ -309,14 +309,14 @@ dgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     else
+ 	ilu_relax_snode(n, etree, relax, marker, relax_end, relax_fsupc);
+ 
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+ 
+     /* Mark the rows used by relaxed supernodes */
+-    ifill (marker_relax, m, EMPTY);
++    ifill (marker_relax, m, SUPERLU_EMPTY);
+     i = mark_relax(m, relax_end, relax_fsupc, xa_begin, xa_end,
+ 	         asub, marker_relax);
+ #if ( PRNTlevel >= 1)
+@@ -330,7 +330,7 @@ dgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+ 	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -437,7 +437,7 @@ dgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++)
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -612,7 +612,7 @@ dgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     if ( m > n ) {
+ 	k = 0;
+ 	for (i = 0; i < m; ++i)
+-	    if ( perm_r[i] == EMPTY ) {
++	    if ( perm_r[i] == SUPERLU_EMPTY ) {
+ 		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/dgstrf.c b/SRC/dgstrf.c
+index 25fdf5a..7b339a8 100644
+--- a/SRC/dgstrf.c
++++ b/SRC/dgstrf.c
+@@ -284,8 +284,8 @@ dgstrf (superlu_options_t *options, SuperMatrix *A,
+         relax_snode(n, etree, relax, marker, relax_end); 
+     }
+     
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+@@ -297,7 +297,7 @@ dgstrf (superlu_options_t *options, SuperMatrix *A,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+    	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -349,7 +349,7 @@ dgstrf (superlu_options_t *options, SuperMatrix *A,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++) 
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -413,7 +413,7 @@ dgstrf (superlu_options_t *options, SuperMatrix *A,
+     if ( m > n ) {
+ 	k = 0;
+         for (i = 0; i < m; ++i) 
+-            if ( perm_r[i] == EMPTY ) {
++            if ( perm_r[i] == SUPERLU_EMPTY ) {
+     		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/dpanel_bmod.c b/SRC/dpanel_bmod.c
+index 20033e2..ee2c217 100644
+--- a/SRC/dpanel_bmod.c
++++ b/SRC/dpanel_bmod.c
+@@ -152,7 +152,7 @@ dpanel_bmod (
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp ) {
+ 
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 	    
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+@@ -250,7 +250,7 @@ dpanel_bmod (
+ 		     repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		    
+ 		    kfnz = repfnz_col[krep];
+-		    if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		    if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		    
+ 		    segsze = krep - kfnz + 1;
+ 		    if ( segsze <= 3 ) continue;   /* skip unrolled cases */
+@@ -301,7 +301,7 @@ dpanel_bmod (
+ 	    for (jj = jcol; jj < jcol + w; jj++,
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		if ( segsze <= 3 ) continue; /* skip unrolled cases */
+@@ -325,7 +325,7 @@ dpanel_bmod (
+ 		 repfnz_col += m, dense_col += m) {
+ 		
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+diff --git a/SRC/dpanel_dfs.c b/SRC/dpanel_dfs.c
+index c1aa11a..1b0a6c8 100644
+--- a/SRC/dpanel_dfs.c
++++ b/SRC/dpanel_dfs.c
+@@ -138,7 +138,7 @@ dpanel_dfs (
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 	    
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /* 
+@@ -153,13 +153,13 @@ dpanel_dfs (
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) {	/* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) {	/* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[krep];
+@@ -185,7 +185,7 @@ dpanel_dfs (
+ 				chperm = perm_r[kchild];
+ 			      
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				} 
+ 				/* Case kchild is in U: 
+@@ -199,7 +199,7 @@ dpanel_dfs (
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -238,7 +238,7 @@ dpanel_dfs (
+ 			}
+ 			
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xprune[krep];
+@@ -248,7 +248,7 @@ dpanel_dfs (
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 		    
+ 		} /* else */
+ 		
+diff --git a/SRC/dpivotL.c b/SRC/dpivotL.c
+index e3fd651..405ac67 100644
+--- a/SRC/dpivotL.c
++++ b/SRC/dpivotL.c
+@@ -119,7 +119,7 @@ if ( jcol == MIN_COL ) {
+     diagind = iperm_c[jcol];
+     pivmax = 0.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+ 	rtemp = fabs (lu_col_ptr[isub]);
+diff --git a/SRC/dpruneL.c b/SRC/dpruneL.c
+index 77d68e8..9b789e6 100644
+--- a/SRC/dpruneL.c
++++ b/SRC/dpruneL.c
+@@ -84,7 +84,7 @@ dpruneL(
+ 	do_prune = FALSE;
+ 
+ 	/* Don't prune with a zero U-segment */
+- 	if ( repfnz[irep] == EMPTY )
++ 	if ( repfnz[irep] == SUPERLU_EMPTY )
+ 		continue;
+ 
+      	/* If a snode overlaps with the next panel, then the U-segment 
+@@ -119,9 +119,9 @@ dpruneL(
+ 
+ 	        while ( kmin <= kmax ) {
+ 
+-	    	    if ( perm_r[lsub[kmax]] == EMPTY ) 
++	    	    if ( perm_r[lsub[kmax]] == SUPERLU_EMPTY ) 
+ 			kmax--;
+-		    else if ( perm_r[lsub[kmin]] != EMPTY )
++		    else if ( perm_r[lsub[kmin]] != SUPERLU_EMPTY )
+ 			kmin++;
+ 		    else { /* kmin below pivrow (not yet pivoted), and kmax
+                             * above pivrow: interchange the two subscripts
+diff --git a/SRC/heap_relax_snode.c b/SRC/heap_relax_snode.c
+index 6271355..2afeed4 100644
+--- a/SRC/heap_relax_snode.c
++++ b/SRC/heap_relax_snode.c
+@@ -77,7 +77,7 @@ heap_relax_snode (
+     for (i = 0; i < n; ++i) et[i] = iwork[i];
+ 
+     /* Compute the number of descendants of each node in the etree */
+-    ifill (relax_end, n, EMPTY);
++    ifill (relax_end, n, SUPERLU_EMPTY);
+     for (j = 0; j < n; j++) descendants[j] = 0;
+     for (j = 0; j < n; j++) {
+ 	parent = et[j];
+diff --git a/SRC/ilu_ccolumn_dfs.c b/SRC/ilu_ccolumn_dfs.c
+index 6c902dd..315ba2e 100644
+--- a/SRC/ilu_ccolumn_dfs.c
++++ b/SRC/ilu_ccolumn_dfs.c
+@@ -43,7 +43,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -104,10 +104,10 @@ ilu_ccolumn_dfs(
+ 
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-	lsub_col[k] = EMPTY;
++	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];
+ 
+ 	/* krow was visited before, go to the next nonzero */
+@@ -119,14 +119,14 @@ ilu_ccolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-	if ( kperm == EMPTY ) {
++	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow;	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		if ((mem_error = cLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu)))
+ 		    return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-	    if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++	    if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+ 	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -134,13 +134,13 @@ ilu_ccolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 		if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 		parent[krep] = oldrep;
+ 		repfnz[krep] = kperm;
+ 		xdfs = xlsub[xsup[supno[krep]]];
+@@ -161,7 +161,7 @@ ilu_ccolumn_dfs(
+ 			    chperm = perm_r[kchild];
+ 
+ 			    /* Case kchild is in L: place it in L[*,k] */
+-			    if ( chperm == EMPTY ) {
++			    if ( chperm == SUPERLU_EMPTY ) {
+ 				lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    if ( (mem_error = cLUMemXpand(jcol,nextl,
+@@ -169,7 +169,7 @@ ilu_ccolumn_dfs(
+ 					return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 				/* Case kchild is in U:
+ 				 *   chrep = its supernode-rep. If its rep has
+@@ -177,7 +177,7 @@ ilu_ccolumn_dfs(
+ 				 */
+ 				chrep = xsup[supno[chperm]+1] - 1;
+ 				myfnz = repfnz[chrep];
+-				if ( myfnz != EMPTY ) { /* Visited before */
++				if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+ 					repfnz[chrep] = chperm;
+ 				} else {
+@@ -204,12 +204,12 @@ ilu_ccolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xlsub[krep + 1];
+ 
+-		} while ( kpar != EMPTY );	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY );	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -225,20 +225,20 @@ ilu_ccolumn_dfs(
+ 	jptr = xlsub[jcol];	/* Not compressed yet */
+ 	jm1ptr = xlsub[jcolm1];
+ 
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Always start a new supernode for a singular column */
+-	if ( nextl == jptr ) jsuper = EMPTY;
++	if ( nextl == jptr ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first columns of the supernode.
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1) ) { /* >= 2 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/ilu_ccopy_to_ucol.c b/SRC/ilu_ccopy_to_ucol.c
+index a5eb0b6..367cff8 100644
+--- a/SRC/ilu_ccopy_to_ucol.c
++++ b/SRC/ilu_ccopy_to_ucol.c
+@@ -101,7 +101,7 @@ ilu_ccopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 		fsupc = xsup[ksupno];
+ 		isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/ilu_cpanel_dfs.c b/SRC/ilu_cpanel_dfs.c
+index 394088f..df459ca 100644
+--- a/SRC/ilu_cpanel_dfs.c
++++ b/SRC/ilu_cpanel_dfs.c
+@@ -131,7 +131,7 @@ ilu_cpanel_dfs(
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /*
+@@ -146,13 +146,13 @@ ilu_cpanel_dfs(
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) { /* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) { /* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[xsup[supno[krep]]];
+@@ -178,7 +178,7 @@ ilu_cpanel_dfs(
+ 				chperm = perm_r[kchild];
+ 
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				}
+ 				/* Case kchild is in U:
+@@ -192,7 +192,7 @@ ilu_cpanel_dfs(
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -231,7 +231,7 @@ ilu_cpanel_dfs(
+ 			}
+ 
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xlsub[krep + 1];
+@@ -241,7 +241,7 @@ ilu_cpanel_dfs(
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 
+ 		} /* else */
+ 		
+diff --git a/SRC/ilu_cpivotL.c b/SRC/ilu_cpivotL.c
+index 4f96de8..8071017 100644
+--- a/SRC/ilu_cpivotL.c
++++ b/SRC/ilu_cpivotL.c
+@@ -114,9 +114,9 @@ ilu_cpivotL(
+        Also search for user-specified pivot, and diagonal element. */
+     pivmax = -1.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+-    ptr0 = EMPTY;
++    ptr0 = SUPERLU_EMPTY;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+         if (marker[lsub_ptr[isub]] > jcol)
+             continue; /* do not overlap with a later relaxed supernode */
+@@ -139,7 +139,7 @@ ilu_cpivotL(
+ 	if (rtemp > pivmax) { pivmax = rtemp; pivptr = isub; }
+ 	if (*usepr && lsub_ptr[isub] == *pivrow) old_pivptr = isub;
+ 	if (lsub_ptr[isub] == diagind) diag = isub;
+-	if (ptr0 == EMPTY) ptr0 = isub;
++	if (ptr0 == SUPERLU_EMPTY) ptr0 = isub;
+     }
+ 
+     if (milu == SMILU_2 || milu == SMILU_3) pivmax += drop_sum.r;
+@@ -151,9 +151,9 @@ ilu_cpivotL(
+ 	exit(1);
+     }
+     if ( pivmax == 0.0 ) {
+-	if (diag != EMPTY)
++	if (diag != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = diag];
+-	else if (ptr0 != EMPTY)
++	else if (ptr0 != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = ptr0];
+ 	else {
+ 	    /* look for the first row which does not
+diff --git a/SRC/ilu_dcolumn_dfs.c b/SRC/ilu_dcolumn_dfs.c
+index 5cd0453..9565612 100644
+--- a/SRC/ilu_dcolumn_dfs.c
++++ b/SRC/ilu_dcolumn_dfs.c
+@@ -43,7 +43,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -104,10 +104,10 @@ ilu_dcolumn_dfs(
+ 
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-	lsub_col[k] = EMPTY;
++	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];
+ 
+ 	/* krow was visited before, go to the next nonzero */
+@@ -119,14 +119,14 @@ ilu_dcolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-	if ( kperm == EMPTY ) {
++	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow;	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		if ((mem_error = dLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu)))
+ 		    return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-	    if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++	    if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+ 	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -134,13 +134,13 @@ ilu_dcolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 		if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 		parent[krep] = oldrep;
+ 		repfnz[krep] = kperm;
+ 		xdfs = xlsub[xsup[supno[krep]]];
+@@ -161,7 +161,7 @@ ilu_dcolumn_dfs(
+ 			    chperm = perm_r[kchild];
+ 
+ 			    /* Case kchild is in L: place it in L[*,k] */
+-			    if ( chperm == EMPTY ) {
++			    if ( chperm == SUPERLU_EMPTY ) {
+ 				lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    if ( (mem_error = dLUMemXpand(jcol,nextl,
+@@ -169,7 +169,7 @@ ilu_dcolumn_dfs(
+ 					return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 				/* Case kchild is in U:
+ 				 *   chrep = its supernode-rep. If its rep has
+@@ -177,7 +177,7 @@ ilu_dcolumn_dfs(
+ 				 */
+ 				chrep = xsup[supno[chperm]+1] - 1;
+ 				myfnz = repfnz[chrep];
+-				if ( myfnz != EMPTY ) { /* Visited before */
++				if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+ 					repfnz[chrep] = chperm;
+ 				} else {
+@@ -204,12 +204,12 @@ ilu_dcolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xlsub[krep + 1];
+ 
+-		} while ( kpar != EMPTY );	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY );	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -225,20 +225,20 @@ ilu_dcolumn_dfs(
+ 	jptr = xlsub[jcol];	/* Not compressed yet */
+ 	jm1ptr = xlsub[jcolm1];
+ 
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Always start a new supernode for a singular column */
+-	if ( nextl == jptr ) jsuper = EMPTY;
++	if ( nextl == jptr ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first columns of the supernode.
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1) ) { /* >= 2 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/ilu_dcopy_to_ucol.c b/SRC/ilu_dcopy_to_ucol.c
+index 2bb889c..ee11956 100644
+--- a/SRC/ilu_dcopy_to_ucol.c
++++ b/SRC/ilu_dcopy_to_ucol.c
+@@ -101,7 +101,7 @@ ilu_dcopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 		fsupc = xsup[ksupno];
+ 		isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/ilu_dpanel_dfs.c b/SRC/ilu_dpanel_dfs.c
+index 0d14b3c..d417398 100644
+--- a/SRC/ilu_dpanel_dfs.c
++++ b/SRC/ilu_dpanel_dfs.c
+@@ -131,7 +131,7 @@ ilu_dpanel_dfs(
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /*
+@@ -146,13 +146,13 @@ ilu_dpanel_dfs(
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) { /* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) { /* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[xsup[supno[krep]]];
+@@ -178,7 +178,7 @@ ilu_dpanel_dfs(
+ 				chperm = perm_r[kchild];
+ 
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				}
+ 				/* Case kchild is in U:
+@@ -192,7 +192,7 @@ ilu_dpanel_dfs(
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -231,7 +231,7 @@ ilu_dpanel_dfs(
+ 			}
+ 
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xlsub[krep + 1];
+@@ -241,7 +241,7 @@ ilu_dpanel_dfs(
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 
+ 		} /* else */
+ 		
+diff --git a/SRC/ilu_dpivotL.c b/SRC/ilu_dpivotL.c
+index 7afc630..67e2684 100644
+--- a/SRC/ilu_dpivotL.c
++++ b/SRC/ilu_dpivotL.c
+@@ -113,9 +113,9 @@ ilu_dpivotL(
+        Also search for user-specified pivot, and diagonal element. */
+     pivmax = -1.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+-    ptr0 = EMPTY;
++    ptr0 = SUPERLU_EMPTY;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+         if (marker[lsub_ptr[isub]] > jcol)
+             continue; /* do not overlap with a later relaxed supernode */
+@@ -137,7 +137,7 @@ ilu_dpivotL(
+ 	if (rtemp > pivmax) { pivmax = rtemp; pivptr = isub; }
+ 	if (*usepr && lsub_ptr[isub] == *pivrow) old_pivptr = isub;
+ 	if (lsub_ptr[isub] == diagind) diag = isub;
+-	if (ptr0 == EMPTY) ptr0 = isub;
++	if (ptr0 == SUPERLU_EMPTY) ptr0 = isub;
+     }
+ 
+     if (milu == SMILU_2 || milu == SMILU_3) pivmax += drop_sum;
+@@ -149,9 +149,9 @@ ilu_dpivotL(
+ 	exit(1);
+     }
+     if ( pivmax == 0.0 ) {
+-	if (diag != EMPTY)
++	if (diag != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = diag];
+-	else if (ptr0 != EMPTY)
++	else if (ptr0 != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = ptr0];
+ 	else {
+ 	    /* look for the first row which does not
+diff --git a/SRC/ilu_heap_relax_snode.c b/SRC/ilu_heap_relax_snode.c
+index eccc08e..92b6ce7 100644
+--- a/SRC/ilu_heap_relax_snode.c
++++ b/SRC/ilu_heap_relax_snode.c
+@@ -72,8 +72,8 @@ ilu_heap_relax_snode (
+     for (i = 0; i < n; ++i) et[i] = iwork[i];
+ 
+     /* Compute the number of descendants of each node in the etree */
+-    ifill (relax_end, n, EMPTY);
+-    ifill (relax_fsupc, n, EMPTY);
++    ifill (relax_end, n, SUPERLU_EMPTY);
++    ifill (relax_fsupc, n, SUPERLU_EMPTY);
+     for (j = 0; j < n; j++) descendants[j] = 0;
+     for (j = 0; j < n; j++) {
+ 	parent = et[j];
+diff --git a/SRC/ilu_relax_snode.c b/SRC/ilu_relax_snode.c
+index 0cfd030..3563e20 100644
+--- a/SRC/ilu_relax_snode.c
++++ b/SRC/ilu_relax_snode.c
+@@ -50,8 +50,8 @@ ilu_relax_snode (
+     register int j, f, parent;
+     register int snode_start;	/* beginning of a snode */
+ 
+-    ifill (relax_end, n, EMPTY);
+-    ifill (relax_fsupc, n, EMPTY);
++    ifill (relax_end, n, SUPERLU_EMPTY);
++    ifill (relax_fsupc, n, SUPERLU_EMPTY);
+     for (j = 0; j < n; j++) descendants[j] = 0;
+ 
+     /* Compute the number of descendants of each node in the etree */
+diff --git a/SRC/ilu_scolumn_dfs.c b/SRC/ilu_scolumn_dfs.c
+index d767a07..9ae8e37 100644
+--- a/SRC/ilu_scolumn_dfs.c
++++ b/SRC/ilu_scolumn_dfs.c
+@@ -43,7 +43,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -104,10 +104,10 @@ ilu_scolumn_dfs(
+ 
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-	lsub_col[k] = EMPTY;
++	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];
+ 
+ 	/* krow was visited before, go to the next nonzero */
+@@ -119,14 +119,14 @@ ilu_scolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-	if ( kperm == EMPTY ) {
++	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow;	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		if ((mem_error = sLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu)))
+ 		    return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-	    if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++	    if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+ 	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -134,13 +134,13 @@ ilu_scolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 		if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 		parent[krep] = oldrep;
+ 		repfnz[krep] = kperm;
+ 		xdfs = xlsub[xsup[supno[krep]]];
+@@ -161,7 +161,7 @@ ilu_scolumn_dfs(
+ 			    chperm = perm_r[kchild];
+ 
+ 			    /* Case kchild is in L: place it in L[*,k] */
+-			    if ( chperm == EMPTY ) {
++			    if ( chperm == SUPERLU_EMPTY ) {
+ 				lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    if ( (mem_error = sLUMemXpand(jcol,nextl,
+@@ -169,7 +169,7 @@ ilu_scolumn_dfs(
+ 					return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 				/* Case kchild is in U:
+ 				 *   chrep = its supernode-rep. If its rep has
+@@ -177,7 +177,7 @@ ilu_scolumn_dfs(
+ 				 */
+ 				chrep = xsup[supno[chperm]+1] - 1;
+ 				myfnz = repfnz[chrep];
+-				if ( myfnz != EMPTY ) { /* Visited before */
++				if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+ 					repfnz[chrep] = chperm;
+ 				} else {
+@@ -204,12 +204,12 @@ ilu_scolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xlsub[krep + 1];
+ 
+-		} while ( kpar != EMPTY );	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY );	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -225,20 +225,20 @@ ilu_scolumn_dfs(
+ 	jptr = xlsub[jcol];	/* Not compressed yet */
+ 	jm1ptr = xlsub[jcolm1];
+ 
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Always start a new supernode for a singular column */
+-	if ( nextl == jptr ) jsuper = EMPTY;
++	if ( nextl == jptr ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first columns of the supernode.
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1) ) { /* >= 2 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/ilu_scopy_to_ucol.c b/SRC/ilu_scopy_to_ucol.c
+index 6dc0460..0f985a1 100644
+--- a/SRC/ilu_scopy_to_ucol.c
++++ b/SRC/ilu_scopy_to_ucol.c
+@@ -101,7 +101,7 @@ ilu_scopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 		fsupc = xsup[ksupno];
+ 		isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/ilu_spanel_dfs.c b/SRC/ilu_spanel_dfs.c
+index 8a6bf6f..dce4379 100644
+--- a/SRC/ilu_spanel_dfs.c
++++ b/SRC/ilu_spanel_dfs.c
+@@ -131,7 +131,7 @@ ilu_spanel_dfs(
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /*
+@@ -146,13 +146,13 @@ ilu_spanel_dfs(
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) { /* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) { /* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[xsup[supno[krep]]];
+@@ -178,7 +178,7 @@ ilu_spanel_dfs(
+ 				chperm = perm_r[kchild];
+ 
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				}
+ 				/* Case kchild is in U:
+@@ -192,7 +192,7 @@ ilu_spanel_dfs(
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -231,7 +231,7 @@ ilu_spanel_dfs(
+ 			}
+ 
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xlsub[krep + 1];
+@@ -241,7 +241,7 @@ ilu_spanel_dfs(
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 
+ 		} /* else */
+ 		
+diff --git a/SRC/ilu_spivotL.c b/SRC/ilu_spivotL.c
+index f0db8da..5dd2dc1 100644
+--- a/SRC/ilu_spivotL.c
++++ b/SRC/ilu_spivotL.c
+@@ -113,9 +113,9 @@ ilu_spivotL(
+        Also search for user-specified pivot, and diagonal element. */
+     pivmax = -1.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+-    ptr0 = EMPTY;
++    ptr0 = SUPERLU_EMPTY;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+         if (marker[lsub_ptr[isub]] > jcol)
+             continue; /* do not overlap with a later relaxed supernode */
+@@ -137,7 +137,7 @@ ilu_spivotL(
+ 	if (rtemp > pivmax) { pivmax = rtemp; pivptr = isub; }
+ 	if (*usepr && lsub_ptr[isub] == *pivrow) old_pivptr = isub;
+ 	if (lsub_ptr[isub] == diagind) diag = isub;
+-	if (ptr0 == EMPTY) ptr0 = isub;
++	if (ptr0 == SUPERLU_EMPTY) ptr0 = isub;
+     }
+ 
+     if (milu == SMILU_2 || milu == SMILU_3) pivmax += drop_sum;
+@@ -149,9 +149,9 @@ ilu_spivotL(
+ 	exit(1);
+     }
+     if ( pivmax == 0.0 ) {
+-	if (diag != EMPTY)
++	if (diag != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = diag];
+-	else if (ptr0 != EMPTY)
++	else if (ptr0 != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = ptr0];
+ 	else {
+ 	    /* look for the first row which does not
+diff --git a/SRC/ilu_zcolumn_dfs.c b/SRC/ilu_zcolumn_dfs.c
+index bc0d68e..d723036 100644
+--- a/SRC/ilu_zcolumn_dfs.c
++++ b/SRC/ilu_zcolumn_dfs.c
+@@ -43,7 +43,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -104,10 +104,10 @@ ilu_zcolumn_dfs(
+ 
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-	lsub_col[k] = EMPTY;
++	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];
+ 
+ 	/* krow was visited before, go to the next nonzero */
+@@ -119,14 +119,14 @@ ilu_zcolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-	if ( kperm == EMPTY ) {
++	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow;	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		if ((mem_error = zLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu)))
+ 		    return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-	    if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++	    if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+ 	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -134,13 +134,13 @@ ilu_zcolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 		if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 		parent[krep] = oldrep;
+ 		repfnz[krep] = kperm;
+ 		xdfs = xlsub[xsup[supno[krep]]];
+@@ -161,7 +161,7 @@ ilu_zcolumn_dfs(
+ 			    chperm = perm_r[kchild];
+ 
+ 			    /* Case kchild is in L: place it in L[*,k] */
+-			    if ( chperm == EMPTY ) {
++			    if ( chperm == SUPERLU_EMPTY ) {
+ 				lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    if ( (mem_error = zLUMemXpand(jcol,nextl,
+@@ -169,7 +169,7 @@ ilu_zcolumn_dfs(
+ 					return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 				/* Case kchild is in U:
+ 				 *   chrep = its supernode-rep. If its rep has
+@@ -177,7 +177,7 @@ ilu_zcolumn_dfs(
+ 				 */
+ 				chrep = xsup[supno[chperm]+1] - 1;
+ 				myfnz = repfnz[chrep];
+-				if ( myfnz != EMPTY ) { /* Visited before */
++				if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+ 					repfnz[chrep] = chperm;
+ 				} else {
+@@ -204,12 +204,12 @@ ilu_zcolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xlsub[krep + 1];
+ 
+-		} while ( kpar != EMPTY );	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY );	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -225,20 +225,20 @@ ilu_zcolumn_dfs(
+ 	jptr = xlsub[jcol];	/* Not compressed yet */
+ 	jm1ptr = xlsub[jcolm1];
+ 
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Always start a new supernode for a singular column */
+-	if ( nextl == jptr ) jsuper = EMPTY;
++	if ( nextl == jptr ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first columns of the supernode.
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1) ) { /* >= 2 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/ilu_zcopy_to_ucol.c b/SRC/ilu_zcopy_to_ucol.c
+index afe4a7e..8abe7b5 100644
+--- a/SRC/ilu_zcopy_to_ucol.c
++++ b/SRC/ilu_zcopy_to_ucol.c
+@@ -101,7 +101,7 @@ ilu_zcopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 		fsupc = xsup[ksupno];
+ 		isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/ilu_zpanel_dfs.c b/SRC/ilu_zpanel_dfs.c
+index a13e74b..431e1c9 100644
+--- a/SRC/ilu_zpanel_dfs.c
++++ b/SRC/ilu_zpanel_dfs.c
+@@ -131,7 +131,7 @@ ilu_zpanel_dfs(
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /*
+@@ -146,13 +146,13 @@ ilu_zpanel_dfs(
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) { /* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) { /* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[xsup[supno[krep]]];
+@@ -178,7 +178,7 @@ ilu_zpanel_dfs(
+ 				chperm = perm_r[kchild];
+ 
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				}
+ 				/* Case kchild is in U:
+@@ -192,7 +192,7 @@ ilu_zpanel_dfs(
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -231,7 +231,7 @@ ilu_zpanel_dfs(
+ 			}
+ 
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xlsub[krep + 1];
+@@ -241,7 +241,7 @@ ilu_zpanel_dfs(
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 
+ 		} /* else */
+ 		
+diff --git a/SRC/ilu_zpivotL.c b/SRC/ilu_zpivotL.c
+index a558a80..a58cb3b 100644
+--- a/SRC/ilu_zpivotL.c
++++ b/SRC/ilu_zpivotL.c
+@@ -114,9 +114,9 @@ ilu_zpivotL(
+        Also search for user-specified pivot, and diagonal element. */
+     pivmax = -1.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+-    ptr0 = EMPTY;
++    ptr0 = SUPERLU_EMPTY;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+         if (marker[lsub_ptr[isub]] > jcol)
+             continue; /* do not overlap with a later relaxed supernode */
+@@ -139,7 +139,7 @@ ilu_zpivotL(
+ 	if (rtemp > pivmax) { pivmax = rtemp; pivptr = isub; }
+ 	if (*usepr && lsub_ptr[isub] == *pivrow) old_pivptr = isub;
+ 	if (lsub_ptr[isub] == diagind) diag = isub;
+-	if (ptr0 == EMPTY) ptr0 = isub;
++	if (ptr0 == SUPERLU_EMPTY) ptr0 = isub;
+     }
+ 
+     if (milu == SMILU_2 || milu == SMILU_3) pivmax += drop_sum.r;
+@@ -151,9 +151,9 @@ ilu_zpivotL(
+ 	exit(1);
+     }
+     if ( pivmax == 0.0 ) {
+-	if (diag != EMPTY)
++	if (diag != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = diag];
+-	else if (ptr0 != EMPTY)
++	else if (ptr0 != SUPERLU_EMPTY)
+ 	    *pivrow = lsub_ptr[pivptr = ptr0];
+ 	else {
+ 	    /* look for the first row which does not
+diff --git a/SRC/mark_relax.c b/SRC/mark_relax.c
+index 73014aa..b057e0f 100644
+--- a/SRC/mark_relax.c
++++ b/SRC/mark_relax.c
+@@ -45,7 +45,7 @@ int mark_relax(
+     register int jcol, kcol;
+     register int i, j, k;
+ 
+-    for (i = 0; i < n && relax_fsupc[i] != EMPTY; i++)
++    for (i = 0; i < n && relax_fsupc[i] != SUPERLU_EMPTY; i++)
+     {
+ 	jcol = relax_fsupc[i];	/* first column */
+ 	kcol = relax_end[jcol]; /* last column */
+diff --git a/SRC/memory.c b/SRC/memory.c
+index aaba725..99a6839 100644
+--- a/SRC/memory.c
++++ b/SRC/memory.c
+@@ -113,8 +113,8 @@ SetIWork(int m, int n, int panel_size, int *iworkptr, int **segrep,
+     *panel_lsub = *repfnz + panel_size * m;
+     *xprune = *panel_lsub + panel_size * m;
+     *marker = *xprune + n;
+-    ifill (*repfnz, m * panel_size, EMPTY);
+-    ifill (*panel_lsub, m * panel_size, EMPTY);
++    ifill (*repfnz, m * panel_size, SUPERLU_EMPTY);
++    ifill (*panel_lsub, m * panel_size, SUPERLU_EMPTY);
+ }
+ 
+ 
+diff --git a/SRC/relax_snode.c b/SRC/relax_snode.c
+index 930e2b3..e3326d6 100644
+--- a/SRC/relax_snode.c
++++ b/SRC/relax_snode.c
+@@ -55,7 +55,7 @@ relax_snode (
+     register int j, parent;
+     register int snode_start;	/* beginning of a snode */
+     
+-    ifill (relax_end, n, EMPTY);
++    ifill (relax_end, n, SUPERLU_EMPTY);
+     for (j = 0; j < n; j++) descendants[j] = 0;
+ 
+     /* Compute the number of descendants of each node in the etree */
+diff --git a/SRC/scolumn_dfs.c b/SRC/scolumn_dfs.c
+index 762f99d..1bf05e2 100644
+--- a/SRC/scolumn_dfs.c
++++ b/SRC/scolumn_dfs.c
+@@ -58,7 +58,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -118,10 +118,10 @@ scolumn_dfs(
+     marker2 = &marker[2*m];
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-    	lsub_col[k] = EMPTY;
++    	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];    	
+ 
+ 	/* krow was visited before, go to the next nonz */
+@@ -133,14 +133,14 @@ scolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-   	if ( kperm == EMPTY ) {
++   	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow; 	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		mem_error = sLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu);
+ 		if ( mem_error ) return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-            if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++            if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+   	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -148,13 +148,13 @@ scolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 	    	if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 	 	parent[krep] = oldrep;
+ 	  	repfnz[krep] = kperm;
+ 		xdfs = xlsub[krep];
+@@ -175,7 +175,7 @@ scolumn_dfs(
+ 		   	    chperm = perm_r[kchild];
+ 
+ 		   	    /* Case kchild is in L: place it in L[*,k] */
+-		   	    if ( chperm == EMPTY ) {
++		   	    if ( chperm == SUPERLU_EMPTY ) {
+ 			    	lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    mem_error =
+@@ -183,7 +183,7 @@ scolumn_dfs(
+ 				    if ( mem_error ) return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 		    	    	/* Case kchild is in U: 
+ 				 *   chrep = its supernode-rep. If its rep has 
+@@ -191,7 +191,7 @@ scolumn_dfs(
+ 			         */
+ 		   	    	chrep = xsup[supno[chperm]+1] - 1;
+ 		   		myfnz = repfnz[chrep];
+-		   		if ( myfnz != EMPTY ) { /* Visited before */
++		   		if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+      				  	repfnz[chrep] = chperm;
+ 				} else {
+@@ -218,12 +218,12 @@ scolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xprune[krep];
+ 
+-		} while ( kpar != EMPTY ); 	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY ); 	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -240,18 +240,18 @@ scolumn_dfs(
+ 	jm1ptr = xlsub[jcolm1];
+ 
+ #ifdef T2_SUPER
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ #endif
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first and last columns of
+    	 * a supernode. (first for num values, last for pruning)
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1-1) ) {	/* >= 3 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/scopy_to_ucol.c b/SRC/scopy_to_ucol.c
+index 7212766..bd5adf1 100644
+--- a/SRC/scopy_to_ucol.c
++++ b/SRC/scopy_to_ucol.c
+@@ -76,7 +76,7 @@ scopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 	    	fsupc = xsup[ksupno];
+ 	        isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/sgsitrf.c b/SRC/sgsitrf.c
+index d0f19eb..9c55680 100644
+--- a/SRC/sgsitrf.c
++++ b/SRC/sgsitrf.c
+@@ -309,14 +309,14 @@ sgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     else
+ 	ilu_relax_snode(n, etree, relax, marker, relax_end, relax_fsupc);
+ 
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+ 
+     /* Mark the rows used by relaxed supernodes */
+-    ifill (marker_relax, m, EMPTY);
++    ifill (marker_relax, m, SUPERLU_EMPTY);
+     i = mark_relax(m, relax_end, relax_fsupc, xa_begin, xa_end,
+ 	         asub, marker_relax);
+ #if ( PRNTlevel >= 1)
+@@ -330,7 +330,7 @@ sgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+ 	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -437,7 +437,7 @@ sgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++)
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -612,7 +612,7 @@ sgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     if ( m > n ) {
+ 	k = 0;
+ 	for (i = 0; i < m; ++i)
+-	    if ( perm_r[i] == EMPTY ) {
++	    if ( perm_r[i] == SUPERLU_EMPTY ) {
+ 		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/sgstrf.c b/SRC/sgstrf.c
+index 8d738bc..513ce88 100644
+--- a/SRC/sgstrf.c
++++ b/SRC/sgstrf.c
+@@ -284,8 +284,8 @@ sgstrf (superlu_options_t *options, SuperMatrix *A,
+         relax_snode(n, etree, relax, marker, relax_end); 
+     }
+     
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+@@ -297,7 +297,7 @@ sgstrf (superlu_options_t *options, SuperMatrix *A,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+    	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -349,7 +349,7 @@ sgstrf (superlu_options_t *options, SuperMatrix *A,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++) 
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -413,7 +413,7 @@ sgstrf (superlu_options_t *options, SuperMatrix *A,
+     if ( m > n ) {
+ 	k = 0;
+         for (i = 0; i < m; ++i) 
+-            if ( perm_r[i] == EMPTY ) {
++            if ( perm_r[i] == SUPERLU_EMPTY ) {
+     		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/slu_util.h b/SRC/slu_util.h
+index ec6f98a..baad52d 100644
+--- a/SRC/slu_util.h
++++ b/SRC/slu_util.h
+@@ -107,7 +107,7 @@ at the top-level directory.
+ /***********************************************************************
+  * Constants 
+  ***********************************************************************/
+-#define EMPTY	(-1)
++#define SUPERLU_EMPTY	(-1)
+ /*#define NO	(-1)*/
+ #define FALSE	0
+ #define TRUE	1
+diff --git a/SRC/spanel_bmod.c b/SRC/spanel_bmod.c
+index ff3f822..9429054 100644
+--- a/SRC/spanel_bmod.c
++++ b/SRC/spanel_bmod.c
+@@ -152,7 +152,7 @@ spanel_bmod (
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp ) {
+ 
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 	    
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+@@ -250,7 +250,7 @@ spanel_bmod (
+ 		     repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		    
+ 		    kfnz = repfnz_col[krep];
+-		    if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		    if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		    
+ 		    segsze = krep - kfnz + 1;
+ 		    if ( segsze <= 3 ) continue;   /* skip unrolled cases */
+@@ -301,7 +301,7 @@ spanel_bmod (
+ 	    for (jj = jcol; jj < jcol + w; jj++,
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		if ( segsze <= 3 ) continue; /* skip unrolled cases */
+@@ -325,7 +325,7 @@ spanel_bmod (
+ 		 repfnz_col += m, dense_col += m) {
+ 		
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+diff --git a/SRC/spanel_dfs.c b/SRC/spanel_dfs.c
+index c2b736d..11f7df6 100644
+--- a/SRC/spanel_dfs.c
++++ b/SRC/spanel_dfs.c
+@@ -138,7 +138,7 @@ spanel_dfs (
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 	    
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /* 
+@@ -153,13 +153,13 @@ spanel_dfs (
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) {	/* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) {	/* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[krep];
+@@ -185,7 +185,7 @@ spanel_dfs (
+ 				chperm = perm_r[kchild];
+ 			      
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				} 
+ 				/* Case kchild is in U: 
+@@ -199,7 +199,7 @@ spanel_dfs (
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -238,7 +238,7 @@ spanel_dfs (
+ 			}
+ 			
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xprune[krep];
+@@ -248,7 +248,7 @@ spanel_dfs (
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 		    
+ 		} /* else */
+ 		
+diff --git a/SRC/spivotL.c b/SRC/spivotL.c
+index 2c63cab..b757a22 100644
+--- a/SRC/spivotL.c
++++ b/SRC/spivotL.c
+@@ -119,7 +119,7 @@ if ( jcol == MIN_COL ) {
+     diagind = iperm_c[jcol];
+     pivmax = 0.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+ 	rtemp = fabs (lu_col_ptr[isub]);
+diff --git a/SRC/spruneL.c b/SRC/spruneL.c
+index c9b800d..6a0645b 100644
+--- a/SRC/spruneL.c
++++ b/SRC/spruneL.c
+@@ -84,7 +84,7 @@ spruneL(
+ 	do_prune = FALSE;
+ 
+ 	/* Don't prune with a zero U-segment */
+- 	if ( repfnz[irep] == EMPTY )
++ 	if ( repfnz[irep] == SUPERLU_EMPTY )
+ 		continue;
+ 
+      	/* If a snode overlaps with the next panel, then the U-segment 
+@@ -119,9 +119,9 @@ spruneL(
+ 
+ 	        while ( kmin <= kmax ) {
+ 
+-	    	    if ( perm_r[lsub[kmax]] == EMPTY ) 
++	    	    if ( perm_r[lsub[kmax]] == SUPERLU_EMPTY ) 
+ 			kmax--;
+-		    else if ( perm_r[lsub[kmin]] != EMPTY )
++		    else if ( perm_r[lsub[kmin]] != SUPERLU_EMPTY )
+ 			kmin++;
+ 		    else { /* kmin below pivrow (not yet pivoted), and kmax
+                             * above pivrow: interchange the two subscripts
+diff --git a/SRC/util.c b/SRC/util.c
+index abf04a7..e157a8b 100644
+--- a/SRC/util.c
++++ b/SRC/util.c
+@@ -173,7 +173,7 @@ resetrep_col (const int nseg, const int *segrep, int *repfnz)
+     
+     for (i = 0; i < nseg; i++) {
+ 	irep = segrep[i];
+-	repfnz[irep] = EMPTY;
++	repfnz[irep] = SUPERLU_EMPTY;
+     }
+ }
+ 
+@@ -447,7 +447,7 @@ float DenseSize(int n, float sum_nw)
+ 
+ 
+ 
+-/*! \brief Check whether repfnz[] == EMPTY after reset.
++/*! \brief Check whether repfnz[] == SUPERLU_EMPTY after reset.
+  */
+ void check_repfnz(int n, int w, int jcol, int *repfnz)
+ {
+@@ -455,7 +455,7 @@ void check_repfnz(int n, int w, int jcol, int *repfnz)
+ 
+     for (jj = jcol; jj < jcol+w; jj++) 
+ 	for (k = 0; k < n; k++)
+-	    if ( repfnz[(jj-jcol)*n + k] != EMPTY ) {
++	    if ( repfnz[(jj-jcol)*n + k] != SUPERLU_EMPTY ) {
+ 		fprintf(stderr, "col %d, repfnz_col[%d] = %d\n", jj,
+ 			k, repfnz[(jj-jcol)*n + k]);
+ 		ABORT("check_repfnz");
+diff --git a/SRC/zcolumn_dfs.c b/SRC/zcolumn_dfs.c
+index d1f1aab..195f3b9 100644
+--- a/SRC/zcolumn_dfs.c
++++ b/SRC/zcolumn_dfs.c
+@@ -58,7 +58,7 @@ at the top-level directory.
+  * Local parameters
+  * ================
+  *   nseg: no of segments in current U[*,j]
+- *   jsuper: jsuper=EMPTY if column j does not belong to the same
++ *   jsuper: jsuper=SUPERLU_EMPTY if column j does not belong to the same
+  *	supernode as j-1. Otherwise, jsuper=nsuper.
+  *
+  *   marker2: A-row --> A-row/col (0/1)
+@@ -118,10 +118,10 @@ zcolumn_dfs(
+     marker2 = &marker[2*m];
+ 
+     /* For each nonzero in A[*,jcol] do dfs */
+-    for (k = 0; lsub_col[k] != EMPTY; k++) {
++    for (k = 0; lsub_col[k] != SUPERLU_EMPTY; k++) {
+ 
+ 	krow = lsub_col[k];
+-    	lsub_col[k] = EMPTY;
++    	lsub_col[k] = SUPERLU_EMPTY;
+ 	kmark = marker2[krow];    	
+ 
+ 	/* krow was visited before, go to the next nonz */
+@@ -133,14 +133,14 @@ zcolumn_dfs(
+ 	marker2[krow] = jcol;
+ 	kperm = perm_r[krow];
+ 
+-   	if ( kperm == EMPTY ) {
++   	if ( kperm == SUPERLU_EMPTY ) {
+ 	    lsub[nextl++] = krow; 	/* krow is indexed into A */
+ 	    if ( nextl >= nzlmax ) {
+ 		mem_error = zLUMemXpand(jcol, nextl, LSUB, &nzlmax, Glu);
+ 		if ( mem_error ) return (mem_error);
+ 		lsub = Glu->lsub;
+ 	    }
+-            if ( kmark != jcolm1 ) jsuper = EMPTY;/* Row index subset testing */
++            if ( kmark != jcolm1 ) jsuper = SUPERLU_EMPTY;/* Row index subset testing */
+   	} else {
+ 	    /*	krow is in U: if its supernode-rep krep
+ 	     *	has been explored, update repfnz[*]
+@@ -148,13 +148,13 @@ zcolumn_dfs(
+ 	    krep = xsup[supno[kperm]+1] - 1;
+ 	    myfnz = repfnz[krep];
+ 
+-	    if ( myfnz != EMPTY ) {	/* Visited before */
++	    if ( myfnz != SUPERLU_EMPTY ) {	/* Visited before */
+ 	    	if ( myfnz > kperm ) repfnz[krep] = kperm;
+ 		/* continue; */
+ 	    }
+ 	    else {
+ 		/* Otherwise, perform dfs starting at krep */
+-		oldrep = EMPTY;
++		oldrep = SUPERLU_EMPTY;
+ 	 	parent[krep] = oldrep;
+ 	  	repfnz[krep] = kperm;
+ 		xdfs = xlsub[krep];
+@@ -175,7 +175,7 @@ zcolumn_dfs(
+ 		   	    chperm = perm_r[kchild];
+ 
+ 		   	    /* Case kchild is in L: place it in L[*,k] */
+-		   	    if ( chperm == EMPTY ) {
++		   	    if ( chperm == SUPERLU_EMPTY ) {
+ 			    	lsub[nextl++] = kchild;
+ 				if ( nextl >= nzlmax ) {
+ 				    mem_error =
+@@ -183,7 +183,7 @@ zcolumn_dfs(
+ 				    if ( mem_error ) return (mem_error);
+ 				    lsub = Glu->lsub;
+ 				}
+-				if ( chmark != jcolm1 ) jsuper = EMPTY;
++				if ( chmark != jcolm1 ) jsuper = SUPERLU_EMPTY;
+ 			    } else {
+ 		    	    	/* Case kchild is in U: 
+ 				 *   chrep = its supernode-rep. If its rep has 
+@@ -191,7 +191,7 @@ zcolumn_dfs(
+ 			         */
+ 		   	    	chrep = xsup[supno[chperm]+1] - 1;
+ 		   		myfnz = repfnz[chrep];
+-		   		if ( myfnz != EMPTY ) { /* Visited before */
++		   		if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 				    if ( myfnz > chperm )
+      				  	repfnz[chrep] = chperm;
+ 				} else {
+@@ -218,12 +218,12 @@ zcolumn_dfs(
+ 		    segrep[*nseg] = krep;
+ 		    ++(*nseg);
+ 		    kpar = parent[krep]; /* Pop from stack, mimic recursion */
+-		    if ( kpar == EMPTY ) break; /* dfs done */
++		    if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 		    krep = kpar;
+ 		    xdfs = xplore[krep];
+ 		    maxdfs = xprune[krep];
+ 
+-		} while ( kpar != EMPTY ); 	/* Until empty stack */
++		} while ( kpar != SUPERLU_EMPTY ); 	/* Until empty stack */
+ 
+ 	    } /* else */
+ 
+@@ -240,18 +240,18 @@ zcolumn_dfs(
+ 	jm1ptr = xlsub[jcolm1];
+ 
+ #ifdef T2_SUPER
+-	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = EMPTY;
++	if ( (nextl-jptr != jptr-jm1ptr-1) ) jsuper = SUPERLU_EMPTY;
+ #endif
+ 	/* Make sure the number of columns in a supernode doesn't
+ 	   exceed threshold. */
+-	if ( jcol - fsupc >= maxsuper ) jsuper = EMPTY;
++	if ( jcol - fsupc >= maxsuper ) jsuper = SUPERLU_EMPTY;
+ 
+ 	/* If jcol starts a new supernode, reclaim storage space in
+ 	 * lsub from the previous supernode. Note we only store
+ 	 * the subscript set of the first and last columns of
+    	 * a supernode. (first for num values, last for pruning)
+ 	 */
+-	if ( jsuper == EMPTY ) {	/* starts a new supernode */
++	if ( jsuper == SUPERLU_EMPTY ) {	/* starts a new supernode */
+ 	    if ( (fsupc < jcolm1-1) ) {	/* >= 3 columns in nsuper */
+ #ifdef CHK_COMPRESS
+ 		printf("  Compress lsub[] at super %d-%d\n", fsupc, jcolm1);
+diff --git a/SRC/zcopy_to_ucol.c b/SRC/zcopy_to_ucol.c
+index 3e45c9b..7bb33e9 100644
+--- a/SRC/zcopy_to_ucol.c
++++ b/SRC/zcopy_to_ucol.c
+@@ -76,7 +76,7 @@ zcopy_to_ucol(
+ 
+ 	if ( ksupno != jsupno ) { /* Should go into ucol[] */
+ 	    kfnz = repfnz[krep];
+-	    if ( kfnz != EMPTY ) {	/* Nonzero U-segment */
++	    if ( kfnz != SUPERLU_EMPTY ) {	/* Nonzero U-segment */
+ 
+ 	    	fsupc = xsup[ksupno];
+ 	        isub = xlsub[fsupc] + kfnz - fsupc;
+diff --git a/SRC/zgsitrf.c b/SRC/zgsitrf.c
+index d8bae1e..a98beb4 100644
+--- a/SRC/zgsitrf.c
++++ b/SRC/zgsitrf.c
+@@ -310,14 +310,14 @@ zgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     else
+ 	ilu_relax_snode(n, etree, relax, marker, relax_end, relax_fsupc);
+ 
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+ 
+     /* Mark the rows used by relaxed supernodes */
+-    ifill (marker_relax, m, EMPTY);
++    ifill (marker_relax, m, SUPERLU_EMPTY);
+     i = mark_relax(m, relax_end, relax_fsupc, xa_begin, xa_end,
+ 	         asub, marker_relax);
+ #if ( PRNTlevel >= 1)
+@@ -331,7 +331,7 @@ zgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+ 	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -439,7 +439,7 @@ zgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++)
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -610,7 +610,7 @@ zgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
+     if ( m > n ) {
+ 	k = 0;
+ 	for (i = 0; i < m; ++i)
+-	    if ( perm_r[i] == EMPTY ) {
++	    if ( perm_r[i] == SUPERLU_EMPTY ) {
+ 		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/zgstrf.c b/SRC/zgstrf.c
+index 2992612..f470395 100644
+--- a/SRC/zgstrf.c
++++ b/SRC/zgstrf.c
+@@ -284,8 +284,8 @@ zgstrf (superlu_options_t *options, SuperMatrix *A,
+         relax_snode(n, etree, relax, marker, relax_end); 
+     }
+     
+-    ifill (perm_r, m, EMPTY);
+-    ifill (marker, m * NO_MARKER, EMPTY);
++    ifill (perm_r, m, SUPERLU_EMPTY);
++    ifill (marker, m * NO_MARKER, SUPERLU_EMPTY);
+     supno[0] = -1;
+     xsup[0]  = xlsub[0] = xusub[0] = xlusup[0] = 0;
+     w_def    = panel_size;
+@@ -297,7 +297,7 @@ zgstrf (superlu_options_t *options, SuperMatrix *A,
+      */
+     for (jcol = 0; jcol < min_mn; ) {
+ 
+-	if ( relax_end[jcol] != EMPTY ) { /* start of a relaxed snode */
++	if ( relax_end[jcol] != SUPERLU_EMPTY ) { /* start of a relaxed snode */
+    	    kcol = relax_end[jcol];	  /* end of the relaxed snode */
+ 	    panel_histo[kcol-jcol+1]++;
+ 
+@@ -349,7 +349,7 @@ zgstrf (superlu_options_t *options, SuperMatrix *A,
+ 	     */
+ 	    panel_size = w_def;
+ 	    for (k = jcol + 1; k < SUPERLU_MIN(jcol+panel_size, min_mn); k++) 
+-		if ( relax_end[k] != EMPTY ) {
++		if ( relax_end[k] != SUPERLU_EMPTY ) {
+ 		    panel_size = k - jcol;
+ 		    break;
+ 		}
+@@ -413,7 +413,7 @@ zgstrf (superlu_options_t *options, SuperMatrix *A,
+     if ( m > n ) {
+ 	k = 0;
+         for (i = 0; i < m; ++i) 
+-            if ( perm_r[i] == EMPTY ) {
++            if ( perm_r[i] == SUPERLU_EMPTY ) {
+     		perm_r[i] = n + k;
+ 		++k;
+ 	    }
+diff --git a/SRC/zpanel_bmod.c b/SRC/zpanel_bmod.c
+index de43199..1524948 100644
+--- a/SRC/zpanel_bmod.c
++++ b/SRC/zpanel_bmod.c
+@@ -153,7 +153,7 @@ zpanel_bmod (
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp ) {
+ 
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 	    
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+@@ -264,7 +264,7 @@ zpanel_bmod (
+ 		     repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		    
+ 		    kfnz = repfnz_col[krep];
+-		    if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		    if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		    
+ 		    segsze = krep - kfnz + 1;
+ 		    if ( segsze <= 3 ) continue;   /* skip unrolled cases */
+@@ -316,7 +316,7 @@ zpanel_bmod (
+ 	    for (jj = jcol; jj < jcol + w; jj++,
+ 		 repfnz_col += m, dense_col += m, TriTmp += ldaTmp) {
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue; /* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue; /* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		if ( segsze <= 3 ) continue; /* skip unrolled cases */
+@@ -340,7 +340,7 @@ zpanel_bmod (
+ 		 repfnz_col += m, dense_col += m) {
+ 		
+ 		kfnz = repfnz_col[krep];
+-		if ( kfnz == EMPTY ) continue;	/* Skip any zero segment */
++		if ( kfnz == SUPERLU_EMPTY ) continue;	/* Skip any zero segment */
+ 		
+ 		segsze = krep - kfnz + 1;
+ 		luptr = xlusup[fsupc];
+diff --git a/SRC/zpanel_dfs.c b/SRC/zpanel_dfs.c
+index 03c34ca..d035c06 100644
+--- a/SRC/zpanel_dfs.c
++++ b/SRC/zpanel_dfs.c
+@@ -138,7 +138,7 @@ zpanel_dfs (
+ 	    marker[krow] = jj;
+ 	    kperm = perm_r[krow];
+ 	    
+-	    if ( kperm == EMPTY ) {
++	    if ( kperm == SUPERLU_EMPTY ) {
+ 		panel_lsub[nextl_col++] = krow; /* krow is indexed into A */
+ 	    }
+ 	    /* 
+@@ -153,13 +153,13 @@ zpanel_dfs (
+ #ifdef CHK_DFS
+ 		printf("krep %d, myfnz %d, perm_r[%d] %d\n", krep, myfnz, krow, kperm);
+ #endif
+-		if ( myfnz != EMPTY ) {	/* Representative visited before */
++		if ( myfnz != SUPERLU_EMPTY ) {	/* Representative visited before */
+ 		    if ( myfnz > kperm ) repfnz_col[krep] = kperm;
+ 		    /* continue; */
+ 		}
+ 		else {
+ 		    /* Otherwise, perform dfs starting at krep */
+-		    oldrep = EMPTY;
++		    oldrep = SUPERLU_EMPTY;
+ 		    parent[krep] = oldrep;
+ 		    repfnz_col[krep] = kperm;
+ 		    xdfs = xlsub[krep];
+@@ -185,7 +185,7 @@ zpanel_dfs (
+ 				chperm = perm_r[kchild];
+ 			      
+ 				/* Case kchild is in L: place it in L[*,j] */
+-				if ( chperm == EMPTY ) {
++				if ( chperm == SUPERLU_EMPTY ) {
+ 				    panel_lsub[nextl_col++] = kchild;
+ 				} 
+ 				/* Case kchild is in U: 
+@@ -199,7 +199,7 @@ zpanel_dfs (
+ #ifdef CHK_DFS
+ 				    printf("chrep %d,myfnz %d,perm_r[%d] %d\n",chrep,myfnz,kchild,chperm);
+ #endif
+-				    if ( myfnz != EMPTY ) { /* Visited before */
++				    if ( myfnz != SUPERLU_EMPTY ) { /* Visited before */
+ 					if ( myfnz > chperm )
+ 					    repfnz_col[chrep] = chperm;
+ 				    }
+@@ -238,7 +238,7 @@ zpanel_dfs (
+ 			}
+ 			
+ 			kpar = parent[krep]; /* Pop stack, mimic recursion */
+-			if ( kpar == EMPTY ) break; /* dfs done */
++			if ( kpar == SUPERLU_EMPTY ) break; /* dfs done */
+ 			krep = kpar;
+ 			xdfs = xplore[krep];
+ 			maxdfs = xprune[krep];
+@@ -248,7 +248,7 @@ zpanel_dfs (
+ 			for (i = xdfs; i < maxdfs; i++) printf(" %d", lsub[i]);
+ 			printf("\n");
+ #endif
+-		    } while ( kpar != EMPTY ); /* do-while - until empty stack */
++		    } while ( kpar != SUPERLU_EMPTY ); /* do-while - until empty stack */
+ 		    
+ 		} /* else */
+ 		
+diff --git a/SRC/zpivotL.c b/SRC/zpivotL.c
+index 2aa5231..e29c5cc 100644
+--- a/SRC/zpivotL.c
++++ b/SRC/zpivotL.c
+@@ -120,7 +120,7 @@ if ( jcol == MIN_COL ) {
+     diagind = iperm_c[jcol];
+     pivmax = 0.0;
+     pivptr = nsupc;
+-    diag = EMPTY;
++    diag = SUPERLU_EMPTY;
+     old_pivptr = nsupc;
+     for (isub = nsupc; isub < nsupr; ++isub) {
+         rtemp = z_abs1 (&lu_col_ptr[isub]);
+diff --git a/SRC/zpruneL.c b/SRC/zpruneL.c
+index 2f25868..db60070 100644
+--- a/SRC/zpruneL.c
++++ b/SRC/zpruneL.c
+@@ -84,7 +84,7 @@ zpruneL(
+ 	do_prune = FALSE;
+ 
+ 	/* Don't prune with a zero U-segment */
+- 	if ( repfnz[irep] == EMPTY )
++ 	if ( repfnz[irep] == SUPERLU_EMPTY )
+ 		continue;
+ 
+      	/* If a snode overlaps with the next panel, then the U-segment 
+@@ -119,9 +119,9 @@ zpruneL(
+ 
+ 	        while ( kmin <= kmax ) {
+ 
+-	    	    if ( perm_r[lsub[kmax]] == EMPTY ) 
++	    	    if ( perm_r[lsub[kmax]] == SUPERLU_EMPTY ) 
+ 			kmax--;
+-		    else if ( perm_r[lsub[kmin]] != EMPTY )
++		    else if ( perm_r[lsub[kmin]] != SUPERLU_EMPTY )
+ 			kmin++;
+ 		    else { /* kmin below pivrow (not yet pivoted), and kmax
+                             * above pivrow: interchange the two subscripts
