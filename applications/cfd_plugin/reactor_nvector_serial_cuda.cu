@@ -1139,8 +1139,8 @@ void __global__ kernel_noninteger_terms
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   const int stride = gridDim.x*blockDim.x;
   for( ; tid < num_reactors*num_terms; tid += stride) {
-     const int termid =    tid % num_reactors;
-     const int reactorid = tid / num_reactors;
+     const int termid =    tid % num_terms;
+     const int reactorid = tid / num_terms;
 
      const int conc_idx_loc    = conc_indexes[termid]*num_reactors + reactorid;
      const int rxn_idx_loc     = rxn_indexes[termid]*num_reactors + reactorid;
