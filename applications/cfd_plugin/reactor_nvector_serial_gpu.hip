@@ -1208,7 +1208,7 @@ void __global__ kernel_jac_temperatureTermsA
     const int col = jacobian_column_indexes[sparseid];
     if(row < num_species && col < num_species) {
       const int reactorid = tid/nnz;
-      const int energyid = reactorid*num_species+row;
+      const int energyid = num_reactors*row + reactorid;
       const int temperature_sparse_idx = jacobian_temp_idx + col + reactorid * nnz;
       atomicAdd(&jacobian_data[temperature_sparse_idx],jacobian_data[tid]*energy[energyid]);
     }
@@ -1414,8 +1414,8 @@ int ReactorNVectorSerialGpu::SetupJacobianSparseDevice(realtype t, N_Vector y, N
     // of perturbations in the third body species
     // ---------------------------------------------------------------------
     // compute d(Tdot)/dy[j]
-    nthreads = std::min(num_reactors_*num_species_, 512);
-    nblocks = (num_reactors_*num_species_ + nthreads - 1)/nthreads;
+    nthreads = std::min(num_reactors_*nnz_, 512);
+    nblocks = (num_reactors_*nnz_ + nthreads - 1)/nthreads;
     kernel_jac_temperatureTermsA<<<nblocks, nthreads>>>(num_reactors_, num_species_, nnz_, (*jacobian_row_sums_ptr_)[num_species_], mech_ptr_->getGasConstant(),
                                 sqrt_unit_round_, thrust::raw_pointer_cast(&(*jacobian_row_indexes_dev_ptr_)[0]), 
                                 thrust::raw_pointer_cast(&(*jacobian_column_indexes_dev_ptr_)[0]),
