@@ -1,8 +1,8 @@
 
 
 set(magma_system_working ON)
-if(EXISTS ${SYSTEM_SUPERLU_ROOT})
-  set(magma_prefix ${SYSTEM_SUPERLU_ROOT})
+if(EXISTS ${SYSTEM_MAGMA_ROOT})
+  set(magma_prefix ${SYSTEM_MAGMA_ROOT})
   find_library(magma magma
       PATHS ${magma_prefix}
       PATH_SUFFIXES lib lib64)
