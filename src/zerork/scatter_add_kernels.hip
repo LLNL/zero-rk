@@ -275,70 +275,10 @@ __global__ void scatterAdd_gpu_atomic_global_64op(const int nOps,
 
       __syncthreads();
 
-      double val = src[threadSrcId[0 ]+tid]+
-                   src[threadSrcId[1 ]+tid]+
-                   src[threadSrcId[2 ]+tid]+
-                   src[threadSrcId[3 ]+tid]+
-                   src[threadSrcId[4 ]+tid]+
-                   src[threadSrcId[5 ]+tid]+
-                   src[threadSrcId[6 ]+tid]+
-                   src[threadSrcId[7 ]+tid]+
-                   src[threadSrcId[8 ]+tid]+
-                   src[threadSrcId[9 ]+tid]+
-                   src[threadSrcId[10]+tid]+
-                   src[threadSrcId[11]+tid]+
-                   src[threadSrcId[12]+tid]+
-                   src[threadSrcId[13]+tid]+
-                   src[threadSrcId[14]+tid]+
-                   src[threadSrcId[15]+tid]+
-                   src[threadSrcId[16]+tid]+
-                   src[threadSrcId[17]+tid]+
-                   src[threadSrcId[18]+tid]+
-                   src[threadSrcId[19]+tid]+
-                   src[threadSrcId[20]+tid]+
-                   src[threadSrcId[21]+tid]+
-                   src[threadSrcId[22]+tid]+
-                   src[threadSrcId[23]+tid]+
-                   src[threadSrcId[24]+tid]+
-                   src[threadSrcId[25]+tid]+
-                   src[threadSrcId[26]+tid]+
-                   src[threadSrcId[27]+tid]+
-                   src[threadSrcId[28]+tid]+
-                   src[threadSrcId[29]+tid]+
-                   src[threadSrcId[30]+tid]+
-                   src[threadSrcId[31]+tid]+
-                   src[threadSrcId[32]+tid]+
-                   src[threadSrcId[33]+tid]+
-                   src[threadSrcId[34]+tid]+
-                   src[threadSrcId[35]+tid]+
-                   src[threadSrcId[36]+tid]+
-                   src[threadSrcId[37]+tid]+
-                   src[threadSrcId[38]+tid]+
-                   src[threadSrcId[39]+tid]+
-                   src[threadSrcId[40]+tid]+
-                   src[threadSrcId[41]+tid]+
-                   src[threadSrcId[42]+tid]+
-                   src[threadSrcId[43]+tid]+
-                   src[threadSrcId[44]+tid]+
-                   src[threadSrcId[45]+tid]+
-                   src[threadSrcId[46]+tid]+
-                   src[threadSrcId[47]+tid]+
-                   src[threadSrcId[48]+tid]+
-                   src[threadSrcId[49]+tid]+
-                   src[threadSrcId[50]+tid]+
-                   src[threadSrcId[51]+tid]+
-                   src[threadSrcId[52]+tid]+
-                   src[threadSrcId[53]+tid]+
-                   src[threadSrcId[54]+tid]+
-                   src[threadSrcId[55]+tid]+
-                   src[threadSrcId[56]+tid]+
-                   src[threadSrcId[57]+tid]+
-                   src[threadSrcId[58]+tid]+
-                   src[threadSrcId[59]+tid]+
-                   src[threadSrcId[60]+tid]+
-                   src[threadSrcId[61]+tid]+
-                   src[threadSrcId[62]+tid]+
-                   src[threadSrcId[63]+tid];
+      double val = 0;
+      #pragma unroll 32
+      for (size_t idx = 0; idx < 64; ++idx)
+	  val += src[threadSrcId[idx]+tid];
       atomicAdd(&dest[threadDestId],val);
   }
 }
@@ -369,134 +309,10 @@ __global__ void scatterAdd_gpu_atomic_global_128op(const int nOps,
 
       __syncthreads();
 
-      double val = src[threadSrcId[0 ]+tid]+
-                   src[threadSrcId[1 ]+tid]+
-                   src[threadSrcId[2 ]+tid]+
-                   src[threadSrcId[3 ]+tid]+
-                   src[threadSrcId[4 ]+tid]+
-                   src[threadSrcId[5 ]+tid]+
-                   src[threadSrcId[6 ]+tid]+
-                   src[threadSrcId[7 ]+tid]+
-                   src[threadSrcId[8 ]+tid]+
-                   src[threadSrcId[9 ]+tid]+
-                   src[threadSrcId[10]+tid]+
-                   src[threadSrcId[11]+tid]+
-                   src[threadSrcId[12]+tid]+
-                   src[threadSrcId[13]+tid]+
-                   src[threadSrcId[14]+tid]+
-                   src[threadSrcId[15]+tid]+
-                   src[threadSrcId[16]+tid]+
-                   src[threadSrcId[17]+tid]+
-                   src[threadSrcId[18]+tid]+
-                   src[threadSrcId[19]+tid]+
-                   src[threadSrcId[20]+tid]+
-                   src[threadSrcId[21]+tid]+
-                   src[threadSrcId[22]+tid]+
-                   src[threadSrcId[23]+tid]+
-                   src[threadSrcId[24]+tid]+
-                   src[threadSrcId[25]+tid]+
-                   src[threadSrcId[26]+tid]+
-                   src[threadSrcId[27]+tid]+
-                   src[threadSrcId[28]+tid]+
-                   src[threadSrcId[29]+tid]+
-                   src[threadSrcId[30]+tid]+
-                   src[threadSrcId[31]+tid]+
-                   src[threadSrcId[32]+tid]+
-                   src[threadSrcId[33]+tid]+
-                   src[threadSrcId[34]+tid]+
-                   src[threadSrcId[35]+tid]+
-                   src[threadSrcId[36]+tid]+
-                   src[threadSrcId[37]+tid]+
-                   src[threadSrcId[38]+tid]+
-                   src[threadSrcId[39]+tid]+
-                   src[threadSrcId[40]+tid]+
-                   src[threadSrcId[41]+tid]+
-                   src[threadSrcId[42]+tid]+
-                   src[threadSrcId[43]+tid]+
-                   src[threadSrcId[44]+tid]+
-                   src[threadSrcId[45]+tid]+
-                   src[threadSrcId[46]+tid]+
-                   src[threadSrcId[47]+tid]+
-                   src[threadSrcId[48]+tid]+
-                   src[threadSrcId[49]+tid]+
-                   src[threadSrcId[50]+tid]+
-                   src[threadSrcId[51]+tid]+
-                   src[threadSrcId[52]+tid]+
-                   src[threadSrcId[53]+tid]+
-                   src[threadSrcId[54]+tid]+
-                   src[threadSrcId[55]+tid]+
-                   src[threadSrcId[56]+tid]+
-                   src[threadSrcId[57]+tid]+
-                   src[threadSrcId[58]+tid]+
-                   src[threadSrcId[59]+tid]+
-                   src[threadSrcId[60]+tid]+
-                   src[threadSrcId[61]+tid]+
-                   src[threadSrcId[62]+tid]+
-                   src[threadSrcId[63]+tid]+
-                   src[threadSrcId[64]+tid]+
-                   src[threadSrcId[65]+tid]+
-                   src[threadSrcId[66]+tid]+
-                   src[threadSrcId[67]+tid]+
-                   src[threadSrcId[68]+tid]+
-                   src[threadSrcId[69]+tid]+
-                   src[threadSrcId[70]+tid]+
-                   src[threadSrcId[71]+tid]+
-                   src[threadSrcId[72]+tid]+
-                   src[threadSrcId[73]+tid]+
-                   src[threadSrcId[74]+tid]+
-                   src[threadSrcId[75]+tid]+
-                   src[threadSrcId[76]+tid]+
-                   src[threadSrcId[77]+tid]+
-                   src[threadSrcId[78]+tid]+
-                   src[threadSrcId[79]+tid]+
-                   src[threadSrcId[80]+tid]+
-                   src[threadSrcId[81]+tid]+
-                   src[threadSrcId[82]+tid]+
-                   src[threadSrcId[83]+tid]+
-                   src[threadSrcId[84]+tid]+
-                   src[threadSrcId[85]+tid]+
-                   src[threadSrcId[86]+tid]+
-                   src[threadSrcId[87]+tid]+
-                   src[threadSrcId[88]+tid]+
-                   src[threadSrcId[89]+tid]+
-                   src[threadSrcId[90]+tid]+
-                   src[threadSrcId[91]+tid]+
-                   src[threadSrcId[92]+tid]+
-                   src[threadSrcId[93]+tid]+
-                   src[threadSrcId[94]+tid]+
-                   src[threadSrcId[95]+tid]+
-                   src[threadSrcId[96]+tid]+
-                   src[threadSrcId[97]+tid]+
-                   src[threadSrcId[98]+tid]+
-                   src[threadSrcId[99]+tid]+
-                   src[threadSrcId[100]+tid]+
-                   src[threadSrcId[101]+tid]+
-                   src[threadSrcId[102]+tid]+
-                   src[threadSrcId[103]+tid]+
-                   src[threadSrcId[104]+tid]+
-                   src[threadSrcId[105]+tid]+
-                   src[threadSrcId[106]+tid]+
-                   src[threadSrcId[107]+tid]+
-                   src[threadSrcId[108]+tid]+
-                   src[threadSrcId[109]+tid]+
-                   src[threadSrcId[110]+tid]+
-                   src[threadSrcId[111]+tid]+
-                   src[threadSrcId[112]+tid]+
-                   src[threadSrcId[113]+tid]+
-                   src[threadSrcId[114]+tid]+
-                   src[threadSrcId[115]+tid]+
-                   src[threadSrcId[116]+tid]+
-                   src[threadSrcId[117]+tid]+
-                   src[threadSrcId[118]+tid]+
-                   src[threadSrcId[119]+tid]+
-                   src[threadSrcId[120]+tid]+
-                   src[threadSrcId[121]+tid]+
-                   src[threadSrcId[122]+tid]+
-                   src[threadSrcId[123]+tid]+
-                   src[threadSrcId[124]+tid]+
-                   src[threadSrcId[125]+tid]+
-                   src[threadSrcId[126]+tid]+
-                   src[threadSrcId[127]+tid];
+      double val = 0;
+      #pragma unroll 32
+      for (size_t idx = 0; idx < 128; ++idx)
+	  val += src[threadSrcId[idx]+tid];
       atomicAdd(&dest[threadDestId],val);
   }
 }
