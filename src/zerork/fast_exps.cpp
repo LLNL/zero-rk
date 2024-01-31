@@ -6,7 +6,11 @@
   #ifdef ZERORK_HAVE_MKL
     #define ZERORK_EXP_MKL
   #else
-    #define ZERORK_EXP_FMATH
+    #ifdef ZERORK_HAVE_IBM_MASS
+      #define ZERORK_EXP_MASS
+    #else
+      #define ZERORK_EXP_FMATH
+    #endif
   #endif
 #endif
 
@@ -24,6 +28,11 @@
 #include <fmath.hpp>
 #include "zerork/constants.h"
 #endif
+
+#ifdef ZERORK_EXP_MASS
+#include <massv.h>
+#endif
+
 
 namespace zerork {
 
@@ -85,6 +94,21 @@ double exp_FMATH(double x) {
 }
 #endif
 
+#ifdef ZERORK_EXP_MASS
+void vecexp_MASS(double *values, int num)
+{
+  ::vexp(values, values, &num);
+}
+
+double exp_MASS(double val)
+{
+  double out;
+  int num = 1;
+  ::vexp(&out,&val,&num);
+  return out;
+}
+#endif
+
 #ifdef ZERORK_EXP_MKL
   #ifdef ZERORK_EXP_MKL_HA
     const char* expType="intel_mkl_ha";
@@ -101,23 +125,29 @@ double exp_FMATH(double x) {
     void (*fast_vec_exp)(double *, int) = &(vecexp_AMD_LibM);
     double (*fast_exp)(double) = &(exp); //AMD_LibM overrides ::exp
   #else
-    #ifdef ZERORK_EXP_FMATH
-      const char* expType="fmath";
-      void (*fast_vec_exp)(double *, int) = &(vecexp_FMATH);
-//      double (*fast_exp)(double) = &(exp_FMATH);
-      double (*fast_exp)(double) = &(::exp); //TODO:fmath::expd gives bad values
+    #ifdef ZERORK_EXP_MASS
+      const char* expType="ibm_mass";
+      void (*fast_vec_exp)(double *, int) = &(vecexp_MASS);
+      double (*fast_exp)(double) = &exp_MASS;
     #else
-      #ifdef ZERORK_EXP_FMATH_NOCHECK
-        // No test to ensure in range
-        const char* expType="fmath_nocheck";
-        void (*fast_vec_exp)(double *, int) = &(fmath::expd_v);
-//        double (*fast_exp)(double) = &(fmath::expd);
+      #ifdef ZERORK_EXP_FMATH
+        const char* expType="fmath";
+        void (*fast_vec_exp)(double *, int) = &(vecexp_FMATH);
+//      double (*fast_exp)(double) = &(exp_FMATH);
         double (*fast_exp)(double) = &(::exp); //TODO:fmath::expd gives bad values
       #else
-   // ZERORK_EXP LIBC
-        const char* expType="libc";
-        void (*fast_vec_exp)(double *, int) = &(vecexp_libc);
-        double (*fast_exp)(double) = &(::exp);
+        #ifdef ZERORK_EXP_FMATH_NOCHECK
+          // No test to ensure in range
+          const char* expType="fmath_nocheck";
+          void (*fast_vec_exp)(double *, int) = &(fmath::expd_v);
+//        double (*fast_exp)(double) = &(fmath::expd);
+          double (*fast_exp)(double) = &(::exp); //TODO:fmath::expd gives bad values
+        #else
+     // ZERORK_EXP LIBC
+          const char* expType="libc";
+          void (*fast_vec_exp)(double *, int) = &(vecexp_libc);
+          double (*fast_exp)(double) = &(::exp);
+        #endif
       #endif
     #endif
   #endif

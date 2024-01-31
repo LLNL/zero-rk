@@ -28,9 +28,7 @@ target_link_libraries(zerork PUBLIC ckconverter)
 if(NOT WIN32)
 target_link_libraries(zerork PUBLIC dl m)
 endif()
-if(${ZERORK_HAVE_MKL})
-target_link_libraries(zerork PUBLIC mkl) #for vmdExp in fast_exp.cpp
-endif()
+target_link_libraries(zerork PRIVATE zerork_vectormath)
 
 set_target_properties(zerork PROPERTIES
  PUBLIC_HEADER  "${public_headers}")
@@ -67,10 +65,11 @@ set(public_headers_cuda atomicMassDB.h constants.h
    perf_net_cuda.h perf_net_kernels.h plog_reaction.h
    rate_const.h rate_const_cuda.h rate_const_kernels.h
    scatter_add_kernels.h species.h utilities.h)
-target_link_libraries(zerork_cuda PUBLIC ckconverter dl m)
-if(${ZERORK_HAVE_MKL})
-target_link_libraries(zerork_cuda PUBLIC mkl) #for vmdExp in fast_exp.cpp
+target_link_libraries(zerork_cuda PUBLIC ckconverter)
+if(NOT WIN32)
+target_link_libraries(zerork_cuda PUBLIC dl m)
 endif()
+target_link_libraries(zerork_cuda PRIVATE zerork_vectormath)
 set_target_properties(zerork_cuda PROPERTIES
  PUBLIC_HEADER  "${public_headers_cuda}")
 install(TARGETS zerork_cuda
