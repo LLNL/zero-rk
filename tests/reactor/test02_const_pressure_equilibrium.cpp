@@ -170,7 +170,7 @@ static double MarchToFinalTemperature(const double atomic_mass_fraction,
   const double ref_temperature = 1000.0;
   double molecular_weight[2];
   double mix_molecular_weight;
-  double current_time;
+  double current_time = 0;
   double final_temperature;
   int flag = 0;
   int num_steps = 0;
@@ -236,8 +236,8 @@ static double MarchToFinalTemperature(const double atomic_mass_fraction,
     flag = CVode(cvode_ptr, 
                  MAX_CVODE_TIME, 
                  state, 
-                 &current_time, 
-                 CV_ONE_STEP);
+                 &current_time,
+		 CV_ONE_STEP);
     ++num_steps;
     //mix_molecular_weight = 1.0/(state_data[0]/molecular_weight[0] +
     //                            state_data[1]/molecular_weight[1]);

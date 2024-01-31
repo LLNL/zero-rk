@@ -38,7 +38,6 @@ int main(int argc, char *argv[])
   SetConstantInlet(flame_params, flame_state_ptr);
 
   // ------------ BEGIN Constrained Equibrium calc  -----------//
-  /*
   if(flame_params.use_equilibrium_) {
     printf("Using equilibrium composition to evaluate Lewis numbers\n");
     int k,l;
@@ -84,7 +83,7 @@ int main(int argc, char *argv[])
     file1.close();
 
     // Call CEQ
-    system("/g/g90/lapointe/CEQ/eqHPfromFile.x");
+    system("/usr/apps/advcomb/bin/eqHPfromFile.x");
 
     // Read equilibrium state
     std::ifstream infile("CEQ.dat");
@@ -105,7 +104,6 @@ int main(int argc, char *argv[])
   } else {
     printf("Using inlet composition to evaluate Lewis numbers\n");
   }
-  */
   // ------------ END Constrained Equibrium calc  -----------//
 
   // Compute Lewis numbers

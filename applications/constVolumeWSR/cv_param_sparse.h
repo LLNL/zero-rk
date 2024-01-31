@@ -160,6 +160,8 @@ typedef struct
   // temeprature root
   int numTempRoots;
   std::vector<double> tempRoots;
+  double temperaturePrintResolution;
+  double temperatureBracket[2];
 
   // use for recreating the divided difference scaling
   void *cvodeMemPtr;

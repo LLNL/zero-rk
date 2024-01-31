@@ -172,7 +172,6 @@ int main(int argc, char *argv[])
   mset = flame_params.parser_->max_subiter();
 
   if(flame_params.comm_rank_ == 0) {
-
     // Declare variables
     int num_prints = 0;
     double current_time = 0.0;
@@ -190,7 +189,6 @@ int main(int argc, char *argv[])
     std::vector<double> temperature_jump;
     std::vector<int> track_max_state_id;
     std::vector<double> state_maxima, state_maxima_positions;
-
 
     // Initialize state vector
     time_offset = 0.0;
@@ -564,7 +562,7 @@ int main(int argc, char *argv[])
     if(flame_params.comm_rank_ == 0 && flame_params.my_pe_==0) printf("Performing soot sensitivity analysis\n");
 
     clock_time = getHighResolutionTime();
-    vector<int> sensitive_reactions;
+    std::vector<int> sensitive_reactions;
     sensitive_reactions = flame_params.parser_->sensitive_reactions();
     if(sensitive_reactions.size() > 0) {
       num_reactions = sensitive_reactions.size();
@@ -575,7 +573,7 @@ int main(int argc, char *argv[])
 
     // 1) Save current/original flame state
     std::vector<double> flame_state_orig;
-    flame_state_orig.assign(num_local_states, 0.0); // DUMB
+    flame_state_orig.assign(num_local_states, 0.0);
     for(int j=0; j<num_local_states; j++) {
       flame_state_orig[j] = flame_state_ptr[j];
     }

@@ -48,7 +48,7 @@ static user_data_t ud;
 
 static int callback(int reactor_id, int nsteps, double time, double dt, const double* y, const double* ydot, void* user_data) {
   user_data_t* ud = static_cast<user_data_t*>(user_data);
-  // printf("%d, %g: %g [%g, %g]\n",nsteps, time, y[0], ud->x, ud->y);
+  //printf("%d, %g: %g\n",nsteps, time, y[0]);
   ud->nsteps += 1;
   ud->time += dt;
   return 0;

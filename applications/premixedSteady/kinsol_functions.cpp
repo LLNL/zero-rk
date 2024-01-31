@@ -134,6 +134,21 @@ int ConstPressureFlameLocal(int nlocal,
 
   double velocity, thermal_diffusivity;
 
+  int temp_out_of_bounds = 0;
+  int global_temp_out_of_bounds = 0;
+  for(int j=0; j<num_local_points; ++j) {
+    double temperature = y_ptr[j*num_states + num_states-1]*params->ref_temperature_;
+    if(temperature < 100.0 || temperature > 10000) {
+      temp_out_of_bounds += 1;
+    }
+  }
+#ifdef ZERORK_MPI
+  MPI_Allreduce(&temp_out_of_bounds,&global_temp_out_of_bounds,1,MPI_INT,MPI_MAX,comm);
+#else
+  global_temp_out_of_bounds = temp_out_of_bounds;
+#endif
+  if(global_temp_out_of_bounds > 0) return 1;// recoverable error
+
   // Set the residual and rhs to zero
   for(int j=0; j<num_local_states; ++j) {
     ydot_ptr[j] = 0.0;
@@ -856,6 +871,21 @@ int ReactorAFSetup(N_Vector y, // [in] state vector
   int my_pe  = params->my_pe_;
   const int nover = params->nover_;
 
+  int temp_out_of_bounds = 0;
+  int global_temp_out_of_bounds = 0;
+  for(int j=0; j<num_local_points; ++j) {
+    double temperature = y_ptr[j*num_states + num_states-1]*params->ref_temperature_;
+    if(temperature < 100.0 || temperature > 10000) {
+      temp_out_of_bounds += 1;
+    }
+  }
+#ifdef ZERORK_MPI
+  MPI_Allreduce(&temp_out_of_bounds,&global_temp_out_of_bounds,1,MPI_INT,MPI_MAX,params->comm_);
+#else
+  global_temp_out_of_bounds = temp_out_of_bounds;
+#endif
+  if(global_temp_out_of_bounds > 0) return 1;// recoverable error
+
   // Initialize transport Jacobian
   for(int j=0; j<num_local_points*5*num_states; j++)
     params->banded_jacobian_[j] = 0.0;
@@ -1507,7 +1537,7 @@ int SensitivityAnalysis(N_Vector y,
 #else
     high = local_high;
 #endif
-    rxnSensList[k].relSens = high;
+    rxnSensList[k].relSensAbs = high;
     rxnSensList[k].rxnId = k;
   }
 
@@ -1523,7 +1553,7 @@ int SensitivityAnalysis(N_Vector y,
       fprintf(sensFile,"%d  %s  %14.7e\n",
               rxnSensList[j].rxnId,
               params->mechanism_->getReactionName(rxnSensList[j].rxnId),
-              rxnSensList[j].relSens);
+              rxnSensList[j].relSensAbs);
     }
     fclose(sensFile);
   }
@@ -1535,10 +1565,10 @@ int compare_rxnSens_t(const void *A, const void *B)
 {
   rxnSens_t *Aptr =(rxnSens_t *)A;
   rxnSens_t *Bptr =(rxnSens_t *)B;
-  if(Aptr->relSens < Bptr->relSens) {
+  if(Aptr->relSensAbs < Bptr->relSensAbs) {
     return 1;
   }
-  else if (Aptr->relSens > Bptr->relSens) {
+  else if (Aptr->relSensAbs > Bptr->relSensAbs) {
     return -1;
   }
   return 0;

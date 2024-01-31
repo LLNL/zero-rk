@@ -46,7 +46,7 @@ for j in range(num_vars):
     fh.write(names[j].strip('MassFraction_')+'\t')
 fh.write('\n')
 # Write data
-for i in range(1,num_points):
+for i in range(num_points):
     fh.write(str(grid[i]) + '\t')
     for j in range(num_vars):
         if(names[j] == "RelativeVolume"):
@@ -54,3 +54,4 @@ for i in range(1,num_points):
         fh.write(str(Y[j,i]) + '\t')
     fh.write('\n')
 fh.close()
+

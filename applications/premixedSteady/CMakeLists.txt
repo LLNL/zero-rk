@@ -12,7 +12,7 @@ install(TARGETS premixed_steady_flame_solver.x
 
 if(ENABLE_MPI)
 add_mpi_executable(premixed_steady_flame_solver_mpi.x ${MAIN_SRC} ${COMMON_SRC} sparse_matrix_dist.cpp ${SPIFY_SRC})
-target_link_libraries(premixed_steady_flame_solver_mpi.x zerorkutilities mechanisminfo reactor
+target_link_libraries(premixed_steady_flame_solver_mpi.x zerorkmpiutilities zerorkutilities mechanisminfo reactor
                       zerorktransport zerork superlu_dist superlu spify sundials_kinsol sundials_nvecparallel)
 install(TARGETS premixed_steady_flame_solver_mpi.x
         RUNTIME DESTINATION bin)

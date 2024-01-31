@@ -20,7 +20,7 @@ mpi_counter::mpi_counter(MPI_Comm comm, int hostrank) {
                        MPI_INFO_NULL, comm_, &win_);
     } else {
         data_.clear();
-        MPI_Win_create(&data_[0], 0, 1,
+        MPI_Win_create(nullptr, 0, 1,
                        MPI_INFO_NULL, comm_, &win_);
     }
     my_val_ = 0;

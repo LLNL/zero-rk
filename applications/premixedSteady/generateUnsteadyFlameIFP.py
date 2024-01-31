@@ -432,9 +432,45 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'flame_speed_sensitivity',
+    'name':'sensitivity_analysis',
     'type':'bool',
-    'longDesc' : "Flag that when set to true [y] computes the flame speed reaction sensitivity",
+    'longDesc' : "Flag that when set to true [y] computes the flame speed and soot reaction sensitivities",
+    'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'sensitivity_multiplier',
+    'type':'double',
+    'shortDesc' : "A-factor multiplier used for sensitivity analysis",
+    'defaultValue' : 2.0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"sensitive_reactions",
+    'type':'v_int',
+    'shortDesc' : "Vector of sensitive reactions for sensitivity analysis",
+    'defaultValue' : []
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"sensitivity_processors_per_solution",
+    'type':'int',
+    'shortDesc' : "Number of processors to use on each flame solution. Total MPI procs should divide evenly by this number",
+    'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"sensitivity_load_balance",
+    'type':'int',
+    'shortDesc' : "Method to distribute sensitivity calcs across ranks [0 - static, 1 - dynamic]",
     'defaultValue' : 0
 }
 )

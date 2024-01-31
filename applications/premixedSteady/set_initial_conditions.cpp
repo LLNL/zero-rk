@@ -164,15 +164,15 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
 
     // Broadcast eq. T & Y to all procs
 #ifdef ZERORK_MPI
-    MPI_Bcast(&equi_temperature, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&equi_mass_fractions[0], num_species, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&equi_temperature, 1, MPI_DOUBLE, 0, flame_params.comm_);
+    MPI_Bcast(&equi_mass_fractions[0], num_species, MPI_DOUBLE, 0, flame_params.comm_);
 #endif
     // ------------ END Constrained Equibrium calc  -----------//
     /**/
 
     // Relative positions where to begin/end linear ramp
-    double ramp_start = 0.3*flame_params.length_;
-    double ramp_end = 0.5*flame_params.length_;
+    double ramp_start = flame_params.parser_->initial_inlet_extent();
+    double ramp_end = ramp_start + flame_params.parser_->thickness();
 
     for(int j=0; j<num_local_points; j++) {
       int jglobal = j + my_pe*num_local_points;
@@ -377,7 +377,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     filename1 = flame_params.parser_->restart_file().c_str();
     sprintf(filename2,"%s",filename1);
 #ifdef ZERORK_MPI
-    MPI_File_open(MPI_COMM_WORLD, filename2, MPI_MODE_RDONLY, MPI_INFO_NULL, &restart_file);
+    MPI_File_open(flame_params.comm_, filename2, MPI_MODE_RDONLY, MPI_INFO_NULL, &restart_file);
 #else
     ifstream restart_file(filename2, ios::in | ios::binary);
 #endif
@@ -494,7 +494,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     }
   }
 #if ZERORK_MPI
-  MPI_Allreduce(&local_jfix,&flame_params.j_fix_,1,MPI_INT,MPI_MIN,MPI_COMM_WORLD);
+  MPI_Allreduce(&local_jfix,&flame_params.j_fix_,1,MPI_INT,MPI_MIN,flame_params.comm_);
 #else
   flame_params.j_fix_ = local_jfix;
 #endif
@@ -506,7 +506,7 @@ void SetInitialCompositionAndWallTemp(FlameParams &flame_params, double *y, doub
     if( jglobal == flame_params.j_fix_ ) local_Tfix = y[temp_id];
   }
 #if ZERORK_MPI
-  MPI_Allreduce(&local_Tfix,&flame_params.temperature_fix_,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+  MPI_Allreduce(&local_Tfix,&flame_params.temperature_fix_,1,MPI_DOUBLE,MPI_MAX,flame_params.comm_);
 #else
   flame_params.temperature_fix_ = local_Tfix;
 #endif

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef WIN32
+#ifdef _WIN32
 #define _USE_MATH_DEFINES //for M_PI
 #endif
 #include <cmath>
@@ -15,7 +15,7 @@ namespace utilities
 {
 
 
-#ifdef WIN32
+#ifdef _WIN32
 //The following drand48 implementation is courtesy:
 // https://gist.github.com/mortennobel/8665258
 // (accessed 20220407)

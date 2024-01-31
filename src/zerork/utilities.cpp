@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <string>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #include <profileapi.h>
 #else
@@ -49,7 +49,7 @@ void upperToLower(char *s)
 
 double getHighResolutionTime(void)
 {
-#ifndef WIN32
+#ifndef _WIN32
     struct timeval tod;
 
     gettimeofday(&tod, NULL);

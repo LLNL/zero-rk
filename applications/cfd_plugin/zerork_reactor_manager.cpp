@@ -38,17 +38,20 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   root_rank_ = 0;
   tried_init_ = false;
 
-  //Non-optionable defaults
-  load_balance_ = 1;
-  load_balance_noise_ = 0;
-  reactor_weight_mult_ = 1.0;
-  dump_reactors_ = false;
-  avg_reactor_time_ = 1.0;
-
 #ifdef USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&(rank_));
   MPI_Comm_size(MPI_COMM_WORLD,&(nranks_));
 #endif
+
+  //Non-optionable defaults
+  load_balance_ = 1;
+  if(nranks_ == 1) {
+    load_balance_ = 0;
+  }
+  load_balance_noise_ = 0;
+  reactor_weight_mult_ = 1.0;
+  dump_reactors_ = false;
+  avg_reactor_time_ = 1.0;
 
   //Default options
   string_options_["mech_filename"] = std::string("mech.dat");
@@ -621,7 +624,9 @@ zerork_status_t ZeroRKReactorManager::FinishInit() {
 
 #ifndef USE_MPI
 zerork_status_t ZeroRKReactorManager::LoadBalance()
-{}; //pass
+{
+  return ZERORK_STATUS_SUCCESS;
+}
 #else
 zerork_status_t ZeroRKReactorManager::LoadBalance()
 {

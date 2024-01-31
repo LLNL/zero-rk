@@ -40,5 +40,3 @@ verbosity: 0
 
 step_limiter: 1.0e300
 
-pseudo_unsteady: 0
-pseudo_unsteady_dt: 1.0e-3

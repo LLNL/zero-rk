@@ -25,6 +25,7 @@ FlexibleTransport::FlexibleTransport()
   mechanism_owner_ = false;
   mix_avg_ = false;
   soret_ = false;
+  precompute_matrix_terms_ = true;
 }
 
 FlexibleTransport::~FlexibleTransport()
@@ -45,7 +46,6 @@ int FlexibleTransport::Initialize(const std::vector<std::string> &input_files,
 
   if(mechanism_ == NULL) {
     FILE *log_fptr = fopen(log_name.c_str(),"a");
-    log_fptr = fopen(log_name.c_str(),"a");
     fprintf(log_fptr,
             "# ERROR: In FlexibleTransport::Initialize(),\n"
             "#        could not instantiate zerork::mechanism from\n"
@@ -322,9 +322,16 @@ int FlexibleTransport::GetSpeciesMassFluxInternal(const MassTransportInput &inpu
           double den = 0.0;
           for(int l=0; l<num_species; ++l) {
 
-            invDij[k*num_species + l] = dcoeff*diam2_[k*num_species+l]*
-              omega_D(input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l])*
-              sqrtmass_[k*num_species+l];
+            if(precompute_matrix_terms_) {
+              invDij[k*num_species + l] = dcoeff*diam2_[k*num_species+l]*
+                omega_D(input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l])*
+                sqrtmass_[k*num_species+l];
+	    } else {
+              invDij[k*num_species + l] = dcoeff*pow(sigma_[k] + sigma_[l],2.0)*
+                omega_D(input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l])*
+                sqrt(molecular_mass_[k]*molecular_mass_[l] /
+                     (molecular_mass_[k] + molecular_mass_[l]) );
+	    }
 
             if(l != k) {
               num += input.mass_fraction_[l];
@@ -362,9 +369,13 @@ int FlexibleTransport::GetSpeciesMassFluxInternal(const MassTransportInput &inpu
             for(int k=0; k<num_species; ++k) {
               DeltaI[k] = 0.0;
               for(int l=0; l<num_species; ++l) {
-                phi = 1.0 + sqrt2mass_[k*num_species + l]*sqrtmu[k]*inv_sqrtmu[l];
-
-                phi = phi*phi * 0.0003535534 * inv_sqrt1mass_[k*num_species + l]*inv_molecular_mass_[l];
+		if(precompute_matrix_terms_) {
+                  phi = 1.0 + sqrt2mass_[k*num_species + l]*sqrtmu[k]*inv_sqrtmu[l];
+                  phi = phi*phi * 0.0003535534 * inv_sqrt1mass_[k*num_species + l]*inv_molecular_mass_[l];
+		} else {
+                  phi = 1.0 + sqrt(sqrt(molecular_mass_[l]*inv_molecular_mass_[k]))*sqrtmu[k]*inv_sqrtmu[l];
+                  phi = phi*phi * 0.0003535534 * 1.0/sqrt(1.0 + molecular_mass_[k]*inv_molecular_mass_[l])*inv_molecular_mass_[l];
+		}
 
                 DeltaI[k] += phi*input.mass_fraction_[l];
               }
@@ -378,9 +389,13 @@ int FlexibleTransport::GetSpeciesMassFluxInternal(const MassTransportInput &inpu
               for(int l=0; l<num_species; ++l) {
                 const double cstar = omega_C( input.temperature_*sqrtkOverEps_[k]*sqrtkOverEps_[l] );
 
-                num += input.mass_fraction_[l]*invDij[k*num_species + l]*(1.2*cstar-1.0)*
-                  ( DeltaI[l] - DeltaI[k] ) * inv_sum_mass_[k*num_species+l];
-
+		if(precompute_matrix_terms_) {
+                  num += input.mass_fraction_[l]*invDij[k*num_species + l]*(1.2*cstar-1.0)*
+                    ( DeltaI[l] - DeltaI[k] ) * inv_sum_mass_[k*num_species+l];
+		} else {
+                  num += input.mass_fraction_[l]*invDij[k*num_species + l]*(1.2*cstar-1.0)*
+                    ( DeltaI[l] - DeltaI[k] ) * 1.0/(molecular_mass_[k] + molecular_mass_[l]);
+		}
               }
               DTherm[k] = 0.00375*num*input.mass_fraction_[k]*molecular_mass_[k]*
                 molecular_mass_mix*Dmass[k]/rho;
@@ -534,12 +549,18 @@ int FlexibleTransport::ParseTransportFile(const std::string &transport_file,
     mucoeff_.assign(num_species, 0.0);
     species_line_num.assign(num_species, -1);
 
-    sqrtmass_.assign(num_species*num_species, 0.0);
-    diam2_.assign(num_species*num_species, 0.0);
+    // conserve memory for large mechanisms
+    precompute_matrix_terms_ = true;
+    if(num_species > 8000) {
+      precompute_matrix_terms_ = false;
+    } else {
+      sqrtmass_.assign(num_species*num_species, 0.0);
+      diam2_.assign(num_species*num_species, 0.0);
 
-    sqrt2mass_.assign(num_species*num_species, 0.0);
-    inv_sqrt1mass_.assign(num_species*num_species, 0.0);
-    inv_sum_mass_.assign(num_species*num_species, 0.0);
+      sqrt2mass_.assign(num_species*num_species, 0.0);
+      inv_sqrt1mass_.assign(num_species*num_species, 0.0);
+      inv_sum_mass_.assign(num_species*num_species, 0.0);
+    }
 
     // Clean this up and streamline later!!
     std::ifstream Le_file;
@@ -652,14 +673,16 @@ int FlexibleTransport::ParseTransportFile(const std::string &transport_file,
       fclose(log_fptr);
     }
 
-    for(int k=0; k<num_species; ++k) {
-      for(int l=0; l<num_species; ++l) {
-        sqrtmass_[k*num_species+l] = sqrt(molecular_mass_[k]*molecular_mass_[l] /
-                                         (molecular_mass_[k] + molecular_mass_[l]) );
-        diam2_[k*num_species+l] = pow(sigma_[k] + sigma_[l],2.0);
-        sqrt2mass_[k*num_species+l] = sqrt(sqrt(molecular_mass_[l]*inv_molecular_mass_[k]));
-        inv_sqrt1mass_[k*num_species+l] = 1.0/sqrt(1.0 + molecular_mass_[k]*inv_molecular_mass_[l]);
-        inv_sum_mass_[k*num_species+l] = 1.0/(molecular_mass_[k] + molecular_mass_[l]);
+    if(precompute_matrix_terms_) {
+      for(int k=0; k<num_species; ++k) {
+        for(int l=0; l<num_species; ++l) {
+          sqrtmass_[k*num_species+l] = sqrt(molecular_mass_[k]*molecular_mass_[l] /
+                                           (molecular_mass_[k] + molecular_mass_[l]) );
+          diam2_[k*num_species+l] = pow(sigma_[k] + sigma_[l],2.0);
+          sqrt2mass_[k*num_species+l] = sqrt(sqrt(molecular_mass_[l]*inv_molecular_mass_[k]));
+          inv_sqrt1mass_[k*num_species+l] = 1.0/sqrt(1.0 + molecular_mass_[k]*inv_molecular_mass_[l]);
+          inv_sum_mass_[k*num_species+l] = 1.0/(molecular_mass_[k] + molecular_mass_[l]);
+        }
       }
     }
 

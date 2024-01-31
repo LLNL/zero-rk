@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef WIN32
+#ifdef _WIN32
 #define _USE_MATH_DEFINES //for M_PI
 #endif
 #include <cmath>

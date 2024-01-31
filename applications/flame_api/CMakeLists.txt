@@ -16,7 +16,7 @@ set(SPIFY_APPS  "zerork_flame_api_tester.x;zerork_flame_api")
 
 add_library(zerork_flame_api SHARED ${COMMON_SRCS})
 target_link_libraries(zerork_flame_api zerorkutilities mechanisminfo reactor
-                      zerorktransport zerork superlu_dist superlu spify sundials_kinsol
+                      zerorktransport zerork superlu spify sundials_kinsol
                       sundials_nvecserial)
 if(NOT WIN32)
 target_link_options(zerork_flame_api PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)

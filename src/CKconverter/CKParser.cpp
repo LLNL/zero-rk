@@ -41,7 +41,7 @@
 //
 
 // turn off warnings about truncating long names under Windows
-#ifdef WIN32
+#ifdef _WIN32
 #pragma warning(disable:4786)
 #endif
 
@@ -470,7 +470,7 @@ namespace ckr {
                 m_last_eol = ch;
                 break;
             }
-#if WIN32
+#if _WIN32
             if (ch>=0 && ch < 255 && isprint(ch)) line += ch;
 #else
             if (isprint(ch)) line += ch;

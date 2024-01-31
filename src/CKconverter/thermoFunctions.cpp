@@ -7,7 +7,7 @@
 
 
 // turn off warnings about truncating long names under Windows
-#ifdef WIN32
+#ifdef _WIN32
 #pragma warning(disable:4786)
 #endif
 

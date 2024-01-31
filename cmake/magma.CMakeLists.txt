@@ -9,6 +9,9 @@ ExternalProject_Add(
   PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/magma.CMakeLists.Internal.txt ${CMAKE_BINARY_DIR}/external/magma-build/magma-prefix/src/magma/CMakeLists.txt
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${magma_prefix}
              -DCMAKE_BUILD_TYPE=${ZERORK_EXTERNALS_BUILD_TYPE}
+             -DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}
+             -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+             -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
              -DCMAKE_CXX_COMPILER=hipcc
              -DBUILD_SHARED_LIBS=OFF
              -DMAGMA_ENABLE_HIP=ON

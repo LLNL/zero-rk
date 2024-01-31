@@ -24,9 +24,8 @@ FlameParams::FlameParams(ConstPressureReactor* reactor,
                          const Optionable options) :
   reactor_(reactor),
   transport_(trans),
+  num_points_(grid.size()-1),
   z_(grid),
-  y_(grid.size()*reactor->GetNumStates(),0.0),
-  num_points_(grid.size()),
   num_states_(reactor->GetNumStates()),
   num_species_(reactor->GetNumSpecies()),
   num_kinsol_errors_(0),
@@ -198,17 +197,16 @@ void FlameParams::SetInitialCondition(double flame_speed, const double* T, const
 
   std::vector<double> mass_fractions_local(num_local_points_*num_species_,0.0);
   std::vector<double> T_local(num_local_points_,0.0);
-  MPI_Scatterv(mass_fractions, scatter_counts_mf.data(), scatter_displs_mf.data(), MPI_DOUBLE,
+  MPI_Scatterv(&mass_fractions[num_species_], scatter_counts_mf.data(), scatter_displs_mf.data(), MPI_DOUBLE,
                mass_fractions_local.data(), scatter_counts_mf[my_pe_], MPI_DOUBLE, 0, comm_);
-  MPI_Scatterv(T, scatter_counts.data(), scatter_displs.data(), MPI_DOUBLE,
+  MPI_Scatterv(&T[1], scatter_counts.data(), scatter_displs.data(), MPI_DOUBLE,
                T_local.data(), scatter_counts[my_pe_], MPI_DOUBLE, 0, comm_);
-
-  y_.resize(num_local_points_*num_states_);
 #else
   num_local_points_ = num_points_;
-  const double* mass_fractions_local = mass_fractions;
-  const double* T_local = T;  
+  const double* mass_fractions_local = &mass_fractions[num_species_];
+  const double* T_local = &T[1];
 #endif
+  y_.resize(num_local_points_*num_states_);
 
   for(int j = 0; j < num_local_points_; ++j) {
     for(int k = 0; k < num_species_; ++k) {
@@ -221,14 +219,14 @@ void FlameParams::SetInitialCondition(double flame_speed, const double* T, const
     std::vector<double> inlet_mole_fractions(num_species_, 0.0);
     inlet_mass_fractions_.assign(num_species_,0.0);
     for(int j=0; j<num_species_; ++j) {
-      inlet_mass_fractions_[j] = y_[j];
+      inlet_mass_fractions_[j] = mass_fractions[j];
     }
 
     mechanism_->getXfromY(inlet_mass_fractions_.data(), inlet_mole_fractions.data());
     double inlet_molecular_mass = mechanism_->getMolWtMixFromX(inlet_mole_fractions.data());
 
-    inlet_temperature_ = y_[num_species_+1];
-    inlet_relative_volume_ = reactor_->GetGasConstant()*y_[num_species_+1]*reference_temperature_/
+    inlet_temperature_ = T[0]/reference_temperature_;
+    inlet_relative_volume_ = reactor_->GetGasConstant()*inlet_temperature_*reference_temperature_/
                                (pressure_*inlet_molecular_mass);
     //S_L = y[num_species_]*params->inlet_relative_volume_
     mass_flux_ = flame_speed/inlet_relative_volume_;
@@ -253,6 +251,9 @@ void FlameParams::SetInitialCondition(double flame_speed, const double* T, const
 // Set the grid
 void FlameParams::SetGrid()
 {
+  if(my_pe_ == 0) {
+    z_.erase(z_.begin());
+  }
 #ifdef ZERORK_MPI
   z_.resize(num_points_);
   MPI_Bcast(z_.data(), num_points_, MPI_DOUBLE, 0, comm_);
@@ -686,17 +687,28 @@ void FlameParams::GetTemperatureAndMassFractions(double* T, double* mass_fractio
     }
     T_local[j] = y_[(j+1)*num_states_ - 1]*reference_temperature_;
   }
+  if(my_pe_ == 0) {
+    for(int k = 0; k < num_species_; ++k) {
+      mass_fractions[k] = inlet_mass_fractions_[k];
+    }
+    T[0] = inlet_temperature_*reference_temperature_;
+  }     
+
   MPI_Gatherv(mass_fractions_local.data(), gather_counts_mf[my_pe_], MPI_DOUBLE,
-               mass_fractions, gather_counts_mf.data(), gather_displs_mf.data(), MPI_DOUBLE, 0, comm_);
+              &mass_fractions[num_species_], gather_counts_mf.data(), gather_displs_mf.data(), MPI_DOUBLE, 0, comm_);
   MPI_Gatherv(T_local.data(), gather_counts[my_pe_], MPI_DOUBLE,
-               T, gather_counts.data(), gather_displs.data(), MPI_DOUBLE, 0, comm_);
+              &T[1], gather_counts.data(), gather_displs.data(), MPI_DOUBLE, 0, comm_);
 #else
   for(int j = 0; j < num_local_points_; ++j) {
     for(int k = 0; k < num_species_; ++k) {
-      mass_fractions[j*num_species_ + k] = y_[j*num_states_ +k];
+      mass_fractions[(j+1)*num_species_ + k] = y_[j*num_states_ +k];
     }
-    T[j] = y_[(j+1)*num_states_ - 1]*reference_temperature_;
+    T[j+1] = y_[(j+1)*num_states_ - 1]*reference_temperature_;
   }
+  for(int k = 0; k < num_species_; ++k) {
+    mass_fractions[k] = inlet_mass_fractions_[k];
+  }
+  T[0] = inlet_temperature_*reference_temperature_;
 #endif
 } // void FlameParams::GetTemperatureAndMassFractions()
 

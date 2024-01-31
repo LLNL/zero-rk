@@ -66,6 +66,7 @@ class idt_sweep_params : idt_sweep_IFP
   double getStopTime()         const {return stopTime;}
   double getPrintTime()        const {return printTime;}
   std::vector<double> getTemperatureDeltas()  const {return this->sorted_temperature_deltas;}
+  double getTemperaturePrintResolution()  const {return this->temperature_print_resolution();}
   int getIDTMethod()  const {return this->idt_method();}
   const char * getIdtFileName()      const {return this->idtFile().c_str();}
   const char * getTHistFileName()    const {return this->thistFile().c_str();}
