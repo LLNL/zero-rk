@@ -272,6 +272,7 @@ int Logger::PrintF(const char *format, ...) const
     if(log_file_ptr_ != NULL) {
       return_code = vfprintf(log_file_ptr_, format, argument_list);
     }
+    va_end(argument_list);
     return return_code;
   }
   return 0; // number of characters written excluding null byte, which is

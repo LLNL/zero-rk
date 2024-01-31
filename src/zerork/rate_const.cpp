@@ -107,11 +107,11 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   Tcurrent = 0;
 
   int allocSize = nDistinctArrhenius;
-  allocSize = ((allocSize + 15)/16)*32; //round to next even multiple of 32
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 32
   arrWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
   memset(arrWorkArray,0.0,sizeof(double)*allocSize);
   allocSize = nFromKeqStep;
-  allocSize = ((allocSize + 15)/16)*32; //round to next even multiple of 32
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 32
   keqWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
   memset(keqWorkArray,0.0,sizeof(double)*allocSize);
 

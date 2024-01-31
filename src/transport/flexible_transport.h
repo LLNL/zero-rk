@@ -75,8 +75,8 @@ class FlexibleTransport : public MassTransportInterface
   std::vector<double> alpha_;
   std::vector<double> Zrot_;
 
+  bool precompute_matrix_terms_;
   std::vector<double> sqrtmass_, diam2_;
-
   std::vector<double> sqrt2mass_, inv_sqrt1mass_, inv_sum_mass_;
 
   mutable std::vector<double> lewis_numbers_, Dmass, invDij;

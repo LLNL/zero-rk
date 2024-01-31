@@ -98,16 +98,15 @@ int GetForwardFirstOrder(JacobianRhsFunction function,
   int flag;
 
   f         = new double[num_equations];
-  perturb_f = new double[num_equations];
-  perturb_y = new double[num_equations];
 
   flag = function(num_equations, t, y, f, params);
   if(flag != 0) {
     delete [] f;
-    delete [] perturb_f;
-    delete [] perturb_y;
     return flag;
   }
+
+  perturb_f = new double[num_equations];
+  perturb_y = new double[num_equations];
 
   for(size_t j=0; j<num_equations; ++j) {
 
@@ -162,7 +161,7 @@ int GetCentralFourthOrder(JacobianRhsFunction function,
   double initial_total_error, optimum_total_error;
   double *perturb_y, *perturb_f;
   double f_stencil[4];
-  int flag;
+  int flag = 0;
   
   perturb_f = new double[num_equations];
   perturb_y = new double[num_equations];
