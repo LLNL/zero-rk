@@ -38,21 +38,21 @@ if(${ZERORK_HAVE_MKL})
   endif()
   target_include_directories(mkl INTERFACE "${ZERORK_MKLROOT}/include")
   #Below pulled from MKL Link Advisor 2018.0.
- if(WIN32)
-  target_link_libraries(mkl INTERFACE
-    "${ZERORK_MKLROOT}/lib/intel64/mkl_intel_lp64.lib"
-    "${ZERORK_MKLROOT}/lib/intel64/mkl_sequential.lib"
-    "${ZERORK_MKLROOT}/lib/intel64/mkl_core.lib")
- else()
-  target_link_libraries(mkl INTERFACE
-    -Wl,--start-group
-    "${ZERORK_MKLROOT}/lib/intel64/libmkl_intel_lp64.a"
-    "${ZERORK_MKLROOT}/lib/intel64/libmkl_sequential.a"
-    "${ZERORK_MKLROOT}/lib/intel64/libmkl_core.a"
-    -Wl,--end-group
-    pthread m dl)
-endif()
-   add_library(blas ALIAS mkl)
+  if(WIN32)
+    target_link_libraries(mkl INTERFACE
+      "${ZERORK_MKLROOT}/lib/intel64/mkl_intel_lp64.lib"
+      "${ZERORK_MKLROOT}/lib/intel64/mkl_sequential.lib"
+      "${ZERORK_MKLROOT}/lib/intel64/mkl_core.lib")
+  else()
+    target_link_libraries(mkl INTERFACE
+      -Wl,--start-group
+      "${ZERORK_MKLROOT}/lib/intel64/libmkl_intel_lp64.a"
+      "${ZERORK_MKLROOT}/lib/intel64/libmkl_sequential.a"
+      "${ZERORK_MKLROOT}/lib/intel64/libmkl_core.a"
+      -Wl,--end-group
+      pthread m dl)
+  endif()
+  add_library(blas ALIAS mkl)
 else()
   find_package(BLAS REQUIRED)
   add_library(blas INTERFACE IMPORTED GLOBAL)
