@@ -5,6 +5,8 @@
 #include "nvector/nvector_cuda.h"
 #include "utility_funcs.h"
 
+#include <thrust/functional.h>
+
 ReactorConstantPressureGPU::ReactorConstantPressureGPU(std::shared_ptr<zerork::mechanism_cuda> mech_ptr)
  :
     ReactorNVectorSerialCuda(mech_ptr)
@@ -141,24 +143,15 @@ void ReactorConstantPressureGPU::GetState(
     double *mf)
 {
   double *y_ptr_dev = N_VGetDeviceArrayPointer_Cuda(state_);
-  thrust::host_vector<double> state_host(num_variables_*num_reactors_);
-  //Using cudaMempy to avoid wrapping y_ptr_dev in thrust::device_vector
-  cudaMemcpy(thrust::raw_pointer_cast(&state_host[0]),y_ptr_dev,sizeof(double)*num_reactors_*num_variables_,cudaMemcpyDeviceToHost);
 
-  for(int k = 0; k < num_reactors_; ++k) {
-    for(int j = 0; j < num_species_; ++j) {
-      mf[j*num_reactors_ + k] = state_host[j*num_reactors_ + k];
-    }
-    if(dpdts_.size() != 0) {
-      P[k] = pressures_[k]+dpdts_[k]*(reactor_time - initial_time_);
-    } else {
-      P[k] = pressures_[k];
-    }
-    if(solve_temperature_) {
-      T[k] = state_host[num_species_*num_reactors_ + k]*double_options_["reference_temperature"];
-    }
-  }
-  if(!solve_temperature_){
+  //TODO: Async
+  cudaMemcpy(mf,y_ptr_dev,sizeof(double)*num_reactors_*num_species_,cudaMemcpyDeviceToHost);
+  if(solve_temperature_) {
+    thrust::device_ptr<double> scaled_temps(&y_ptr_dev[num_species_*num_reactors_]);
+    thrust::transform(scaled_temps, scaled_temps + num_reactors_,
+                      temperatures_dev_.begin(),
+                      thrust::placeholders::_1*double_options_["reference_temperature"]);
+  } else {
     temperatures_dev_ = initial_temperatures_dev_;
     thrust::device_vector<double> energies_dev(initial_energies_dev_); //might be worth saving this temp vector
     if(e_src_dev_.size() > 0) {
@@ -167,8 +160,22 @@ void ReactorConstantPressureGPU::GetState(
     }
     mech_ptr_->getTemperatureFromHY_mr_dev(num_reactors_, thrust::raw_pointer_cast(&energies_dev[0]),
                                            y_ptr_dev, thrust::raw_pointer_cast(&temperatures_dev_[0]));
-    cudaMemcpy(T,thrust::raw_pointer_cast(&temperatures_dev_[0]),sizeof(double)*num_reactors_,cudaMemcpyDeviceToHost);
   }
+  //TODO: Async
+  cudaMemcpy(T,thrust::raw_pointer_cast(&temperatures_dev_[0]),sizeof(double)*num_reactors_,cudaMemcpyDeviceToHost);
+  thrust::device_vector<double> current_pressures = pressures_dev_;
+  if(dpdts_dev_.size() != 0) {
+    const double delta_t = reactor_time-initial_time_;
+    thrust::transform(dpdts_dev_.begin(), dpdts_dev_.end(),
+                      pressures_dev_.begin(), current_pressures.begin(),
+                      saxpy_functor<double>(delta_t));
+  }
+  if(y_src_dev_.size() != 0) {
+    mech_ptr_->getPressureFromTVY_mr_dev(num_reactors_,thrust::raw_pointer_cast(&temperatures_dev_[0]),
+                                         thrust::raw_pointer_cast(&inverse_densities_dev_[0]),
+                                         y_ptr_dev, thrust::raw_pointer_cast(&current_pressures[0]));
+  }
+  cudaMemcpy(P,thrust::raw_pointer_cast(&current_pressures[0]),sizeof(double)*num_reactors_,cudaMemcpyDeviceToHost);
 }
 
 int ReactorConstantPressureGPU::GetTimeDerivative(const double reactor_time,
@@ -190,6 +197,22 @@ int ReactorConstantPressureGPU::GetTimeDerivative(const double reactor_time,
   } else {
     temperatures_dev_ = initial_temperatures_dev_;
   }
+
+  //Update density (only if no y_src)
+  if(y_src_dev_.size() == 0) {
+    thrust::device_vector<double> current_pressures = pressures_dev_;
+    if(dpdts_dev_.size() != 0) {
+      const double delta_t = reactor_time-initial_time_;
+      thrust::transform(dpdts_dev_.begin(), dpdts_dev_.end(), pressures_dev_.begin(), current_pressures.begin(), saxpy_functor<double>(delta_t));
+    }
+
+    mech_ptr_->getDensityFromTPY_mr_dev(num_reactors_,thrust::raw_pointer_cast(&temperatures_dev_[0]),
+                                        thrust::raw_pointer_cast(&current_pressures[0]),y_ptr_dev,
+                                        thrust::raw_pointer_cast(&inverse_densities_dev_[0]));
+    //Need to invert density.
+    thrust::transform(inverse_densities_dev_.begin(), inverse_densities_dev_.end(), inverse_densities_dev_.begin(), invert_functor<double>());
+  }
+
   if(e_src_dev_.size() != 0) {
     const double delta_t = reactor_time-initial_time_;
     thrust::device_vector<double> energies_dev(num_reactors_); //might be worth saving this temp vector
@@ -197,18 +220,7 @@ int ReactorConstantPressureGPU::GetTimeDerivative(const double reactor_time,
     mech_ptr_->getTemperatureFromHY_mr_dev(num_reactors_, thrust::raw_pointer_cast(&energies_dev[0]), y_ptr_dev, thrust::raw_pointer_cast(&temperatures_dev_[0]));
   }
 
-  thrust::device_vector<double> current_pressures = pressures_dev_;
-  if(dpdts_dev_.size() != 0) {
-    const double delta_t = reactor_time-initial_time_;
-    thrust::transform(dpdts_dev_.begin(), dpdts_dev_.end(), pressures_dev_.begin(), current_pressures.begin(), saxpy_functor<double>(delta_t));
-  }
-
   // set concentration via density and mass fraction
-  mech_ptr_->getDensityFromTPY_mr_dev(num_reactors_,thrust::raw_pointer_cast(&temperatures_dev_[0]),
-                                      thrust::raw_pointer_cast(&current_pressures[0]),y_ptr_dev,
-                                      thrust::raw_pointer_cast(&inverse_densities_dev_[0]));
-  //Need to invert density.
-  thrust::transform(inverse_densities_dev_.begin(), inverse_densities_dev_.end(), inverse_densities_dev_.begin(), invert_functor<double>());
   mech_ptr_->getCfromVY_mr_dev(num_reactors_,thrust::raw_pointer_cast(&inverse_densities_dev_[0]),y_ptr_dev,
                                thrust::raw_pointer_cast(&concentrations_dev_[0]));
 

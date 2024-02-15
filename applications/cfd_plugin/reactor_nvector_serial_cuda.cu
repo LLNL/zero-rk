@@ -570,8 +570,10 @@ static void __global__ RNSC_temperature_derivative(const int num_reactors, const
                                                    const double *net_production_rates_dev,
                                                    const double *inverse_densities_dev,
                                                    const double *mean_cx_mass_dev,
+                                                   const double *inv_mol_wt_dev,
                                                    const double *dpdts_dev,
                                                    const double *e_src_dev,
+                                                   const double *y_src_dev,
                                                    const double *y_dev,
                                                    double *ydot_dev) {
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
@@ -579,11 +581,17 @@ static void __global__ RNSC_temperature_derivative(const int num_reactors, const
     double tdot = 0.0;
     const double inverse_density_local = inverse_densities_dev[tid];
     const double mean_cx_mass_local = mean_cx_mass_dev[tid];
-    for(int k=0; k < num_species; ++k) {
-      tdot += energy_dev[num_reactors*k+tid]*net_production_rates_dev[num_reactors*k+tid];
+    if(y_src_dev != nullptr) {
+      for(int k=0; k < num_species; ++k) {
+        tdot += energy_dev[num_reactors*k+tid]*(net_production_rates_dev[num_reactors*k+tid]*inverse_density_local
+                                               +y_src_dev[num_reactors*k+tid]*inv_mol_wt_dev[k]);
+      }
+    } else {
+      for(int k=0; k < num_species; ++k) {
+        tdot += energy_dev[num_reactors*k+tid]*net_production_rates_dev[num_reactors*k+tid]*inverse_density_local;
+      }
     }
-    tdot *= -1*gas_constant*y_dev[num_species*num_reactors+tid]
-                               *inverse_density_local/mean_cx_mass_local;
+    tdot *= -1*gas_constant*y_dev[num_species*num_reactors+tid]/mean_cx_mass_local;
     if(dpdts_dev != nullptr) {
       tdot += (dpdts_dev[tid]*inverse_density_local)/(mean_cx_mass_local*reference_temperature);
     }
@@ -675,7 +683,7 @@ int ReactorNVectorSerialCuda::TemperatureDerivative(const double* inverse_densit
 
   double * energy = thrust::raw_pointer_cast(&energy_dev_[0]);
   double * net_production_rates = thrust::raw_pointer_cast(&net_production_rates_dev_[0]);
-  double * mol_wt = thrust::raw_pointer_cast(&mol_wt_dev_[0]);
+  double * inv_mol_wt = thrust::raw_pointer_cast(&inv_mol_wt_dev_[0]);
   double * mean_cx_mass = thrust::raw_pointer_cast(&mean_cx_mass_dev_[0]);
 
   double* e_src_ptr = nullptr;
@@ -686,11 +694,17 @@ int ReactorNVectorSerialCuda::TemperatureDerivative(const double* inverse_densit
   if(dpdts_dev_.size() != 0) {
     dpdts_ptr = thrust::raw_pointer_cast(&dpdts_dev_[0]);
   }
+  double* y_src_ptr = nullptr;
+  if(y_src_dev_.size() != 0) {
+    y_src_ptr = thrust::raw_pointer_cast(&y_src_dev_[0]);
+  }
   RNSC_temperature_derivative<<<num_blocks,num_threads,sizeof(double)*num_threads>>>(num_reactors_,num_species_,mech_ptr_->getGasConstant(),
                                                                                      double_options_["reference_temperature"],
                                                                                      energy,net_production_rates,
                                                                                      inverse_densities, mean_cx_mass,
-                                                                                     dpdts_ptr, e_src_ptr, y, ydot);
+                                                                                     inv_mol_wt,
+                                                                                     dpdts_ptr, e_src_ptr, y_src_ptr,
+                                                                                     y, ydot);
 #ifdef ZERORK_FULL_DEBUG
   cudaDeviceSynchronize();
   zerork::checkCudaError(cudaGetLastError(),"wsr_T_deriv");
