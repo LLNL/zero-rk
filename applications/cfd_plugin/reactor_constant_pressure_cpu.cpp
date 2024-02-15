@@ -48,16 +48,21 @@ void ReactorConstantPressureCPU::GetState(
     double *mf)
 {
   double *y_ptr = NV_DATA_S(state_);
+  *T = initial_temperature_;
   if(solve_temperature_) {
     *T = NV_Ith_S(state_,num_species_)*double_options_["reference_temperature"];
   } else {
     double energy = initial_energy_ + e_src_*(reactor_time - initial_time_);
     *T = mech_ptr_->getTemperatureFromHY(energy, y_ptr, initial_temperature_);
   }
+  if(y_src_ != nullptr) {
+    *P = mech_ptr_->getPressureFromTVY(*T, inverse_density_, y_ptr);
+  } else {
+    *P = pressure_ + dpdt_*(reactor_time-initial_time_);
+  }
   for(int k = 0; k < num_species_; ++k) {
     mf[k] = y_ptr[k];
   }
-  *P = pressure_ + dpdt_*(reactor_time-initial_time_);
 }
 
 int ReactorConstantPressureCPU::GetTimeDerivative(const double reactor_time,
@@ -83,14 +88,16 @@ int ReactorConstantPressureCPU::GetTimeDerivative(const double reactor_time,
 #define TLIMIT 1.0e4
   temperature = std::min(temperature,TLIMIT);
 
+  if(y_src_ == nullptr) {
+    double current_pressure = pressure_ + dpdt_*(reactor_time-initial_time_);
+    inverse_density_ = 1.0/mech_ptr_->getDensityFromTPY(temperature,current_pressure,y_ptr);
+  }
+
   if(e_src_ != 0) {
     double energy = initial_energy_ + e_src_*(reactor_time-initial_time_);
     temperature = mech_ptr_->getTemperatureFromHY(energy, y_ptr, temperature);
   }
   mech_ptr_->getEnthalpy_RT(temperature,energy_ptr);
-
-  double current_pressure = pressure_ + dpdt_*(reactor_time-initial_time_);;
-  inverse_density_ = 1.0/mech_ptr_->getDensityFromTPY(temperature,current_pressure,y_ptr);
 
   mean_cx_mass_ = mech_ptr_->getMassCpFromTY(temperature,y_ptr,cp_mass_ptr);
 
@@ -102,24 +109,23 @@ int ReactorConstantPressureCPU::GetTimeDerivative(const double reactor_time,
                          net_production_rates_ptr, creation_rates_ptr, destruction_rates_ptr,
                          forward_rates_of_production_ptr);
 
+  double energy_sum=0.0;
   // ydot = [kmol/m^3/s] * [kg/kmol] * [m^3/kg] = [(kg spec j)/(kg mix)/s]
   if(y_src_ != nullptr) {
     for(int j=0; j<num_spec; ++j) {
-      ydot_ptr[j]=(net_production_rates_[j]*mol_wt_[j])*inverse_density_ + y_src_[j];
+      ydot_ptr[j]=(net_production_rates_[j]*mol_wt_[j]*inverse_density_ + y_src_[j]);
+      energy_sum += energy_ptr[j]*(net_production_rates_[j]*inverse_density_+y_src_[j]*inv_mol_wt_[j]);
     }
   } else {
     for(int j=0; j<num_spec; ++j) {
       ydot_ptr[j]=(net_production_rates_[j]*mol_wt_[j])*inverse_density_;
+      energy_sum += energy_ptr[j]*net_production_rates_[j]*inverse_density_;
     }
   }
 
   if(solve_temperature_) {
-    double energy_sum=0.0;
-    for(int j=0; j<num_spec; ++j) {
-      energy_sum += energy_ptr[j]*net_production_rates_ptr[j];
-    }
     double dT_dt = -energy_sum * mech_ptr_->getGasConstant() *
-                   y_ptr[num_spec] * inverse_density_ / mean_cx_mass_;
+                   y_ptr[num_spec] / mean_cx_mass_;
     ydot_ptr[num_spec]= dT_dt + (e_src_ + dpdt_*inverse_density_) / (mean_cx_mass_*reference_temperature);
   }
 
