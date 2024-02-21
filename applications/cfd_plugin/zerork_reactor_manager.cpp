@@ -81,7 +81,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   double_options_["reference_temperature"] = 1.0;
   double_options_["delta_temperature_ignition"] = 0.0;
   double_options_["min_mass_fraction"] = 1.0e-30;
-  int_options_["always_solve_temp"] = 1;
+  int_options_["always_solve_temperature"] = 1;
   double_options_["solve_temperature_threshold"] = 2.0;
 
   //GPU Options
