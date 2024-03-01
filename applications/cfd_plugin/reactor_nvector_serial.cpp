@@ -53,6 +53,7 @@ ReactorNVectorSerial::ReactorNVectorSerial(std::shared_ptr<zerork::mechanism> me
   SetupSparseJacobianArrays();
 
   weights_.assign(1,1.0);
+  step_limiter_.assign(num_steps_, 1.0e300);
 }
 
 ReactorNVectorSerial::~ReactorNVectorSerial()

@@ -83,6 +83,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   double_options_["min_mass_fraction"] = 1.0e-30;
   int_options_["always_solve_temperature"] = 1;
   double_options_["solve_temperature_threshold"] = 2.0;
+  double_options_["step_limiter"] = 1.0e300;
 
   //GPU Options
   int_options_["gpu"] = 0;
@@ -162,6 +163,7 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
   double_options_["reference_temperature"] = inputFileDB.reference_temperature();
   double_options_["delta_temperature_ignition"] = inputFileDB.delta_temperature_ignition();
   double_options_["min_mass_fraction"] = inputFileDB.min_mass_fraction();
+  double_options_["step_limiter"] = inputFileDB.step_limiter();
 
   int_options_["gpu"] = inputFileDB.gpu();
   int_options_["initial_gpu_multiplier"] = inputFileDB.initial_gpu_multiplier();
@@ -233,6 +235,18 @@ zerork_status_t ZeroRKReactorManager::LoadMechanism() {
 //Auto-assigns based on node rank
 //Use CUDA_VISIBLE_DEVICES to choose/re-order
 void ZeroRKReactorManager::AssignGpuId() {
+  int n_devices;
+  //This is to work-around issues with job schedulers that
+  //don't show all GPUs to all ranks on the node
+  if(getenv("ZERORK_GPUS_PER_NODE") != NULL) {
+    n_devices = atoi(getenv("ZERORK_GPUS_PER_NODE"));
+  } else {
+    cudaGetDeviceCount(&n_devices);
+  }
+  if(rank_ == 0) printf("n_devices = %d\n",n_devices);
+  if(n_devices == 0) {
+    gpu_id_ = -1;
+  }
   if(gpu_id_ == -2) {
 #ifdef USE_MPI
     gpu_id_ = -1;
@@ -273,8 +287,6 @@ void ZeroRKReactorManager::AssignGpuId() {
       ranks_per_gpu = atoi(getenv("ZERORK_GPU_MPS_RANKS"));
     }
     /* Assign device to MPI process*/
-    int n_devices;
-    cudaGetDeviceCount(&n_devices);
     if(node_rank / n_devices < ranks_per_gpu) {
       gpu_id_ = node_rank % n_devices;
     }
@@ -288,6 +300,11 @@ void ZeroRKReactorManager::AssignGpuId() {
       cudaDeviceSynchronize();
       if(cudaGetLastError() != cudaSuccess) {
         //Failed to set device.  Fall back to cpu.
+#ifdef USE_MPI
+        printf("Failed to assign device %d to process on node %s rank %d \n", gpu_id_, host_name, rank);
+#else
+        printf("Failed to assign device %d to process\n", gpu_id_);
+#endif
         gpu_id_ = -1;
       }
     }
@@ -1043,6 +1060,7 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
   }
 
   reactor_ptr_->SetIntOption("iterative",solver->Iterative());
+  reactor_ptr_->SetStepLimiter(double_options_["step_limiter"]);
 
   zerork_status_t flag = ZERORK_STATUS_SUCCESS;
   for(int k = 0; k < n_reactors_self_calc; ++k)

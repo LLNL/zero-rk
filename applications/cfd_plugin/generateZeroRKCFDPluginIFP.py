@@ -277,6 +277,15 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"step_limiter",
+    'type':'double',
+    'shortDesc' : "",
+    'defaultValue' : 1.0e300
+}
+)
+
+spify_parser_params.append(
+{
     'name':"always_solve_temperature",
     'type':'int',
     'shortDesc' : "Whether to enable/disable constant temperature reactor type",

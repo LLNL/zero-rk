@@ -105,9 +105,9 @@ int ReactorConstantPressureCPU::GetTimeDerivative(const double reactor_time,
   mech_ptr_->getCfromVY(inverse_density_,y_ptr,&concentrations_[0]);
 
   // compute the molar production rates at the current state_ (aka wdot)
-  mech_ptr_->getReactionRates(temperature, &concentrations_[0],
-                         net_production_rates_ptr, creation_rates_ptr, destruction_rates_ptr,
-                         forward_rates_of_production_ptr);
+  mech_ptr_->getReactionRatesLimiter(temperature, &concentrations_[0], &step_limiter_[0],
+                                     net_production_rates_ptr, creation_rates_ptr, destruction_rates_ptr,
+                                     forward_rates_of_production_ptr);
 
   double energy_sum=0.0;
   // ydot = [kmol/m^3/s] * [kg/kmol] * [m^3/kg] = [(kg spec j)/(kg mix)/s]
