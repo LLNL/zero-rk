@@ -105,6 +105,11 @@ void mechanism::build_mechanism(ckr::CKReader *ckrobj)
 
   // create and fill the element list
   nElm=static_cast<int>(ckrobj->elements.size());
+  elementList.resize(nElm);
+  for(j=0; j<nElm; ++j) {
+    bool flag = elementList[j].setElement(ckrobj->species[j].elements[k].name.c_str());
+    assert(("Unable to set element", flag));
+  }
 
   // create and fill the species sized lists
   nSpc=static_cast<int>(ckrobj->species.size());
@@ -221,6 +226,16 @@ int mechanism::getIdxFromName(const char *nm)
   return -1;
 }
 
+
+void mechanism::getElementInfo(std::vector<std::string>& elementNames, std::vector<double>& atomicMasses) {
+   const int nElems = elementList.size();
+   elementNames.resize(nElems);
+   atomicMasses.resize(nElems);
+   for(int j = 0; j < nElems; ++j) {
+     elementNames[j] = elementList[j].getSymbol_c_str();
+     atomicMasses[j] = elementList[j].getMass();
+   }
+}
 
 const char * mechanism::getSpeciesName(const int idx) const
 {return speciesList[idx].getName_c_str();}
