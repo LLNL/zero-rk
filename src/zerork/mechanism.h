@@ -28,7 +28,8 @@ class mechanism
 
   int getIdxFromName(const char *nm);
   int getNumElements() const {return nElm;}
-  void getElementInfo(std::vector<std::string>& elementNames, std::vector<double>& atomicMasses);
+  std::map<std::string, double> getElementInfo();
+  std::map<std::string, std::map<std::string, int> > getSpeciesElementInfo();
   int getNumSpecies() const {return nSpc;}
   int getNumReactions() const {return nRxn;}
   int getNumSteps() const {return nStep;}
@@ -265,7 +266,8 @@ class mechanism
 
   // informational, organizational data
   species *speciesList;
-  std::vector<element> elementList;
+  std::map<std::string, double> elementInfo;
+  std::map<std::string, std::map<std::string, int> > speciesElementInfo;
 
   // reaction rate workspace
   double *createRateWorkspace;

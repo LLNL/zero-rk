@@ -105,9 +105,10 @@ void mechanism::build_mechanism(ckr::CKReader *ckrobj)
 
   // create and fill the element list
   nElm=static_cast<int>(ckrobj->elements.size());
-  elementList.resize(nElm);
+  element dummyElement;
   for(j=0; j<nElm; ++j) {
-    bool flag = elementList[j].setElement(ckrobj->species[j].elements[k].name.c_str());
+    bool flag = dummyElement.setElement(ckrobj->elements[j].name.c_str());
+    elementInfo[dummyElement.getSymbol_c_str()] = dummyElement.getMass();
     assert(("Unable to set element", flag));
   }
 
@@ -129,14 +130,17 @@ void mechanism::build_mechanism(ckr::CKReader *ckrobj)
       nConst=ckrobj->species[j].elements.size(); // number of constituent elements
       constCount.resize(nConst);
       constList.resize(nConst);
+      std::map<std::string, int> elemCountMap;
       for(k=0; k<nConst; k++)
       {
         constCount[k]=ckrobj->species[j].elements[k].number;
         bool flag = constList[k].setElement(ckrobj->species[j].elements[k].name.c_str());
+        elemCountMap[constList[k].getSymbol_c_str()] = constCount[k];
         assert(("Unable to set element",flag));
       }
       speciesList[j].setSpecies(j,ckrobj->species[j].name.c_str(),constCount,
 				constList);
+      speciesElementInfo[speciesList[j].getName_c_str()] = elemCountMap;
 
       molWt[j]=speciesList[j].getMolecularWeight();
       invMolWt[j]=1.0/molWt[j];
@@ -227,14 +231,12 @@ int mechanism::getIdxFromName(const char *nm)
 }
 
 
-void mechanism::getElementInfo(std::vector<std::string>& elementNames, std::vector<double>& atomicMasses) {
-   const int nElems = elementList.size();
-   elementNames.resize(nElems);
-   atomicMasses.resize(nElems);
-   for(int j = 0; j < nElems; ++j) {
-     elementNames[j] = elementList[j].getSymbol_c_str();
-     atomicMasses[j] = elementList[j].getMass();
-   }
+std::map<std::string, double> mechanism::getElementInfo() {
+   return elementInfo;
+}
+
+std::map<std::string, std::map<std::string, int> > mechanism::getSpeciesElementInfo() {
+   return speciesElementInfo;
 }
 
 const char * mechanism::getSpeciesName(const int idx) const

@@ -20,10 +20,10 @@ static bool NearScalar(const double a,
 
 // ---------------------------------------------------------------------------
 // test fixture for the ZeroRK mechanism class
-class MechanismTestFixture: public ::testing::Test 
-{ 
- public: 
-  MechanismTestFixture( ) { 
+class MechanismTestFixture: public ::testing::Test
+{
+ public:
+  MechanismTestFixture( ) {
     // initialization code here
     mechanism_    = NULL;
     const char * ZERORK_DATA_DIR = std::getenv("ZERORK_DATA_DIR");
@@ -39,32 +39,32 @@ class MechanismTestFixture: public ::testing::Test
     mechanism_ = new zerork::mechanism(load_mech.c_str(),
                                        load_therm.c_str(),
                                        PARSER_LOGNAME);
-  } 
-
-  void SetUp( ) { 
-    // code here will execute just before the test ensues 
   }
 
-  void TearDown( ) { 
+  void SetUp( ) {
+    // code here will execute just before the test ensues
+  }
+
+  void TearDown( ) {
     // code here will be called just after the test completes
     // ok to through exceptions from here if need be
   }
 
-  ~MechanismTestFixture( )  { 
+  ~MechanismTestFixture( )  {
     // cleanup any pending stuff, but no exceptions allowed
     if(mechanism_ != NULL) {
       delete mechanism_;
     }
   }
 
-  // put in any custom data members that you need 
+  // put in any custom data members that you need
   zerork::mechanism *mechanism_;
 };
 
 TEST_F (MechanismTestFixture, Allocation)
 {
   // Note assert failures halts test fixture, but not all tests
-  ASSERT_TRUE(mechanism_ != NULL) << 
+  ASSERT_TRUE(mechanism_ != NULL) <<
     "mechanism_ = new mechanism()";
 }
 
@@ -74,21 +74,35 @@ TEST_F (MechanismTestFixture, ElementInfo)
   double relative_tolerance = OK_DOUBLE;
   double absolute_tolerance = 1.0e-20;
   // Note assert failures halts test fixture, but not all tests
-  ASSERT_TRUE(mechanism_ != NULL) << 
+  ASSERT_TRUE(mechanism_ != NULL) <<
     "mechanism_ = new mechanism()";
 
-  std::vector<std::string> elementNames;
-  std::vector<double> atomicMasses;
-  mechanism_->getElementInfo(elementNames, atomicMasses);
-  EXPECT_TRUE(elementNames.size() == 1);
-  EXPECT_TRUE(elementNames[0] == std::string("H"));
-  EXPECT_TRUE(atomicMasses.size() == 1);
-  EXPECT_TRUE(NearScalar(atomicMasses[0],
+  std::map<std::string, double> elementInfo = mechanism_->getElementInfo();
+  EXPECT_TRUE(elementInfo.size() == 1);
+  EXPECT_TRUE(elementInfo.begin()->first == std::string("H"));
+  EXPECT_TRUE(NearScalar(elementInfo.begin()->second,
                          1.00794,
                          relative_tolerance,
                          absolute_tolerance)) << std::setprecision(3) <<
     "with relative_tolerance = "  << relative_tolerance <<
     ", and absolute_tolerance = " << absolute_tolerance;
+
+}
+
+TEST_F (MechanismTestFixture, SpeciesElementInfo)
+{
+  // Note assert failures halts test fixture, but not all tests
+  ASSERT_TRUE(mechanism_ != NULL) <<
+    "mechanism_ = new mechanism()";
+
+  std::map<std::string, std::map<std::string, int> > speciesElementInfo = mechanism_->getSpeciesElementInfo();
+  EXPECT_TRUE(speciesElementInfo.size() == 2);
+  EXPECT_TRUE(speciesElementInfo.begin()->first == std::string("h"));
+  EXPECT_TRUE(speciesElementInfo.begin()->second.begin()->first== std::string("H"));
+  EXPECT_TRUE(speciesElementInfo.begin()->second.begin()->second== 1);
+  EXPECT_TRUE((++speciesElementInfo.begin())->first == std::string("h2"));
+  EXPECT_TRUE((++speciesElementInfo.begin())->second.begin()->first== std::string("H"));
+  EXPECT_TRUE((++speciesElementInfo.begin())->second.begin()->second== 2);
 
 }
 
@@ -113,7 +127,7 @@ static bool NearScalar(const double a,
 
       printf("# NearScalar false: %24.18e != %24.18e\n",a,b);
       return false;
-    } 
+    }
   }
   return true;
 }
