@@ -1613,14 +1613,15 @@ next:
                     }
 
                     else if (match(name,"FORD")) {
-                        vector<string> nmord;
-                        if (hasAuxData) {
-                            getTokens(data, static_cast<int>(data.size()), 
-                                nmord);
-                            rxn.fwdOrder[nmord[0]] = de_atof(nmord[1]);
-                        }
-                        else
-                            missingAuxData("FORD");
+                        throw CK_SyntaxError(*m_log, "FORD reaction type not supported", m_line);
+//                        vector<string> nmord;
+//                        if (hasAuxData) {
+//                            getTokens(data, static_cast<int>(data.size()), 
+//                                nmord);
+//                            rxn.fwdOrder[nmord[0]] = de_atof(nmord[1]);
+//                        }
+//                        else
+//                            missingAuxData("FORD");
                     }
 
                     // PLOG reaction
