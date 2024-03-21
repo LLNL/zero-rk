@@ -132,3 +132,7 @@ void ReactorBase::SetID(int id) {
   id_ = id;
 }
 
+void ReactorBase::SetStepLimiter(double value) {
+  step_limiter_.assign(num_steps_, value);
+}
+

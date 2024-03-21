@@ -67,6 +67,13 @@ GENERATE_EXPORT_HEADER(zerork_cfd_plugin
 
 set_target_properties(zerork_cfd_plugin PROPERTIES PUBLIC_HEADER
                       "zerork_cfd_plugin.h;${CMAKE_CURRENT_BINARY_DIR}/zerork_cfd_plugin_exports.h")
+
+target_include_directories(zerork_cfd_plugin
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
 install(TARGETS zerork_cfd_plugin PUBLIC_HEADER DESTINATION include
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION lib
@@ -123,7 +130,15 @@ if(${SUNDIALS_VERSION} EQUAL "5")
   endif()
   set(SPIFY_PLUGIN_TARGETS "${SPIFY_PLUGIN_TARGETS};zerork_cfd_plugin_gpu")
   set(SPIFY_TESTER_TARGETS "${SPIFY_TESTER_TARGETS};zerork_cfd_plugin_tester_gpu.x")
-  set_target_properties(zerork_cfd_plugin_gpu PROPERTIES PUBLIC_HEADER  "zerork_cfd_plugin.h")
+  set_target_properties(zerork_cfd_plugin_gpu PROPERTIES PUBLIC_HEADER
+                        "zerork_cfd_plugin.h;${CMAKE_CURRENT_BINARY_DIR}/zerork_cfd_plugin_exports.h")
+
+  target_include_directories(zerork_cfd_plugin_gpu
+          PUBLIC
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
   install(TARGETS zerork_cfd_plugin_gpu LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include
           RUNTIME DESTINATION bin)
   install(TARGETS zerork_cfd_plugin_tester_gpu.x

@@ -37,21 +37,12 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   nranks_ = 1;
   root_rank_ = 0;
   tried_init_ = false;
+  avg_reactor_time_ = 1.0;
 
 #ifdef USE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&(rank_));
   MPI_Comm_size(MPI_COMM_WORLD,&(nranks_));
 #endif
-
-  //Non-optionable defaults
-  load_balance_ = 1;
-  if(nranks_ == 1) {
-    load_balance_ = 0;
-  }
-  load_balance_noise_ = 0;
-  reactor_weight_mult_ = 1.0;
-  dump_reactors_ = false;
-  avg_reactor_time_ = 1.0;
 
   //Default options
   string_options_["mech_filename"] = std::string("mech.dat");
@@ -60,7 +51,14 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   //Manager Options
   int_options_["verbosity"] = 4;
   int_options_["sort_reactors"]= 1;
+  int_options_["load_balance"] = 1;
+  if(nranks_ == 1) {
+    int_options_["load_balance"] = 0;
+  }
+  int_options_["load_balance_noise"] = 0;
   int_options_["load_balance_mem"] = 1;
+  int_options_["reactor_weight_mult"] = 1;
+  int_options_["dump_reactors"] = 0;
 
   //Solver options
   int_options_["max_steps"] = 1000000;
@@ -83,6 +81,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   double_options_["min_mass_fraction"] = 1.0e-30;
   int_options_["always_solve_temperature"] = 1;
   double_options_["solve_temperature_threshold"] = 2.0;
+  double_options_["step_limiter"] = 1.0e300;
 
   //GPU Options
   int_options_["gpu"] = 0;
@@ -136,7 +135,6 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
   }
   const ZeroRKCFDPluginIFP& inputFileDB(*inputFileDBptr);
 
-
   int_options_["always_solve_temperature"] = inputFileDB.always_solve_temperature();
   double_options_["solve_temperature_threshold"] = inputFileDB.solve_temperature_threshold();
 
@@ -162,17 +160,18 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
   double_options_["reference_temperature"] = inputFileDB.reference_temperature();
   double_options_["delta_temperature_ignition"] = inputFileDB.delta_temperature_ignition();
   double_options_["min_mass_fraction"] = inputFileDB.min_mass_fraction();
+  double_options_["step_limiter"] = inputFileDB.step_limiter();
 
   int_options_["gpu"] = inputFileDB.gpu();
   int_options_["initial_gpu_multiplier"] = inputFileDB.initial_gpu_multiplier();
   n_reactors_max_ = inputFileDB.n_reactors_max();
   n_reactors_min_ = inputFileDB.n_reactors_min();
 #ifdef USE_MPI
-  load_balance_ = inputFileDB.load_balance();
-  load_balance_noise_ = inputFileDB.load_balance_noise();
-  reactor_weight_mult_ = inputFileDB.reactor_weight_mult();
+  int_options_["load_balance"] = inputFileDB.load_balance();
+  int_options_["load_balance_noise"] = inputFileDB.load_balance_noise();
+  int_options_["reactor_weight_mult"] = inputFileDB.reactor_weight_mult();
 #endif
-  dump_reactors_ = (inputFileDB.dump_reactors() != 0);
+  int_options_["dump_reactors"] = inputFileDB.dump_reactors();
 
   string_options_["reactor_timing_log_filename"] = inputFileDB.reactor_timing_log();
   string_options_["mechanism_parsing_log_filename"] = inputFileDB.mechanism_parsing_log();
@@ -630,21 +629,21 @@ zerork_status_t ZeroRKReactorManager::LoadBalance()
 #else
 zerork_status_t ZeroRKReactorManager::LoadBalance()
 {
-  if(nranks_ == 1 || !load_balance_) {
+  if(nranks_ == 1 || !int_options_["load_balance"]) {
     return ZERORK_STATUS_SUCCESS;
   }
 
   int n_weighted_reactors = 0;
   std::vector<int> weighted_reactors_on_rank(nranks_,0);
-  if(load_balance_ == 1) {
+  if(int_options_["load_balance"] == 1) {
     for(int k = 0; k < n_reactors_self_; ++k) {
       if(rc_self_[k] <= 0.0) rc_self_[k] = 1.0;
-      n_weighted_reactors += std::max((int)rc_self_[k],1)+load_balance_noise_;
+      n_weighted_reactors += std::max((int)rc_self_[k],1)+int_options_["load_balance_noise"];
     }
-  } else if (load_balance_ == 2) {
+  } else if (int_options_["load_balance"] == 2) {
     for(int k = 0; k < n_reactors_self_; ++k) {
         if(rg_self_[k] <= 0.0) rg_self_[k] = avg_reactor_time_;
-        int weighted = (int)(reactor_weight_mult_*rg_self_[k]/avg_reactor_time_);
+        int weighted = (int)(int_options_["reactor_weight_mult"]*rg_self_[k]/avg_reactor_time_);
         n_weighted_reactors += std::max(weighted,1);
     }
   }
@@ -761,10 +760,10 @@ zerork_status_t ZeroRKReactorManager::LoadBalance()
           while(send_count < send_weighted_nreactors && send_idx>0) {
             send_idx -= 1;
             size_t sorted_reactor_idx = sorted_reactor_idxs_[send_idx];
-            if(load_balance_ == 1) {
-              send_count += std::max((int)rc_self_[sorted_reactor_idx],1)+load_balance_noise_;
-            } else if(load_balance_ == 2) {
-              int weighted = (int) (reactor_weight_mult_*rg_self_[sorted_reactor_idx]/avg_reactor_time_);
+            if(int_options_["load_balance"] == 1) {
+              send_count += std::max((int)rc_self_[sorted_reactor_idx],1)+int_options_["load_balance_noise"];
+            } else if(int_options_["load_balance"] == 2) {
+              int weighted = (int) (int_options_["reactor_weight_mult"]*rg_self_[sorted_reactor_idx]/avg_reactor_time_);
               send_count += std::max(weighted,1);
             }
             send_reactor_idxs.push_back(sorted_reactor_idx);
@@ -873,7 +872,7 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
       temp_delta_ptrs[j] = &temp_delta_other_[j_sort];
       mf_ptrs[j] = &mf_other_[j_sort*num_species_];
     }
-    if(dump_reactors_) {
+    if(int_options_["dump_reactors"]!=0) {
       DumpReactor("pre", j, *T_ptrs[j], *P_ptrs[j], *rc_ptrs[j], *rg_ptrs[j], mf_ptrs[j]);
     }
   }
@@ -956,7 +955,7 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
 
         solver->SetIntOptions(int_options_);
         solver->SetDoubleOptions(double_options_);
-        //if( cb_fn_ != nullptr && load_balance_ == 0) {
+        //if( cb_fn_ != nullptr && int_options_["load_balance"] == 0) {
         //  solver->SetCallbackFunction(cb_fn_, cb_fn_data_);
         //}
 
@@ -1004,7 +1003,7 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
             if(temp_delta < double_options_["solve_temperature_threshold"]) temp_delta = 0.0;
             *temp_delta_ptrs[k_reactor] = temp_delta;
 
-            if(dump_reactors_) {
+            if(int_options_["dump_reactors"]!=0) {
               DumpReactor("postg", k_reactor, *T_ptrs[k_reactor], *P_ptrs[k_reactor],
                           *rc_ptrs[k_reactor], *rg_ptrs[k_reactor], mf_ptrs[k_reactor]);
             }
@@ -1038,11 +1037,12 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
   }
   solver->SetIntOptions(int_options_);
   solver->SetDoubleOptions(double_options_);
-  if(cb_fn_ != nullptr && load_balance_ == 0 && n_reactors_self_calc == 1) {
+  if(cb_fn_ != nullptr && int_options_["load_balance"] == 0 && n_reactors_self_calc == 1) {
     solver->SetCallbackFunction(cb_fn_, cb_fn_data_);
   }
 
   reactor_ptr_->SetIntOption("iterative",solver->Iterative());
+  reactor_ptr_->SetStepLimiter(double_options_["step_limiter"]);
 
   zerork_status_t flag = ZERORK_STATUS_SUCCESS;
   for(int k = 0; k < n_reactors_self_calc; ++k)
@@ -1092,7 +1092,7 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
       sum_cpu_reactor_time_ += reactor_time;
       ++n_cpu_solve_;
       if(!solve_temperature) ++n_cpu_solve_no_temperature_;
-      if(dump_reactors_) {
+      if(int_options_["dump_reactors"]!=0) {
         DumpReactor("postc", k, *T_ptrs[k], *P_ptrs[k],
                     *rc_ptrs[k], *rg_ptrs[k], mf_ptrs[k]);
       }
@@ -1109,7 +1109,7 @@ zerork_status_t ZeroRKReactorManager::RedistributeResults()
 #else
 zerork_status_t ZeroRKReactorManager::RedistributeResults()
 {
-  if(nranks_ == 1 || !load_balance_) {
+  if(nranks_ == 1 || !int_options_["load_balance"]) {
     return ZERORK_STATUS_SUCCESS;
   }
   //startTime = getHighResolutionTime();
@@ -1324,7 +1324,7 @@ void ZeroRKReactorManager::ProcessPerformance()
     reactor_log_file_.flush();
 
     if(int_options_["verbosity"] > 0) {
-      if(load_balance_) {
+      if(int_options_["load_balance"]) {
         double wasted_time = max_time - avg_time;
         for(int i = 0; i < nranks_; ++i) {
           printf("Rank %d calculated %d reactors in %f seconds.\n",i,n_reactors_solved_ranks_[i],all_time_ranks_[i]);
@@ -1336,7 +1336,7 @@ void ZeroRKReactorManager::ProcessPerformance()
     }
   }
 #ifdef USE_MPI
-  if(load_balance_ == 2) {
+  if(int_options_["load_balance"] == 2) {
     MPI_Bcast(&avg_reactor_time_,1,MPI_DOUBLE,root_rank_,MPI_COMM_WORLD);
   }
 #endif
@@ -1346,7 +1346,7 @@ void ZeroRKReactorManager::ProcessPerformance()
 
 #ifdef ZERORK_GPU
 void ZeroRKReactorManager::UpdateRankWeights() {
-  if(nranks_ == 1 || load_balance_ == 0) {
+  if(nranks_ == 1 || int_options_["load_balance"] == 0) {
     return;
   }
 #ifdef USE_MPI

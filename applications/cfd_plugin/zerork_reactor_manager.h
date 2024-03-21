@@ -58,8 +58,6 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int sorted_rank_;
   int nranks_;
   int root_rank_;
-  int load_balance_;
-  bool dump_reactors_;
 
   int tx_count_per_reactor_;
   std::vector<int> comm_mtx_row_sum_;
@@ -121,8 +119,6 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int n_weight_updates_;
   int n_reactors_min_;
   int n_reactors_max_;
-  int load_balance_noise_;
-  int reactor_weight_mult_;
   double gpu_multiplier_;
   double sum_cpu_reactor_time_;
   double sum_gpu_reactor_time_;

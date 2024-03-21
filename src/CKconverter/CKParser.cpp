@@ -1370,10 +1370,11 @@ next:
                 rxn.kf.E = de_atof(toks[ntoks - 1]);
 
                 // 2/10/03: allow negative prefactor but print a warning
-                if (rxn.kf.A < 0.0) 
-                    *m_log << "Warning: negative prefactor at line " 
-                           << m_line << endl;
-                //throw CK_SyntaxError(*m_log, "negative prefactor", m_line);
+		// 3/06/24: don't allow negative prefactor
+                if (rxn.kf.A < 0.0)
+                //    *m_log << "Warning: negative prefactor at line "
+                //           << m_line << endl;
+                    throw CK_SyntaxError(*m_log, "negative prefactor", m_line);
 
                 if (debug) *m_log << "Processing products..." << sright << endl;
                 sright = sright.substr(0, sright.find(toks[ntoks - 3]) - 1 );
@@ -1612,14 +1613,15 @@ next:
                     }
 
                     else if (match(name,"FORD")) {
-                        vector<string> nmord;
-                        if (hasAuxData) {
-                            getTokens(data, static_cast<int>(data.size()), 
-                                nmord);
-                            rxn.fwdOrder[nmord[0]] = de_atof(nmord[1]);
-                        }
-                        else
-                            missingAuxData("FORD");
+                        throw CK_SyntaxError(*m_log, "FORD reaction type not supported", m_line);
+//                        vector<string> nmord;
+//                        if (hasAuxData) {
+//                            getTokens(data, static_cast<int>(data.size()), 
+//                                nmord);
+//                            rxn.fwdOrder[nmord[0]] = de_atof(nmord[1]);
+//                        }
+//                        else
+//                            missingAuxData("FORD");
                     }
 
                     // PLOG reaction

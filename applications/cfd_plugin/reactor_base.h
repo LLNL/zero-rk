@@ -44,6 +44,7 @@ class ReactorBase : public Optionable {
 
   int GetID();
   void SetID(int id);
+  void SetStepLimiter(double value);
 
 #ifdef SUNDIALS2
   virtual int GetJacobianDense(long int N, double t, N_Vector y, N_Vector fy,
@@ -90,6 +91,7 @@ class ReactorBase : public Optionable {
 
   int num_species_;
   int num_steps_;
+  std::vector<double> step_limiter_;
 };
 
 int ReactorGetTimeDerivative(const double reactor_time,
