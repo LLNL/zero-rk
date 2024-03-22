@@ -3,6 +3,7 @@
 #https://github.com/QMCPACK/qmcpack/blob/develop/CMake/FindIBMMASS.cmake
 
 include(CheckIncludeFile)
+add_library(zerork_vectormath INTERFACE)
 #IBM MASS
 if(NOT DEFINED ZERORK_HAVE_IBM_MASS)
   if(DEFINED ENV{MASSROOT})
@@ -25,23 +26,23 @@ if(NOT ZERORK_EXP_LIBC)
     add_library(IBM::MASSV INTERFACE IMPORTED GLOBAL)
     target_include_directories(IBM::MASSV INTERFACE "${ZERORK_MASSROOT}/include")
     target_link_libraries(IBM::MASSV INTERFACE "${ZERORK_MASSROOT}/lib/libmassvp9.a")
-    add_library(zerork_vectormath ALIAS IBM::MASSV)
+    target_link_libraries(zerork_vectormath INTERFACE IBM::MASSV)
   endif()
 
   if(${ZERORK_HAVE_MKL})
-    add_library(zerork_vectormath ALIAS mkl)
+    target_link_libraries(zerork_vectormath INTERFACE mkl)
   endif()
 endif()
 
 if( (NOT ZERORK_HAVE_IBM_MASS AND NOT ZERORK_HAVE_MKL) OR ZERORK_EXP_LIBC)
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86_64$")
     #use FMATH
+    target_link_libraries(zerork_vectormath INTERFACE zerork)
   else()
     if(NOT ZERORK_EXP_LIBC)
       set(ZERORK_EXP_LIBC ON CACHE BOOL "" FORCE)
       message(STATUS "No available fast exponential function.  Using libc exponential.")
     endif()
   endif()
-  add_library(zerork_vectormath INTERFACE)
 endif()
 
