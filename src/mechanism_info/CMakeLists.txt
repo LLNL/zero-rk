@@ -5,6 +5,8 @@ target_include_directories(mechanisminfo PUBLIC $<BUILD_INTERFACE:${CMAKE_CURREN
                                                   $<INSTALL_INTERFACE:include>
                                    PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
+target_link_libraries(mechanisminfo PUBLIC zerork)
+
 set(public_headers mechanism_info.h)
 
 set_target_properties(mechanisminfo PROPERTIES
