@@ -277,6 +277,10 @@ void ZeroRKReactorManager::AssignGpuId() {
     if(node_rank / n_devices < ranks_per_gpu) {
       gpu_id_ = node_rank % n_devices;
     }
+    if(getenv("ROCR_VISIBLE_DEVICES") != NULL) {
+      if (rank==0) printf("Setting gpu id from ROCR_VISIBLE_DEVICES ...\n");
+      gpu_id_ = atoi(getenv("ROCR_VISIBLE_DEVICES"));
+    }
     if(gpu_id_ >= 0) {
 #ifdef USE_MPI
       printf("Assigning device %d to process on node %s rank %d \n", gpu_id_, host_name, rank);
