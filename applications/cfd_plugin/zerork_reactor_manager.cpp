@@ -985,11 +985,11 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
 
         double reactor_time = getHighResolutionTime() - start_time;
         sum_gpu_reactor_time_ += reactor_time;
-        n_steps_gpu_ += nstep_reactors*n_curr;
-        n_gpu_solve_ += n_curr;
-        if(!solve_temperature) n_gpu_solve_no_temperature_ += n_curr;
 
         if(nstep_reactors >= 0) {
+          n_steps_gpu_ += nstep_reactors*n_curr;
+          n_gpu_solve_ += n_curr;
+          if(!solve_temperature) n_gpu_solve_no_temperature_ += n_curr;
           for(int k = 0; k < n_curr; ++k) {
             int k_reactor = n_remaining - k - 1;
             int k_reactor_curr = n_curr - k - 1;
@@ -1052,7 +1052,6 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
   for(int k = 0; k < n_reactors_self_calc; ++k)
   {
     if(solved_gpu[k] == 0) {
-      double start_time = getHighResolutionTime();
       double dpdt_reactor = 0.0;
       if(dpdt_defined_) {
         dpdt_reactor = *dpdt_ptrs[k];
@@ -1076,23 +1075,25 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
       reactor_ptr_->SetSolveTemperature(solve_temperature);
       double T_init = *T_ptrs[k];
       reactor_ptr_->SetID(reactor_id);
+      double start_time = getHighResolutionTime();
       reactor_ptr_->InitializeState(0.0, 1, T_ptrs[k], P_ptrs[k],
                                     mf_ptrs[k], &dpdt_reactor,
                                     &e_src_reactor,
                                     y_src_reactor);
       int nsteps = solver->Integrate(dt_calc_);
+      double reactor_time = getHighResolutionTime() - start_time;
       if(nsteps < 0) {
         flag = ZERORK_STATUS_FAILED_SOLVE;
+      } else {
+        reactor_ptr_->GetState(dt_calc_, T_ptrs[k], P_ptrs[k], mf_ptrs[k]);
+        *root_times_ptrs[k] = reactor_ptr_->GetRootTime();
+        n_steps_cpu_ += nsteps;
+        double temp_delta = *T_ptrs[k] - T_init;
+        if(temp_delta < double_options_["solve_temperature_threshold"]) temp_delta = 0.0;
+        *temp_delta_ptrs[k] = temp_delta;
       }
-      reactor_ptr_->GetState(dt_calc_, T_ptrs[k], P_ptrs[k], mf_ptrs[k]);
-      *root_times_ptrs[k] = reactor_ptr_->GetRootTime();
-      double reactor_time = getHighResolutionTime() - start_time;
       *rc_ptrs[k] = nsteps;
       *rg_ptrs[k] = reactor_time;
-      double temp_delta = *T_ptrs[k] - T_init;
-      if(temp_delta < double_options_["solve_temperature_threshold"]) temp_delta = 0.0;
-      *temp_delta_ptrs[k] = temp_delta;
-      n_steps_cpu_ += nsteps;
       sum_cpu_reactor_time_ += reactor_time;
       ++n_cpu_solve_;
       if(!solve_temperature) ++n_cpu_solve_no_temperature_;
@@ -1102,6 +1103,11 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
       }
     }
   }
+
+#ifdef USE_MPI
+  int local_flag = (int) flag;
+  MPI_Allreduce(&local_flag, &flag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+#endif
   return flag;
 }
 
