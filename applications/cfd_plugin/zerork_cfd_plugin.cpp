@@ -166,15 +166,11 @@ zerork_status_t zerork_reactor_solve(const int n_cycle, const double time,
   //FinishInit may be first call to parse mechanism
   zerork_status_t flag = zrm->FinishInit();
   if(flag != ZERORK_STATUS_SUCCESS) return flag;
-  flag = zrm->SetInputVariables(n_cycle, time, dt, n_reactors, T, P, mf);
-  if(flag != ZERORK_STATUS_SUCCESS) return flag;
-  flag = zrm->LoadBalance();
-  if(flag != ZERORK_STATUS_SUCCESS) return flag;
+  zrm->SetInputVariables(n_cycle, time, dt, n_reactors, T, P, mf);
+  zrm->LoadBalance();
   flag = zrm->SolveReactors();
-  if(flag != ZERORK_STATUS_SUCCESS) return flag;
-  flag = zrm->RedistributeResults();
-  if(flag != ZERORK_STATUS_SUCCESS) return flag;
-  flag = zrm->PostSolve();
+  zrm->RedistributeResults();
+  zrm->PostSolve();
   return flag;
 }
 
