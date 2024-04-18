@@ -67,6 +67,26 @@ void __global__ cuda_rxn_conc_mult
     }
 }
 
+void __global__ cuda_step_limiter_mr
+(
+    const int nReactors,
+    const int nStep,
+    const double *stepLimiter_dev,
+    double *stepOut_dev
+)
+{
+  int tid = blockIdx.x*blockDim.x + threadIdx.x;
+  const int reactorid = tid % nReactors;
+  const int stepid    = tid / nReactors;
+  if(stepid < nStep && reactorid < nReactors)
+  {
+    //stepOut[j] *= step_limiter[j]/(step_limiter[j]+stepOut[j]);
+    const double limit = stepLimiter_dev[stepid];
+    const double step = stepOut_dev[stepid*nReactors+reactorid];
+    stepOut_dev[stepid*nReactors+reactorid] = step*limit/(limit+step);
+  }
+}
+
 
 template<int nReacsPerStep>
 void __global__ cuda_rxn_conc_mult_mr
@@ -209,6 +229,22 @@ void perf_net_cuda_rxn_conc_mult(const int nStep, const int maxReactants,
 #ifdef ZERORK_FULL_DEBUG
     cudaDeviceSynchronize();
     checkCudaError(cudaGetLastError(),"perf_net_cuda_rxn_conc_mult");
+#endif
+}
+
+void perf_net_cuda_step_limiter_mr(const int nReactors,
+        const int nStep,
+        const double *stepLimiter_dev,
+        double *stepOut_dev)
+{
+    int nThreads = 512;
+    int nBlocks  = (nStep*nReactors+nThreads-1)/nThreads;
+    cuda_step_limiter_mr<<< nBlocks, nThreads >>> (
+           nReactors, nStep, stepLimiter_dev, stepOut_dev);
+
+#ifdef ZERORK_FULL_DEBUG
+    cudaDeviceSynchronize();
+    checkCudaError(cudaGetLastError(),"perf_net_cuda_step_limiter_mr");
 #endif
 }
 

@@ -54,6 +54,7 @@ class ReactorNVectorSerialCuda : public ReactorBase
   int GetMaxBatchReactors() { return max_num_reactors_; };
 
   void SetSolveTemperature(bool value);
+  void SetStepLimiter(double value);
 
   void Reset();
 
@@ -209,6 +210,7 @@ class ReactorNVectorSerialCuda : public ReactorBase
   int AddConstantBlockDiagonal(int n, int nbatch, double constant, double* A_dev);
 
   std::vector<double> weights_;
+  thrust::device_vector<double> step_limiter_;
 };
 
 #endif

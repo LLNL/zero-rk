@@ -61,18 +61,21 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   int_options_["dump_reactors"] = 0;
 
   //Solver options
-  int_options_["max_steps"] = 1000000;
+  int_options_["max_steps"] = 5000;
   int_options_["dense"] = 0;
   int_options_["analytic"] = 1;
   int_options_["iterative"] = 1;
   int_options_["integrator"] = 0;
   int_options_["abstol_dens"] = 0;
+  int_options_["cvode_num_retries"] = 5;
   double_options_["rel_tol"] = 1.0e-8;
   double_options_["abs_tol"] = 1.0e-20;
   double_options_["eps_lin"] = 1.0e-3;
   double_options_["nonlinear_convergence_coeff"] = 0.05;
   double_options_["preconditioner_threshold"] = 1.0e-3;
   double_options_["max_dt"] = 0.05;
+  double_options_["cvode_retry_absolute_tolerance_adjustment"] = 0.1;
+  double_options_["cvode_retry_relative_tolerance_adjustment"] = 1.0;
 
   //Reactor Options
   int_options_["constant_volume"] = 1;
@@ -81,7 +84,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   double_options_["min_mass_fraction"] = 1.0e-30;
   int_options_["always_solve_temperature"] = 1;
   double_options_["solve_temperature_threshold"] = 2.0;
-  double_options_["step_limiter"] = 1.0e300;
+  double_options_["step_limiter"] = 1.0e22;
 
   //GPU Options
   int_options_["gpu"] = 0;
@@ -149,12 +152,15 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
   int_options_["iterative"] = inputFileDB.iterative();
   int_options_["integrator"] = inputFileDB.integrator();
   int_options_["abstol_dens"] = inputFileDB.abstol_dens();
+  int_options_["cvode_num_retries"] = inputFileDB.cvode_num_retries();
   double_options_["abs_tol"] = inputFileDB.absolute_tolerance();
   double_options_["rel_tol"] = inputFileDB.relative_tolerance();
   double_options_["eps_lin"] = inputFileDB.eps_lin();
   double_options_["nonlinear_convergence_coeff"] = inputFileDB.nonlinear_convergence_coeff();
   double_options_["preconditioner_threshold"] = inputFileDB.preconditioner_threshold();
   double_options_["max_dt"] = inputFileDB.max_dt();
+  double_options_["cvode_retry_absolute_tolerance_adjustment"] = inputFileDB.cvode_retry_absolute_tolerance_adjustment();
+  double_options_["cvode_retry_relative_tolerance_adjustment"] = inputFileDB.cvode_retry_relative_tolerance_adjustment();
 
   int_options_["constant_volume"] = inputFileDB.constant_volume();
   double_options_["reference_temperature"] = inputFileDB.reference_temperature();
@@ -976,6 +982,7 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
 
         reactor_gpu_ptr_->SetSolveTemperature(solve_temperature);
         reactor_gpu_ptr_->SetIntOption("iterative",solver->Iterative());
+        reactor_gpu_ptr_->SetStepLimiter(double_options_["step_limiter"]);
 
         double* dpdt_ptr = nullptr;
         if(dpdt_defined_) {

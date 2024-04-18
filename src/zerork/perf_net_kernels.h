@@ -11,6 +11,11 @@ void perf_net_cuda_setup_memory(const int nReactors, const int nSpc,
                                 double* createOut_dev, double* destroyOut_dev,
                                 cudaStream_t stream);
 
+void perf_net_cuda_step_limiter_mr(const int nReactors,
+        const int nStep,
+        const double *stepLimiter_dev,
+        double *stepOut_dev);
+
 void perf_net_cuda_rxn_conc_mult(const int nStep, const int maxReactants,
                                  const int *reactantSpcIdxListUnwrapped_dev,
                                  const double *C_dev, double *stepOut_dev);

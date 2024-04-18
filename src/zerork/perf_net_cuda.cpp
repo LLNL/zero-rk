@@ -1266,6 +1266,7 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr(const int nReactors, const double T[
 }
 
 void perf_net_cuda::calcRatesFromTC_CUDA_mr_dev(const int nReactors, const double T_out_dev[], const double C_out_dev[],
+	                           const double stepLimiter_dev[],
 				   double* netOut_out_dev, double* createOut_out_dev,
 				   double* destroyOut_out_dev, double* stepOut_out_dev)
 {
@@ -1304,6 +1305,11 @@ void perf_net_cuda::calcRatesFromTC_CUDA_mr_dev(const int nReactors, const doubl
 #ifdef ZERORK_CUDA_EVENTS
     cudaEventRecord(endK);
 #endif
+
+    if(stepLimiter_dev != nullptr) {
+      //stepOut[j] *= step_limiter[j]/(step_limiter[j]+stepOut[j]);
+      perf_net_cuda_step_limiter_mr(nReactors, nStep, stepLimiter_dev, stepOut_out_dev);
+    }
 
 #ifdef ZERORK_CUDA_EVENTS
     cudaEventRecord(startStep);

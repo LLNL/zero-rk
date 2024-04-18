@@ -220,8 +220,9 @@ int ReactorConstantVolumeGPU::GetTimeDerivative(const double reactor_time,
   mech_ptr_->getCfromVY_mr_dev(num_reactors_,thrust::raw_pointer_cast(&current_inverse_densities_dev[0]),y_ptr_dev,thrust::raw_pointer_cast(&concentrations_dev_[0]));
 
   // compute the molar production rates at the current state (aka wdot)
-  mech_ptr_->getReactionRates_CUDA_mr_dev(num_reactors_,thrust::raw_pointer_cast(&temperatures_dev_[0]),
-                                      thrust::raw_pointer_cast(&concentrations_dev_[0]),thrust::raw_pointer_cast(&net_production_rates_dev_[0]),
+  mech_ptr_->getReactionRatesLimiter_CUDA_mr_dev(num_reactors_,thrust::raw_pointer_cast(&temperatures_dev_[0]),
+                                      thrust::raw_pointer_cast(&concentrations_dev_[0]), thrust::raw_pointer_cast(&step_limiter_[0]),
+                                      thrust::raw_pointer_cast(&net_production_rates_dev_[0]),
                                       thrust::raw_pointer_cast(&creation_rates_dev_[0]),thrust::raw_pointer_cast(&destruction_rates_dev_[0]),
                                       thrust::raw_pointer_cast(&forward_rates_of_production_dev_[0]));
 

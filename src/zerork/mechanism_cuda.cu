@@ -167,7 +167,14 @@ void mechanism_cuda::getReactionRates_CUDA_mr_dev(const int nReactors, const dou
                                      double netOut_dev[], double createOut_dev[],
                                      double destroyOut_dev[], double stepOut_dev[])
 {
-  static_cast<perf_net_cuda*>(perfNet)->calcRatesFromTC_CUDA_mr_dev(nReactors,T_dev,C_dev,netOut_dev,createOut_dev,destroyOut_dev,stepOut_dev);
+  static_cast<perf_net_cuda*>(perfNet)->calcRatesFromTC_CUDA_mr_dev(nReactors,T_dev,C_dev, nullptr, netOut_dev,createOut_dev,destroyOut_dev,stepOut_dev);
+}
+
+void mechanism_cuda::getReactionRatesLimiter_CUDA_mr_dev(const int nReactors, const double T_dev[], const double C_dev[], const double stepLimiter_dev[],
+                                     double netOut_dev[], double createOut_dev[],
+                                     double destroyOut_dev[], double stepOut_dev[])
+{
+  static_cast<perf_net_cuda*>(perfNet)->calcRatesFromTC_CUDA_mr_dev(nReactors,T_dev,C_dev,stepLimiter_dev,netOut_dev,createOut_dev,destroyOut_dev,stepOut_dev);
 }
 
 
