@@ -58,7 +58,7 @@ spify_parser_params.append(
     'name' :'max_steps',
     'type':'int',
     'shortDesc' : "Maximum Number of Integrator Steps",
-    'defaultValue':1000000
+    'defaultValue': 5000
 }
 )
 
@@ -280,7 +280,7 @@ spify_parser_params.append(
     'name':"step_limiter",
     'type':'double',
     'shortDesc' : "",
-    'defaultValue' : 1.0e300
+    'defaultValue' : 1.0e22
 }
 )
 
@@ -311,6 +311,39 @@ spify_parser_params.append(
     'shortDesc' : "Dump all reactors to files",
     'defaultValue' : 0,
     'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"cvode_num_retries",
+    'type':'int',
+    'shortDesc' : "Number of times to retry after CVODE failure",
+    'defaultValue' : 3,
+    'boundMin':  0,
+    'boundMax':  20
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"cvode_retry_absolute_tolerance_adjustment",
+    'type':'double',
+    'shortDesc' : "Mulitplicative factor to change absolute tolerance on retrying after CVODE failure",
+    'defaultValue' : 0.1,
+    'boundMin':  1.0e-6,
+    'boundMax':  1.0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"cvode_retry_relative_tolerance_adjustment",
+    'type':'double',
+    'shortDesc' : "Mulitplicative factor to change relative tolerance on retrying after CVODE failure",
+    'defaultValue' : 1,
+    'boundMin':  1.0e-6,
+    'boundMax':  1.0
 }
 )
 

@@ -22,9 +22,10 @@ class perf_net_cuda : public perf_net
   void calcRatesFromTC_CUDA_mr(const int nReactors, const double T[], const double C[],
            double netOut[], double createOut[], double destroyOut[],
      double stepOut[], bool transposeInOut = false, bool outputAll = false);
-  void calcRatesFromTC_CUDA_mr_dev(const int nReactors, const double T_dev[], const double C_dev[],
-           double *netOut_dev, double *createOut_dev, double *destroyOut_dev,
-     double *stepOut_dev);
+  void calcRatesFromTC_CUDA_mr_dev(const int nReactors, const double T_dev[],
+		                   const double C_dev[], const double stepLimiter_dev[],
+				   double *netOut_dev, double *createOut_dev, double *destroyOut_dev,
+                                   double *stepOut_dev);
   int reorderScatterAdd_by_ntuple(const int ntuple, const int nOps, const int srcSize,
                      const int destSize, int srcId[], int destId[], double* srcMult=nullptr);
 

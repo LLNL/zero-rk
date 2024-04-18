@@ -55,6 +55,7 @@ class ReactorNVectorSerial : public ReactorBase
   int GetMaxBatchReactors() { return 1; };
 
   void SetSolveTemperature(bool value);
+  void SetStepLimiter(double value);
 
   void Reset();
 
@@ -86,6 +87,7 @@ class ReactorNVectorSerial : public ReactorBase
   std::vector<double> creation_rates_;
   std::vector<double> destruction_rates_;
   std::vector<double> concentrations_;
+  std::vector<double> step_limiter_;
 
  private:
   superlu_manager slum_;

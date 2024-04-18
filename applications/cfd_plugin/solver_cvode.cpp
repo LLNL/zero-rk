@@ -76,9 +76,7 @@ int CvodeSolver::Integrate(const double end_time) {
   N_VProd(abs_tol_vector, abs_tol_corrections, abs_tol_vector);
   flag = CVodeSVtolerances(cvode_mem, double_options_["rel_tol"], abs_tol_vector);
   check_cvode_flag(&flag, "CVodeSVtolerances", 1);
-  N_VDestroy(abs_tol_vector);
   N_VDestroy(abs_tol_corrections);
-
 
   flag = CVodeSetMaxNumSteps(cvode_mem, int_options_["max_steps"]);
   check_cvode_flag(&flag, "CVodeSetMaxNumSteps", 1);
@@ -216,9 +214,13 @@ int CvodeSolver::Integrate(const double end_time) {
     check_cvode_flag(&flag, "CVSpilsSetEpsLin", 1);
   }
 
-  long int nsteps;
+  long int nsteps = 0;
+  long int nsteps_curr = 0;
   long int num_linear_solve_setups = 0;
-  const int max_tries = 3;
+  const int max_tries = int_options_["cvode_num_retries"];
+  const double abs_tol_adj = double_options_["cvode_retry_absolute_tolerance_adjustment"];
+  const double rel_tol_adj = double_options_["cvode_retry_relative_tolerance_adjustment"];
+  double rel_tol = double_options_["rel_tol"];
   int num_tries = 0;
   double tcurr = 0.0;
   double tprev = 0.0;
@@ -226,8 +228,17 @@ int CvodeSolver::Integrate(const double end_time) {
   int cv_mode = CV_ONE_STEP;
   while(tcurr < end_time) {
       flag = CVode(cvode_mem, end_time, state, &tcurr, cv_mode);
+      CVodeGetNumSteps(cvode_mem,&nsteps_curr);
+      nsteps += 1;
+      if(nsteps_curr >= int_options_["max_steps"]) {
+        flag = CV_TOO_MUCH_WORK;
+      }
       if(check_cvode_flag(&flag, "CVode", 1)) {
         num_tries += 1;
+        N_VScale(abs_tol_adj, abs_tol_vector, abs_tol_vector);
+        rel_tol *= rel_tol_adj;
+        CVodeSVtolerances(cvode_mem, rel_tol, abs_tol_vector);
+
         if(num_tries == max_tries) {
           break;
         }
@@ -235,7 +246,6 @@ int CvodeSolver::Integrate(const double end_time) {
       }
       long int last_nlss = num_linear_solve_setups;
       CVodeGetNumLinSolvSetups(cvode_mem, &num_linear_solve_setups);
-      CVodeGetNumSteps(cvode_mem,&nsteps);
       if( (flag == CV_SUCCESS || flag == CV_ROOT_RETURN) && cb_fn_ != nullptr ) {
         if(N_VGetVectorID(state) == SUNDIALS_NVEC_SERIAL) {
           flag = CVodeGetDky(cvode_mem, tcurr, 1, derivative);
@@ -255,7 +265,6 @@ int CvodeSolver::Integrate(const double end_time) {
       }
       tprev = tcurr;
   }
-  CVodeGetNumSteps(cvode_mem,&nsteps);
   if(cv_mode == CV_ONE_STEP && flag == CV_SUCCESS) {
     flag = CVodeGetDky(cvode_mem, std::min(tcurr,end_time), 0, state);
   }
@@ -282,6 +291,7 @@ int CvodeSolver::Integrate(const double end_time) {
   }
 #endif
   N_VDestroy(derivative);
+  N_VDestroy(abs_tol_vector);
 
   CVodeFree(&cvode_mem);
 

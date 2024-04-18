@@ -53,7 +53,7 @@ ReactorNVectorSerial::ReactorNVectorSerial(std::shared_ptr<zerork::mechanism> me
   SetupSparseJacobianArrays();
 
   weights_.assign(1,1.0);
-  step_limiter_.assign(num_steps_, 1.0e300);
+  step_limiter_.assign(num_steps_, 1.0e22);
 }
 
 ReactorNVectorSerial::~ReactorNVectorSerial()
@@ -689,6 +689,9 @@ int ReactorNVectorSerial::GetNumRootFunctions()
   }
 }
 
+void ReactorNVectorSerial::SetStepLimiter(double value) {
+  step_limiter_.assign(num_steps_, value);
+}
 
 void ReactorNVectorSerial::DividedDifferenceJacobian(double t, N_Vector y, N_Vector fy,
                                                      std::vector<double>* dense_jacobian) {

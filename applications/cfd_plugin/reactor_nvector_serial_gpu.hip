@@ -107,6 +107,9 @@ ReactorNVectorSerialGpu::ReactorNVectorSerialGpu(std::shared_ptr<zerork::mechani
   //mol_wt_dev_ = mol_wt_;
   //inv_mol_wt_dev_ = inv_mol_wt_;
 
+  step_limiter_.resize(num_steps_);
+  thrust::fill(step_limiter_.begin(), step_limiter_.end(), 1.0e22);
+
   SetupSparseJacobianArrays();
 
   weights_.assign(max_num_reactors_,1.0);
@@ -1468,6 +1471,10 @@ int ReactorNVectorSerialGpu::SetupJacobianSparseDevice(realtype t, N_Vector y, N
       thrust::raw_pointer_cast(&inv_mol_wt_dev_[0]),
       thrust::raw_pointer_cast(&jacobian_data_dev_[0]));
   return 0;
+}
+
+void ReactorNVectorSerialGpu::SetStepLimiter(double value) {
+  thrust::fill(step_limiter_.begin(), step_limiter_.end(), value);
 }
 
 void ReactorNVectorSerialGpu::Reset() {
