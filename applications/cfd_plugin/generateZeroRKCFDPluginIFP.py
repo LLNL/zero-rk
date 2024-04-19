@@ -316,6 +316,16 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"dump_failed_reactors",
+    'type':'int',
+    'shortDesc' : "Dump failed reactors to files",
+    'defaultValue' : 0,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
     'name':"cvode_num_retries",
     'type':'int',
     'shortDesc' : "Number of times to retry after CVODE failure",
