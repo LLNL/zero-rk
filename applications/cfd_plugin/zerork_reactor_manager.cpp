@@ -59,6 +59,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   int_options_["load_balance_mem"] = 1;
   int_options_["reactor_weight_mult"] = 1;
   int_options_["dump_reactors"] = 0;
+  int_options_["dump_failed_reactors"] = 0;
 
   //Solver options
   int_options_["max_steps"] = 5000;
@@ -178,6 +179,7 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
   int_options_["reactor_weight_mult"] = inputFileDB.reactor_weight_mult();
 #endif
   int_options_["dump_reactors"] = inputFileDB.dump_reactors();
+  int_options_["dump_failed_reactors"] = inputFileDB.dump_failed_reactors();
 
   string_options_["reactor_timing_log_filename"] = inputFileDB.reactor_timing_log();
   string_options_["mechanism_parsing_log_filename"] = inputFileDB.mechanism_parsing_log();
@@ -1091,6 +1093,10 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
       double reactor_time = getHighResolutionTime() - start_time;
       if(nsteps < 0) {
         flag = ZERORK_STATUS_FAILED_SOLVE;
+        if(int_options_["dump_failed_reactors"]!=0) {
+          DumpReactor("failed_state", k, *T_ptrs[k], *P_ptrs[k],
+                      *rc_ptrs[k], *rg_ptrs[k], mf_ptrs[k]);
+        }
       } else {
         reactor_ptr_->GetState(dt_calc_, T_ptrs[k], P_ptrs[k], mf_ptrs[k]);
         *root_times_ptrs[k] = reactor_ptr_->GetRootTime();
