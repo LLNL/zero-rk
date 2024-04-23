@@ -88,7 +88,7 @@ if(${SUNDIALS_VERSION} EQUAL "5")
                reactor_nvector_serial_gpu.hip
                interfaces/hip_la_manager/hip_la_manager.hip
                interfaces/hipblas_manager/hipblas_manager.hip
-#               interfaces/cusolver_rf_manager/cusolver_rf_manager.cu
+               interfaces/hipsolver_rf_manager/hipsolver_rf_manager.hip
                gpu_transpose.hip)
   if(${ZERORK_HAVE_MAGMA})
     list(APPEND GPU_SRCS interfaces/zrklinsol/zrklinsol_magmadense.hip
@@ -114,7 +114,7 @@ if(${SUNDIALS_VERSION} EQUAL "5")
   #target_link_libraries(zerork_cfd_plugin_gpu zerork_cuda zerork zerorkutilities superlu spify
   #                      sundials_nveccuda sundials_cvode sundials_nvecserial cublas cusolver cudart)
   target_link_libraries(zerork_cfd_plugin_gpu zerork_cuda zerork zerorkutilities superlu spify
-                        sundials_nvechip sundials_cvode sundials_nvecserial hipblas hipsparse hip-lang::device)
+                        sundials_nvechip sundials_cvode sundials_nvecserial hipblas hipsparse hipsolver hip-lang::device)
   if(${ZERORK_ENABLE_SUNDIALS_LAPACK})
     target_link_libraries(zerork_cfd_plugin_gpu sundials_sunlinsollapackdense)
   endif()

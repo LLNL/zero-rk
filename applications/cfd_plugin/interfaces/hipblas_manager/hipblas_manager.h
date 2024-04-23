@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "hipblas.h"
+#include <hipblas/hipblas.h>
 
 #include "../hip_la_manager/hip_la_manager.h"
 

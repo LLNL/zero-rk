@@ -1,9 +1,9 @@
 #include "hip/hip_runtime.h"
-#include "cusolver_rf_manager.h"
-#include "../../cuda_err_check.h"
+#include "hipsolver_rf_manager.h"
+#include "../../gpu_err_check.h"
 
 
-cusolver_rf_manager::cusolver_rf_manager() :
+hipsolver_rf_manager::hipsolver_rf_manager() :
   nnz_(-1),
   n_(-1),
   num_batches_(-1),
@@ -11,15 +11,15 @@ cusolver_rf_manager::cusolver_rf_manager() :
 {
 }
 
-cusolver_rf_manager::~cusolver_rf_manager()
+hipsolver_rf_manager::~hipsolver_rf_manager()
 {
   if(factored_) {
     FreeDeviceMemory();
-    cusolverRfDestroy(cusolverRfHandle_);
+    hipsolverRfDestroy(hipsolverRfHandle_);
   }
 }
 
-void cusolver_rf_manager::setup_memory()
+void hipsolver_rf_manager::setup_memory()
 {
   if(factored_) {
     FreeDeviceMemory();
@@ -27,58 +27,59 @@ void cusolver_rf_manager::setup_memory()
   AllocateDeviceMemory();
 }
 
-void cusolver_rf_manager::reset() {
+void hipsolver_rf_manager::reset() {
   n_ = -1;
   nnz_ = -1;
   num_batches_ = -1;
   slum_.reset();
 }
 
-void cusolver_rf_manager::InitializeCusolverRf() {
-  status_ = cusolverRfCreate(&cusolverRfHandle_);
-  if (status_ != CUSOLVER_STATUS_SUCCESS) {
+void hipsolver_rf_manager::InitializeCusolverRf() {
+  status_ = hipsolverRfCreate(&hipsolverRfHandle_);
+  if (status_ != HIPSOLVER_STATUS_SUCCESS) {
     printf("[cusovlerRfCreate status %d]\n",status_);
     exit(1);
   }
 
-  status_ = cusolverRfSetResetValuesFastMode(cusolverRfHandle_,
-                                             CUSOLVERRF_RESET_VALUES_FAST_MODE_ON);
-  if (status_ != CUSOLVER_STATUS_SUCCESS) {
+  status_ = hipsolverRfSetResetValuesFastMode(hipsolverRfHandle_,
+                                             HIPSOLVERRF_RESET_VALUES_FAST_MODE_ON);
+  if (status_ != HIPSOLVER_STATUS_SUCCESS) {
     printf("[cusovlerRfSetResetValuesFastMode status %d]\n",status_);
     exit(1);
   }
-  status_ = cusolverRfSetMatrixFormat(cusolverRfHandle_,
-                                      CUSOLVERRF_MATRIX_FORMAT_CSR,
-                                      CUSOLVERRF_UNIT_DIAGONAL_STORED_L);
-  if (status_ != CUSOLVER_STATUS_SUCCESS) {
+
+  status_ = hipsolverRfSetMatrixFormat(hipsolverRfHandle_,
+                                      HIPSOLVERRF_MATRIX_FORMAT_CSR,
+                                      HIPSOLVERRF_UNIT_DIAGONAL_STORED_L);
+  if (status_ != HIPSOLVER_STATUS_SUCCESS) {
     printf("[cusovlerRfSetMatrixFormat status %d]\n",status_);
     exit(1);
   }
 
-  status_ = cusolverRfSetAlgs(cusolverRfHandle_,
-                              CUSOLVERRF_FACTORIZATION_ALG0,
-                              CUSOLVERRF_TRIANGULAR_SOLVE_ALG1);
-  if (status_ != CUSOLVER_STATUS_SUCCESS) {
+  status_ = hipsolverRfSetAlgs(hipsolverRfHandle_,
+                              HIPSOLVERRF_FACTORIZATION_ALG0,
+                              HIPSOLVERRF_TRIANGULAR_SOLVE_ALG1);
+  if (status_ != HIPSOLVER_STATUS_SUCCESS) {
     printf("[cusovlerRfSetAlgs status %d]\n",status_);
     exit(1);
   }
 
 }
 
-void cusolver_rf_manager::AllocateDeviceMemory()
+void hipsolver_rf_manager::AllocateDeviceMemory()
 {
   hipDeviceSynchronize();
-  cuda_err_check(hipGetLastError());
+  gpu_err_check(hipGetLastError());
 
-  cuda_err_check(hipMalloc((void**)&sums_dev_,sizeof(int)*(n_+1)));
-  cuda_err_check(hipMalloc((void**)&indexes_dev_,sizeof(int)*nnz_));
-  cuda_err_check(hipMalloc((void**)&data_dev_,sizeof(double)*nnz_*num_batches_));
-  cuda_err_check(hipMalloc((void**)&col_permutation_dev_,sizeof(int)*n_));
-  cuda_err_check(hipMalloc((void**)&row_permutation_dev_,sizeof(int)*n_));
-  cuda_err_check(hipMalloc((void**)&data_ptrs_dev_,sizeof(double*)*num_batches_));
-  cuda_err_check(hipMalloc((void**)&rhs_ptrs_dev_,sizeof(double*)*num_batches_));
-  cuda_err_check(hipMalloc((void**)&batch_solve_tmp_dev_,sizeof(double)*(2*num_batches_*n_)));
-  cuda_err_check(hipMalloc((void**)&solve_tmp_dev_,sizeof(double)*(n_*num_batches_)));
+  gpu_err_check(hipMalloc((void**)&sums_dev_,sizeof(int)*(n_+1)));
+  gpu_err_check(hipMalloc((void**)&indexes_dev_,sizeof(int)*nnz_));
+  gpu_err_check(hipMalloc((void**)&data_dev_,sizeof(double)*nnz_*num_batches_));
+  gpu_err_check(hipMalloc((void**)&col_permutation_dev_,sizeof(int)*n_));
+  gpu_err_check(hipMalloc((void**)&row_permutation_dev_,sizeof(int)*n_));
+  gpu_err_check(hipMalloc((void**)&data_ptrs_dev_,sizeof(double*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&rhs_ptrs_dev_,sizeof(double*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&batch_solve_tmp_dev_,sizeof(double)*(2*num_batches_*n_)));
+  gpu_err_check(hipMalloc((void**)&solve_tmp_dev_,sizeof(double)*(n_*num_batches_)));
 
   data_ptrs_.resize(num_batches_);
   for(int j = 0; j < num_batches_; ++j) {
@@ -91,10 +92,10 @@ void cusolver_rf_manager::AllocateDeviceMemory()
   }
   hipMemcpy(data_ptrs_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
 
-  cuda_err_check(hipGetLastError());
+  gpu_err_check(hipGetLastError());
 }
 
-void cusolver_rf_manager::FreeDeviceMemory()
+void hipsolver_rf_manager::FreeDeviceMemory()
 {
   hipFree(sums_dev_);
   hipFree(indexes_dev_);
@@ -107,7 +108,7 @@ void cusolver_rf_manager::FreeDeviceMemory()
   hipFree(solve_tmp_dev_);
 }
 
-int cusolver_rf_manager::factor(int num_batches,
+int hipsolver_rf_manager::factor(int num_batches,
                                 int n,
                                 int nnz,
                                 const int* indexes,
@@ -124,7 +125,7 @@ int cusolver_rf_manager::factor(int num_batches,
   }
 
   if(factored_) {
-    cusolverRfDestroy(cusolverRfHandle_);
+    hipsolverRfDestroy(hipsolverRfHandle_);
   }
   InitializeCusolverRf();
 
@@ -147,28 +148,28 @@ int cusolver_rf_manager::factor(int num_batches,
               &U_nnz, &U_sums, &U_indexes, &U_data, superlu_manager::CSR, true);
   slum_.GetInversePermutations(&row_permutation, &col_permutation);
 
-  cuda_err_check(hipMemcpy(row_permutation_dev_, &row_permutation[0], sizeof(int)*n_, hipMemcpyHostToDevice));
-  cuda_err_check(hipMemcpy(col_permutation_dev_, &col_permutation[0], sizeof(int)*n_, hipMemcpyHostToDevice));
+  gpu_err_check(hipMemcpy(row_permutation_dev_, &row_permutation[0], sizeof(int)*n_, hipMemcpyHostToDevice));
+  gpu_err_check(hipMemcpy(col_permutation_dev_, &col_permutation[0], sizeof(int)*n_, hipMemcpyHostToDevice));
 
-  cuda_err_check(hipMemcpy(indexes_dev_, indexes, sizeof(int)*nnz_, hipMemcpyHostToDevice));
-  cuda_err_check(hipMemcpy(sums_dev_, sums, sizeof(int)*(n_+1), hipMemcpyHostToDevice));
+  gpu_err_check(hipMemcpy(indexes_dev_, indexes, sizeof(int)*nnz_, hipMemcpyHostToDevice));
+  gpu_err_check(hipMemcpy(sums_dev_, sums, sizeof(int)*(n_+1), hipMemcpyHostToDevice));
 
   for(int j = 0; j < num_batches_; ++j) {
     data_ptrs_[j] = const_cast<double*>(&values[j*nnz_]);
   }
-  status_ = cusolverRfBatchSetupHost(num_batches_, n_, nnz_,
+  status_ = hipsolverRfBatchSetupHost(num_batches_, n_, nnz_,
                                      const_cast<int*>(sums), const_cast<int*>(indexes),
                                      data_ptrs_.data(),
                                      L_nnz, L_sums.data(), L_indexes.data(), L_data.data(),
                                      U_nnz, U_sums.data(), U_indexes.data(), U_data.data(),
                                      row_permutation.data(), //Left permutation (P)
                                      col_permutation.data(), //Right permutation (Q)
-                                     cusolverRfHandle_);
-  cudaStatus_ = hipDeviceSynchronize();
-  if ((status_ != CUSOLVER_STATUS_SUCCESS) || (cudaStatus_ != hipSuccess)) {
-    printf("[cusolverRfBatchSetupHost status %d]\n",status_);
-    cuda_err_check(cudaStatus_);
-    if(status_ == CUSOLVER_STATUS_ALLOC_FAILED) {
+                                     hipsolverRfHandle_);
+  hipStatus_ = hipDeviceSynchronize();
+  if ((status_ != HIPSOLVER_STATUS_SUCCESS) || (hipStatus_ != hipSuccess)) {
+    printf("[hipsolverRfBatchSetupHost status %d]\n",status_);
+    gpu_err_check(hipStatus_);
+    if(status_ == HIPSOLVER_STATUS_ALLOC_FAILED) {
        printf("GPU memory allocation failed.  Try with fewer batched reactors.\n");
        exit(1);
     }
@@ -177,23 +178,23 @@ int cusolver_rf_manager::factor(int num_batches,
     data_ptrs_[j] = NULL;
   }
 
-  status_ = cusolverRfBatchAnalyze(cusolverRfHandle_);
-  cudaStatus_ = hipDeviceSynchronize();
-  if ((status_ != CUSOLVER_STATUS_SUCCESS) || (cudaStatus_ != hipSuccess)) {
+  status_ = hipsolverRfBatchAnalyze(hipsolverRfHandle_);
+  hipStatus_ = hipDeviceSynchronize();
+  if ((status_ != HIPSOLVER_STATUS_SUCCESS) || (hipStatus_ != hipSuccess)) {
     printf("[cusovlerRfBatchAnalyze status %d]\n",status_);
-    if(status_ == CUSOLVER_STATUS_ALLOC_FAILED) {
+    if(status_ == HIPSOLVER_STATUS_ALLOC_FAILED) {
        printf("GPU memory allocation failed.  Try with fewer batched reactors.\n");
        exit(1);
     }
   }
 
-  status_ = cusolverRfBatchRefactor(cusolverRfHandle_);
+  status_ = hipsolverRfBatchRefactor(hipsolverRfHandle_);
   factored_ = true;
   return status_;
 }
 
 
-int cusolver_rf_manager::refactor(int num_batches, int n, int nnz, const double* values)
+int hipsolver_rf_manager::refactor(int num_batches, int n, int nnz, const double* values)
 {
   if(!factored_ || nnz != nnz_ || num_batches != num_batches_ || n != n_) {
     return 1;
@@ -207,23 +208,23 @@ int cusolver_rf_manager::refactor(int num_batches, int n, int nnz, const double*
     data_ptrs_[j] = NULL;
   }
 
-  status_ = cusolverRfBatchResetValues(num_batches,n,nnz,
+  status_ = hipsolverRfBatchResetValues(num_batches,n,nnz,
                                        sums_dev_,
                                        indexes_dev_,
                                        data_ptrs_dev_,
                                        row_permutation_dev_,
                                        col_permutation_dev_,
-                                       cusolverRfHandle_);
+                                       hipsolverRfHandle_);
 
-  status_ = cusolverRfBatchRefactor(cusolverRfHandle_);
-  if((status_ != CUSOLVER_STATUS_SUCCESS)) {
-    printf("[cusolverRfBatchRefactor status %d]\n",status_);
+  status_ = hipsolverRfBatchRefactor(hipsolverRfHandle_);
+  if((status_ != HIPSOLVER_STATUS_SUCCESS)) {
+    printf("[hipsolverRfBatchRefactor status %d]\n",status_);
   }
 
   std::vector<int> position(num_batches_);
-  status_ = cusolverRfBatchZeroPivot(cusolverRfHandle_,position.data());
-  if((status_ != CUSOLVER_STATUS_SUCCESS)) {
-    printf("[cusolverRfBatchZeroPivot status %d]\n",status_);
+  status_ = hipsolverRfBatchZeroPivot(hipsolverRfHandle_,position.data());
+  if((status_ != HIPSOLVER_STATUS_SUCCESS)) {
+    printf("[hipsolverRfBatchZeroPivot status %d]\n",status_);
     for(int k=0; k<num_batches_; ++k) {
       if(position[k] >= 0) { //zero-pivot in this reactor
         printf("[reactor %d has zero pivot at row,col %d]\n",k,position[k]);
@@ -265,7 +266,7 @@ __global__ void transposeNoBankConflicts(double *odata, const double *idata,
   }
 }
 
-int cusolver_rf_manager::solve(int num_batches, int n, const double* rhs, double* soln) {
+int hipsolver_rf_manager::solve(int num_batches, int n, const double* rhs, double* soln) {
   if(n != n_ || num_batches != num_batches_) {
     return 1;
   }
@@ -276,22 +277,22 @@ int cusolver_rf_manager::solve(int num_batches, int n, const double* rhs, double
   nBlocks2D.x = (num_batches+TRANSPOSE_TILE_DIM-1)/TRANSPOSE_TILE_DIM;
   nBlocks2D.y = (n+TRANSPOSE_TILE_DIM-1)/TRANSPOSE_TILE_DIM;
   transposeNoBankConflicts<<<nBlocks2D,nThreads2D>>>(solve_tmp_dev_,rhs,num_batches,n);
-  cudaStatus_ = hipDeviceSynchronize();
-  if (cudaStatus_ != hipSuccess) {
-    cuda_err_check(cudaStatus_);
+  hipStatus_ = hipDeviceSynchronize();
+  if (hipStatus_ != hipSuccess) {
+    gpu_err_check(hipStatus_);
   }
 
-  status_ = cusolverRfBatchSolve(cusolverRfHandle_,
+  status_ = hipsolverRfBatchSolve(hipsolverRfHandle_,
                                  row_permutation_dev_,
                                  col_permutation_dev_,
                                  1, batch_solve_tmp_dev_, n,
                                  rhs_ptrs_dev_, n);
-  cudaStatus_ = hipDeviceSynchronize();
+  hipStatus_ = hipDeviceSynchronize();
 
-  if ((status_ != CUSOLVER_STATUS_SUCCESS) || (cudaStatus_ != hipSuccess)) {
-    printf ("[cusolverRfBatchSolve status %d]\n",status_);
-    cuda_err_check(cudaStatus_);
-    if(status_ == CUSOLVER_STATUS_ALLOC_FAILED) {
+  if ((status_ != HIPSOLVER_STATUS_SUCCESS) || (hipStatus_ != hipSuccess)) {
+    printf ("[hipsolverRfBatchSolve status %d]\n",status_);
+    gpu_err_check(hipStatus_);
+    if(status_ == HIPSOLVER_STATUS_ALLOC_FAILED) {
        printf("GPU memory allocation failed.  Try with fewer batched reactors.\n");
        exit(1);
     }

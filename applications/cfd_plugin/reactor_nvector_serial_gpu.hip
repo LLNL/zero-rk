@@ -20,9 +20,9 @@
 ReactorNVectorSerialGpu::ReactorNVectorSerialGpu(std::shared_ptr<zerork::mechanism_cuda> mech_ptr) : 
     ReactorBase(),
     mech_ptr_(mech_ptr),
-//    csrfm_temperature_(),
-//    csrfm_no_temperature_(),
-//    csrfm_ptr_(&csrfm_temperature_),
+    hsrfm_temperature_(),
+    hsrfm_no_temperature_(),
+    hsrfm_ptr_(&hsrfm_temperature_),
     solve_temperature_(true),
     jacobian_row_indexes_ptr_(&jacobian_row_indexes_temperature_),
     jacobian_column_indexes_ptr_(&jacobian_column_indexes_temperature_),
@@ -176,7 +176,7 @@ void ReactorNVectorSerialGpu::SetSolveTemperature(bool value) {
       creation_terms_sparse_indexes_dev_ptr_ = &creation_terms_sparse_indexes_temperature_dev_;
       unit_diagonal_dev_ptr_ = &unit_diagonal_temperature_dev_;
 
-//      csrfm_ptr_ = &csrfm_temperature_;
+      hsrfm_ptr_ = &hsrfm_temperature_;
     } else {
       num_variables_ = num_species_;
       nnz_ = nnz_no_temperature_;
@@ -194,7 +194,7 @@ void ReactorNVectorSerialGpu::SetSolveTemperature(bool value) {
       creation_terms_sparse_indexes_dev_ptr_ = &creation_terms_sparse_indexes_no_temperature_dev_;
       unit_diagonal_dev_ptr_ = &unit_diagonal_no_temperature_dev_;
 
-//      csrfm_ptr_ = &csrfm_no_temperature_;
+      hsrfm_ptr_ = &hsrfm_no_temperature_;
     }
     N_VDestroy(state_);
     N_VDestroy(tmp1_);
@@ -958,27 +958,24 @@ int ReactorNVectorSerialGpu::JacobianFactor(realtype gamma)
     AddConstantBlockDiagonal(num_variables_, num_reactors_, 1.0, thrust::raw_pointer_cast(&dense_preconditioner_dev_[0]));
     flag = hip_la_manager_->factor(num_reactors_, num_variables_, thrust::raw_pointer_cast(&dense_preconditioner_dev_[0]));
   } else {
-    assert(false); //Not implemented in HIP yet
-/*
     //TODO: Sparse numeric
     if(int_options_["analytic"] != 1) {
       assert(false);
     }
     FormPreconditionerDevice(gamma);
     //try refactor and fall back to full factor on fail
-    flag = csrfm_ptr_->refactor(num_reactors_, num_variables_, nnz_,
+    flag = hsrfm_ptr_->refactor(num_reactors_, num_variables_, nnz_,
                            thrust::raw_pointer_cast(&preconditioner_data_dev_[0]));
     if(flag != 0) {
       preconditioner_column_indexes_ = *jacobian_column_indexes_ptr_;
       preconditioner_row_sums_ = *jacobian_row_sums_ptr_;
       preconditioner_data_ = preconditioner_data_dev_; //copies device to host
-      flag = csrfm_ptr_->factor(num_reactors_, num_variables_, nnz_,
+      flag = hsrfm_ptr_->factor(num_reactors_, num_variables_, nnz_,
                            thrust::raw_pointer_cast(&preconditioner_column_indexes_[0]),
                            thrust::raw_pointer_cast(&preconditioner_row_sums_[0]),
                            thrust::raw_pointer_cast(&preconditioner_data_[0]),
-                           cusolver_rf_manager::CSR);
+                           hipsolver_rf_manager::CSR);
     }
-*/
   }
 
   // CVODE will retry if return value is positive
@@ -1020,8 +1017,7 @@ int ReactorNVectorSerialGpu::JacobianSolve(double t, N_Vector y, N_Vector fy,
   if(int_options_["dense"] == 1) {
     flag = hip_la_manager_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
   } else {
-    assert(false);
-//    flag = csrfm_ptr_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
+    flag = hsrfm_ptr_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
   }
   return flag;
 }
@@ -1313,7 +1309,7 @@ void __global__ kernel_jac_temperatureTermsC
 }
 
 
-//N.B. we work with CSR (not CSC) to be compatible with cusolverRf
+//N.B. we work with CSR (not CSC) to be compatible with hipsolverRf
 int ReactorNVectorSerialGpu::SetupJacobianSparseDevice(realtype t, N_Vector y, N_Vector fy) {
   const double min_mass_frac = double_options_["min_mass_fraction"];
 
@@ -1478,8 +1474,8 @@ void ReactorNVectorSerialGpu::SetStepLimiter(double value) {
 }
 
 void ReactorNVectorSerialGpu::Reset() {
-//  csrfm_temperature_.reset();
-//  csrfm_no_temperature_.reset();
+  hsrfm_temperature_.reset();
+  hsrfm_no_temperature_.reset();
 }
 
 

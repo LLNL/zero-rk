@@ -9,7 +9,7 @@
 #ifdef ZERORK_HAVE_MAGMA
 #include "interfaces/magma_manager/magma_manager.h"
 #endif
-//#include "interfaces/cusolver_rf_manager/cusolver_rf_manager.h"
+#include "interfaces/hipsolver_rf_manager/hipsolver_rf_manager.h"
 
 #include "zerork/mechanism_cuda.h"
 
@@ -68,9 +68,9 @@ class ReactorNVectorSerialGpu : public ReactorBase
   int TemperatureDerivative(const double* inverse_densities, const double* y, double* ydot);
 
   std::shared_ptr<zerork::mechanism_cuda> mech_ptr_;
-//  cusolver_rf_manager csrfm_temperature_;
-//  cusolver_rf_manager csrfm_no_temperature_;
-//  cusolver_rf_manager* csrfm_ptr_;
+  hipsolver_rf_manager hsrfm_temperature_;
+  hipsolver_rf_manager hsrfm_no_temperature_;
+  hipsolver_rf_manager* hsrfm_ptr_;
   std::unique_ptr<hip_la_manager> hip_la_manager_;
 
   bool solve_temperature_;

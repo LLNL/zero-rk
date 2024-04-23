@@ -100,6 +100,7 @@ include(CheckCXXCompilerFlag)
 include(CheckCCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+CHECK_CXX_COMPILER_FLAG("-fPIC" COMPILER_SUPPORTS_FPIC)
 if (COMPILER_SUPPORTS_CXX11)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 elseif(COMPILER_SUPPORTS_CXX0X)
@@ -149,7 +150,7 @@ if (MAGMA_ENABLE_CUDA)
 
   # ----------------------------------------
   # locate CUDA libraries
-  set( GPU_TARGET "Kepler Maxwell Pascal" CACHE STRING "CUDA architectures to compile for; one or more of Fermi, Kepler, Maxwell, Pascal, Volta, Turing, Ampere, or valid sm_[0-9][0-9]" )
+  set( GPU_TARGET "Kepler Maxwell Pascal" CACHE STRING "CUDA architectures to compile for; one or more of Fermi, Kepler, Maxwell, Pascal, Volta, Turing, Ampere, Hopper, or valid sm_[0-9][0-9]" )
   find_package( CUDAToolkit )
   if (CUDAToolkit_FOUND)
     message( STATUS "Found CUDA ${CUDA_VERSION}" )
@@ -160,7 +161,13 @@ if (MAGMA_ENABLE_CUDA)
     # sm_xx is binary, compute_xx is PTX for forward compatability
     # MIN_ARCH is lowest requested version
 
+    if(WIN32)
+        # Disable separable compilation on Windows because object linking list
+        # becomes too long when building multiple archs and MSVC throws errors
+        set(CUDA_SEPARABLE_COMPILATION OFF)
+    else()
     set(CUDA_SEPARABLE_COMPILATION ON)
+    endif()
 
     set(__cuda_architectures)
 
@@ -192,6 +199,10 @@ if (MAGMA_ENABLE_CUDA)
 
     if (GPU_TARGET MATCHES Ampere)
         set( GPU_TARGET "${GPU_TARGET} sm_80" )
+    endif()
+
+    if (GPU_TARGET MATCHES Hopper)
+        set( GPU_TARGET "${GPU_TARGET} sm_90" )
     endif()
 
     if (GPU_TARGET MATCHES sm_20)
@@ -306,6 +317,14 @@ if (MAGMA_ENABLE_CUDA)
         message( STATUS "    compile for CUDA arch 8.0 (Ampere)" )
     endif()
 
+    if (GPU_TARGET MATCHES sm_90)
+        if (NOT MIN_ARCH)
+            set( MIN_ARCH 900 )
+        endif()
+        list(APPEND __cuda_architectures 90)
+        message( STATUS "    compile for CUDA arch 9.0 (Hopper)" )
+    endif()
+
     if (NOT MIN_ARCH)
         message( FATAL_ERROR "GPU_TARGET must contain one or more of Fermi, Kepler, Maxwell, Pascal, Volta, Turing, Ampere, or valid sm_[0-9][0-9]" )
     endif()
@@ -313,10 +332,18 @@ if (MAGMA_ENABLE_CUDA)
     set(CUDA_ARCHITECTURES "${__cuda_architectures}")
 
     add_library(magma_nvcc_flags INTERFACE)
+    if (COMPILER_SUPPORTS_FPIC)
     target_compile_options(magma_nvcc_flags
         INTERFACE
         $<$<COMPILE_LANGUAGE:CUDA>:--compiler-options;-fPIC,${FORTRAN_CONVENTION}>
     )
+    else()
+        # No Position Independent Code on Windows. Compiler will complain if you add that flag.
+        target_compile_options(magma_nvcc_flags
+            INTERFACE
+            $<$<COMPILE_LANGUAGE:CUDA>:--compiler-options;${FORTRAN_CONVENTION}>
+        )
+    endif(COMPILER_SUPPORTS_FPIC)
 
     set(MAGMA_HAVE_CUDA "1")
     set(MAGMA_CUDA_ARCH_MIN "${MIN_ARCH}")
@@ -329,7 +356,7 @@ endif()
 
 if (MAGMA_ENABLE_HIP)
   set( GPU_TARGET "gfx900" CACHE STRING "HIP architectures to compile for" )
-  list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hip)
+  list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/lib/cmake/hip)
   find_package( HIP )
   if (HIP_FOUND)
     message( STATUS "Found HIP ${HIP_VERSION}" )
@@ -396,13 +423,20 @@ if (MAGMA_ENABLE_HIP)
       endif()
     endforeach()
 
+    set( DEVCCFLAGS ${DEVCCFLAGS} -fPIC ${FORTRAN_CONVENTION} )
     set(MAGMA_HAVE_HIP "1")
     message( STATUS "Define -DMAGMA_HAVE_HIP" )
 
     set_property(TARGET hip::device APPEND PROPERTY COMPATIBLE_INTERFACE_BOOL INTERFACE_HIP_DEVICE_COMPILE)
     set_property(TARGET hip::device PROPERTY INTERFACE_HIP_DEVICE_COMPILE ON)
+    set(GPU_ARCH_FLAGS ${DEVCCFLAGS})
 
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DEVCCFLAGS}" )
+    #add_compile_options(${GPU_ARCH_FLAGS})
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__HIP_PLATFORM_HCC__" )
+    option(ROCM_CORE "Location of the rocm-core package")
+    execute_process(COMMAND "${CMAKE_SOURCE_DIR}/tools/get-rocm-version.sh" "${ROCM_CORE}" OUTPUT_VARIABLE ROCM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "ROCM_VERSION=${ROCM_VERSION}")
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCM_VERSION=${ROCM_VERSION}" )
   else()
     message( STATUS "Could not find HIP" )
   endif()

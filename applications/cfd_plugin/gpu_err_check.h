@@ -1,5 +1,5 @@
-#ifndef CUDA_ERR_CHECK_H
-#define CUDA_ERR_CHECK_H
+#ifndef GPU_ERR_CHECK_H
+#define GPU_ERR_CHECK_H
 
 #include <stdio.h>
 

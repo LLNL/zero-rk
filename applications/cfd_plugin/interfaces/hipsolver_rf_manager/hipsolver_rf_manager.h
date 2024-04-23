@@ -1,20 +1,20 @@
-#ifndef CUSOLVER_RF_MANAGER_H
-#define CUSOLVER_RF_MANAGER_H
+#ifndef HIPSOLVER_RF_MANAGER_H
+#define HIPSOLVER_RF_MANAGER_H
 
 #include <vector>
 
-#include "cusolverRf.h"
+#include <hipsolver/hipsolver.h>
 #include "../superlu_manager/superlu_manager.h"
 
-class cusolver_rf_manager
+class hipsolver_rf_manager
 {
  public:
-  cusolver_rf_manager();
-  virtual ~cusolver_rf_manager();
+  hipsolver_rf_manager();
+  virtual ~hipsolver_rf_manager();
 
   enum matrix_t { CSC, CSR };
   int factor(int num_batches, int n, int nnz, const int* indexs, const int* sums,
-             const double* values, cusolver_rf_manager::matrix_t type);
+             const double* values, hipsolver_rf_manager::matrix_t type);
   int refactor(int num_batches, int n, int nnz, const double* values);
   int solve(int num_batches, int n, const double* rhs, double* soln);
 
@@ -28,11 +28,11 @@ class cusolver_rf_manager
   void AllocateDeviceMemory();
   void FreeDeviceMemory();
 
-  cusolverRfHandle_t cusolverRfHandle_;
+  hipsolverRfHandle_t hipsolverRfHandle_;
   superlu_manager slum_;
 
-  cusolverStatus_t status_;
-  hipError_t cudaStatus_;
+  hipsolverStatus_t status_;
+  hipError_t hipStatus_;
 
   bool factored_;
   int n_;
