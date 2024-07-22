@@ -870,7 +870,16 @@ void rate_const::updateThirdBodyRxn(const double C[])
 void rate_const::updateFalloffRxn(const double C[])
 {
   int j,k;
-  double Cmult,Klow,Pr,log_10_Pr,Pcorr,Fcenter,fTerm,nTerm;
+  double Cmult,Pr,log_10_Pr,Pcorr,Fcenter,fTerm,nTerm;
+
+  double Klow[nFalloffRxn];
+  for(j=0; j<nFalloffRxn; j++) {
+    Klow[j] = falloffRxnList[j].param[0]+
+               falloffRxnList[j].param[1]*log_e_Tcurrent-
+	       falloffRxnList[j].param[2]*invTcurrent;
+  }
+  fast_vec_exp(Klow, nFalloffRxn);
+
   for(j=0; j<nFalloffRxn; j++) {
 
     if(falloffRxnList[j].falloffSpcIdx >= 0) {
@@ -886,11 +895,7 @@ void rate_const::updateFalloffRxn(const double C[])
       }
     }
 
-    Klow = exp(falloffRxnList[j].param[0]+
-               falloffRxnList[j].param[1]*log_e_Tcurrent-
-	       falloffRxnList[j].param[2]*invTcurrent);
-
-    Pr = Klow*Cmult/Kwork[falloffRxnList[j].fwdStepIdx];
+    Pr = Klow[j]*Cmult/Kwork[falloffRxnList[j].fwdStepIdx];
     if(Pr < 1.0e-300) {
       Pr = 1.0e-300; // ck SMALL constant
     }
