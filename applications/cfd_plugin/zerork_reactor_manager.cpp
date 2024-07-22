@@ -96,6 +96,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   //File-output Options
   string_options_["reactor_timing_log_filename"] = std::string(zerork::utilities::null_filename);
   string_options_["mechanism_parsing_log_filename"] = std::string(zerork::utilities::null_filename);
+  int_options_["output_performance_log"] = 1;
 
   T_other_.clear();
   P_other_.clear();
@@ -1257,7 +1258,7 @@ zerork_status_t ZeroRKReactorManager::RedistributeResults()
 #endif
 
 zerork_status_t ZeroRKReactorManager::PostSolve() {
-  ProcessPerformance();
+  if (int_options_["output_performance_log"]) ProcessPerformance();
 #ifdef ZERORK_GPU
   UpdateRankWeights();
 #endif
