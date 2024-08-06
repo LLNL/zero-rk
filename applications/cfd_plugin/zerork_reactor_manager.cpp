@@ -90,8 +90,8 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   //GPU Options
   int_options_["gpu"] = 0;
   int_options_["initial_gpu_multiplier"] = 8;
-  n_reactors_min_ = 128;
-  n_reactors_max_ = 1024;
+  int_options_["n_reactors_min"] = 128;
+  int_options_["n_reactors_max"] = 1024;
 
   //File-output Options
   string_options_["reactor_timing_log_filename"] = std::string(zerork::utilities::null_filename);
@@ -171,8 +171,8 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
 
   int_options_["gpu"] = inputFileDB.gpu();
   int_options_["initial_gpu_multiplier"] = inputFileDB.initial_gpu_multiplier();
-  n_reactors_max_ = inputFileDB.n_reactors_max();
-  n_reactors_min_ = inputFileDB.n_reactors_min();
+  int_options_["n_reactors_max"] = inputFileDB.n_reactors_max();
+  int_options_["n_reactors_min"] = inputFileDB.n_reactors_min();
 #ifdef USE_MPI
   int_options_["load_balance"] = inputFileDB.load_balance();
   int_options_["load_balance_noise"] = inputFileDB.load_balance_noise();
@@ -226,7 +226,7 @@ zerork_status_t ZeroRKReactorManager::LoadMechanism() {
       int verbosity = 0;
       mech_cuda_ptr_ = std::make_shared<zerork::mechanism_cuda>(string_options_["mech_filename"].c_str(),
                           string_options_["therm_filename"].c_str(),
-                          cklog_filename.c_str(), verbosity, n_reactors_max_);
+                          cklog_filename.c_str(), verbosity, int_options_["n_reactors_max"]);
     } catch (const std::runtime_error& e) {
       mech_cuda_ptr_ = nullptr;
       return ZERORK_STATUS_FAILED_MECHANISM_PARSE;
@@ -902,25 +902,25 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
     reactor_gpu_ptr_->SetIntOptions(int_options_);
     reactor_gpu_ptr_->SetDoubleOptions(double_options_);
 
-    std::vector<double> T_gpu(n_reactors_max_);
-    std::vector<double> T_gpu_init(n_reactors_max_);
-    std::vector<double> P_gpu(n_reactors_max_);
+    std::vector<double> T_gpu(int_options_["n_reactors_max"]);
+    std::vector<double> T_gpu_init(int_options_["n_reactors_max"]);
+    std::vector<double> P_gpu(int_options_["n_reactors_max"]);
     std::vector<double> dpdt_gpu;
-    if(dpdt_defined_) dpdt_gpu.resize(n_reactors_max_);
+    if(dpdt_defined_) dpdt_gpu.resize(int_options_["n_reactors_max"]);
     std::vector<double> e_src_gpu;
-    if(e_src_defined_) e_src_gpu.resize(n_reactors_max_);
+    if(e_src_defined_) e_src_gpu.resize(int_options_["n_reactors_max"]);
     std::vector<double> y_src_gpu;
-    if(y_src_defined_) y_src_gpu.resize(num_species_*n_reactors_max_);
-    std::vector<double> mf_gpu(num_species_*n_reactors_max_);
+    if(y_src_defined_) y_src_gpu.resize(num_species_*int_options_["n_reactors_max"]);
+    std::vector<double> mf_gpu(num_species_*int_options_["n_reactors_max"]);
     int n_remaining = n_reactors_self_calc;
     while(n_remaining > 0) {
       int n_curr = 1;
-      n_curr = std::min(n_remaining, n_reactors_max_);
-      if(n_curr != n_remaining && n_remaining < 2*n_reactors_max_ && n_curr == n_reactors_max_) {
+      n_curr = std::min(n_remaining, int_options_["n_reactors_max"]);
+      if(n_curr != n_remaining && n_remaining < 2*int_options_["n_reactors_max"] && n_curr == int_options_["n_reactors_max"]) {
         n_curr = n_remaining/2;
       }
 
-      if(n_curr >= n_reactors_min_) {
+      if(n_curr >= int_options_["n_reactors_min"]) {
         if(int_options_["verbosity"] >= 2) {
             printf("RANK[%d]: Solving GPU group of size = %d.\n", rank_,n_curr);
         }
@@ -1394,7 +1394,7 @@ void ZeroRKReactorManager::UpdateRankWeights() {
       for(int i = 0; i < nranks_; ++i) {
         reactors_wanted[i] = test_weights[i]*weight_factor;
         if(rank_has_gpu_[i] &&
-           reactors_wanted[i] > n_reactors_min_ &&
+           reactors_wanted[i] > int_options_["n_reactors_min"] &&
            test_weights[i] > rank_weights_[i]) {
           override_weights=true;
           break;
