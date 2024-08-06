@@ -3,22 +3,28 @@
 #include "../../gpu_err_check.h"
 
 
-hipsolver_rf_manager::hipsolver_rf_manager() :
+hipsolver_rf_manager::hipsolver_rf_manager()
+#if HIP_VERSION > (5*10000000 + 6*100000)
+ :
   nnz_(-1),
   n_(-1),
   num_batches_(-1),
   factored_(false)
+#endif
 {
 }
 
 hipsolver_rf_manager::~hipsolver_rf_manager()
 {
+#if HIP_VERSION > (5*10000000 + 6*100000)
   if(factored_) {
     FreeDeviceMemory();
     hipsolverRfDestroy(hipsolverRfHandle_);
   }
+#endif
 }
 
+#if HIP_VERSION > (5*10000000 + 6*100000)
 void hipsolver_rf_manager::setup_memory()
 {
   if(factored_) {
@@ -316,4 +322,5 @@ int hipsolver_rf_manager::solve(int num_batches, int n, const double* rhs, doubl
     cublasSafeCall(hipblasDgeam(handle, HIPBLAS_OP_T, HIPBLAS_OP_T, m, n, &alpha, dv_ptr_in, n, &beta, dv_ptr_in, n, dv_ptr_out, m)); 
     print(n, m, transposed_cuBLAS);
 */
+#endif
 
