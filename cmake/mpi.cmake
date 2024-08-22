@@ -1,6 +1,6 @@
 
 
-find_package(MPI REQUIRED)
+find_package(MPI REQUIRED COMPONENTS C CXX)
 
 function(add_mpi_executable)
 set(TARGET ${ARGV0})

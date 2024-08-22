@@ -5,7 +5,7 @@ project(superlu_dist_build)
 include(ExternalProject)
 ExternalProject_Add(
   superlu_dist
-  URL https://github.com/xiaoyeli/superlu_dist/archive/refs/tags/v6.4.0.tar.gz
+  URL https://github.com/xiaoyeli/superlu_dist/archive/refs/tags/v6.4.1.tar.gz
   CMAKE_ARGS -Denable_tests=OFF
              -Denable_examples=OFF
              -Denable_complex16=OFF
