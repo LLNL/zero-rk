@@ -106,14 +106,14 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   Tchanged = true;
   Tcurrent = 0;
 
-  int allocSize = nDistinctArrhenius;
-  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 32
-  arrWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
-  memset(arrWorkArray,0.0,sizeof(double)*allocSize);
-  allocSize = nFromKeqStep;
-  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 32
-  keqWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
-  memset(keqWorkArray,0.0,sizeof(double)*allocSize);
+  int allocSize = nDistinctArrhenius*sizeof(double);
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
+  arrWorkArray = (double*)aligned_alloc(32, allocSize);
+  memset(arrWorkArray,0.0, allocSize);
+  allocSize = nFromKeqStep*sizeof(double);
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
+  keqWorkArray = (double*)aligned_alloc(32, allocSize);
+  memset(keqWorkArray, 0.0, allocSize);
 
   use_external_arrh = false;
   use_external_keq = false;
@@ -658,7 +658,7 @@ void rate_const::updateArrheniusStep()
                  	     +distinctArrheniusTpow[j]*local_log_e_Tcurrent
      	             -distinctArrheniusTact[j]*local_invTcurrent;
     }
-    fast_vec_exp(arrWorkArray,nDistinctArrhenius+nDistinctArrhenius%4);
+    fast_vec_exp(arrWorkArray,nDistinctArrhenius);
   }
   for(j=0; j<nArrheniusStep; ++j) {
       Kwork[arrheniusStepList[j].stepIdx] =
@@ -701,7 +701,7 @@ void rate_const::updateFromKeqStep()
       }
       keqWorkArray[j] = thermo_sum-fromKeqStepList[j].nDelta*log_e_PatmInvRuT;
     }
-    fast_vec_exp(keqWorkArray,nFromKeqStep+nFromKeqStep%4);
+    fast_vec_exp(keqWorkArray,nFromKeqStep);
   }
   for(j=0; j<nFromKeqStep; j++) {
 
