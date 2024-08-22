@@ -151,6 +151,7 @@ class rate_const
   double *arrheniusCoeffs;
   double *arrWorkArray;
   double *keqWorkArray;
+  double *falloffWorkArray;
   void setArrheniusStepList(ckr::CKReader *ckrobj, info_net *netobj);
   void updateArrheniusStep();
 

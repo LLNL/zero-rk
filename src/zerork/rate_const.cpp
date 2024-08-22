@@ -114,6 +114,10 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
   keqWorkArray = (double*)aligned_alloc(32, allocSize);
   memset(keqWorkArray, 0.0, allocSize);
+  allocSize = nFalloffRxn*sizeof(double);
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
+  falloffWorkArray = (double*)aligned_alloc(32, allocSize);
+  memset(falloffWorkArray, 0.0, allocSize);
 
   use_external_arrh = false;
   use_external_keq = false;
@@ -135,6 +139,7 @@ rate_const::~rate_const()
   delete [] Kwork;
   _aligned_free(arrWorkArray);
   _aligned_free(keqWorkArray);
+  _aligned_free(falloffWorkArray);
 }
 
 void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)
@@ -870,16 +875,15 @@ void rate_const::updateThirdBodyRxn(const double C[])
 void rate_const::updateFalloffRxn(const double C[])
 {
   int j,k;
-  double Cmult,Pr,log_10_Pr,Pcorr,Fcenter,fTerm,nTerm;
-
-  double Klow[nFalloffRxn];
-  for(j=0; j<nFalloffRxn; j++) {
-    Klow[j] = falloffRxnList[j].param[0]+
-               falloffRxnList[j].param[1]*log_e_Tcurrent-
-	       falloffRxnList[j].param[2]*invTcurrent;
+  double Cmult,Klow,Pr,log_10_Pr,Pcorr,Fcenter,fTerm,nTerm;
+  if(Tchanged) {
+    for(j=0; j<nFalloffRxn; j++) {
+      falloffWorkArray[j] = falloffRxnList[j].param[0]+
+                            falloffRxnList[j].param[1]*log_e_Tcurrent-
+                            falloffRxnList[j].param[2]*invTcurrent;
+    }
+    fast_vec_exp(falloffWorkArray, nFalloffRxn);
   }
-  fast_vec_exp(Klow, nFalloffRxn);
-
   for(j=0; j<nFalloffRxn; j++) {
 
     if(falloffRxnList[j].falloffSpcIdx >= 0) {
@@ -895,7 +899,8 @@ void rate_const::updateFalloffRxn(const double C[])
       }
     }
 
-    Pr = Klow[j]*Cmult/Kwork[falloffRxnList[j].fwdStepIdx];
+    Klow = falloffWorkArray[j];
+    Pr = Klow*Cmult/Kwork[falloffRxnList[j].fwdStepIdx];
     if(Pr < 1.0e-300) {
       Pr = 1.0e-300; // ck SMALL constant
     }
