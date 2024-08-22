@@ -60,6 +60,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   int_options_["reactor_weight_mult"] = 1;
   int_options_["dump_reactors"] = 0;
   int_options_["dump_failed_reactors"] = 0;
+  int_options_["output_performance_log"] = 1;
 
   //Solver options
   int_options_["max_steps"] = 5000;
@@ -96,7 +97,6 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   //File-output Options
   string_options_["reactor_timing_log_filename"] = std::string(zerork::utilities::null_filename);
   string_options_["mechanism_parsing_log_filename"] = std::string(zerork::utilities::null_filename);
-  int_options_["output_performance_log"] = 1;
 
   T_other_.clear();
   P_other_.clear();
@@ -181,6 +181,7 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
 #endif
   int_options_["dump_reactors"] = inputFileDB.dump_reactors();
   int_options_["dump_failed_reactors"] = inputFileDB.dump_failed_reactors();
+  int_options_["output_performance_log"] = inputFileDB.output_performance_log();
 
   string_options_["reactor_timing_log_filename"] = inputFileDB.reactor_timing_log();
   string_options_["mechanism_parsing_log_filename"] = inputFileDB.mechanism_parsing_log();
@@ -609,28 +610,30 @@ zerork_status_t ZeroRKReactorManager::FinishInit() {
       if(int_options_["verbosity"] > 1) {
         printf("* %-25s%-31s *\n", "Zero-RK Lib Build Date: ",__DATE__);
       }
-      reactor_log_file_.open(string_options_["reactor_timing_log_filename"]);
+      if(int_options_["output_performance_log"]!=0) {
+        reactor_log_file_.open(string_options_["reactor_timing_log_filename"]);
 
-      // Timing log file
-      reactor_log_file_ << "#";
-      reactor_log_file_ << std::setw(11) << "solve_number";
-      reactor_log_file_ << std::setw(17) << "reactors_solved";
-      reactor_log_file_ << std::setw(17) << "n_cpu";
-      reactor_log_file_ << std::setw(17) << "n_cpu_notemp";
-      reactor_log_file_ << std::setw(17) << "n_gpu";
-      reactor_log_file_ << std::setw(17) << "n_gpu_notemp";
-      reactor_log_file_ << std::setw(17) << "n_gpu_groups";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg_cpu";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg_gpu";
-      reactor_log_file_ << std::setw(17) << "max_time_cpu";
-      reactor_log_file_ << std::setw(17) << "max_time_gpu";
-      reactor_log_file_ << std::setw(17) << "step_time_cpu";
-      reactor_log_file_ << std::setw(17) << "step_time_gpu";
-      reactor_log_file_ << std::setw(17) << "avg_time_total";
-      reactor_log_file_ << std::setw(17) << "max_time_total";
-      reactor_log_file_ << std::endl;
-      reactor_log_file_.flush();
+        // Timing log file
+        reactor_log_file_ << "#";
+        reactor_log_file_ << std::setw(11) << "solve_number";
+        reactor_log_file_ << std::setw(17) << "reactors_solved";
+        reactor_log_file_ << std::setw(17) << "n_cpu";
+        reactor_log_file_ << std::setw(17) << "n_cpu_notemp";
+        reactor_log_file_ << std::setw(17) << "n_gpu";
+        reactor_log_file_ << std::setw(17) << "n_gpu_notemp";
+        reactor_log_file_ << std::setw(17) << "n_gpu_groups";
+        reactor_log_file_ << std::setw(17) << "n_steps_avg";
+        reactor_log_file_ << std::setw(17) << "n_steps_avg_cpu";
+        reactor_log_file_ << std::setw(17) << "n_steps_avg_gpu";
+        reactor_log_file_ << std::setw(17) << "max_time_cpu";
+        reactor_log_file_ << std::setw(17) << "max_time_gpu";
+        reactor_log_file_ << std::setw(17) << "step_time_cpu";
+        reactor_log_file_ << std::setw(17) << "step_time_gpu";
+        reactor_log_file_ << std::setw(17) << "avg_time_total";
+        reactor_log_file_ << std::setw(17) << "max_time_total";
+        reactor_log_file_ << std::endl;
+        reactor_log_file_.flush();
+      }
     }
 
     num_species_stride_ = num_species_;
@@ -1258,7 +1261,7 @@ zerork_status_t ZeroRKReactorManager::RedistributeResults()
 #endif
 
 zerork_status_t ZeroRKReactorManager::PostSolve() {
-  if (int_options_["output_performance_log"]) ProcessPerformance();
+  if (int_options_["output_performance_log"]!=0) ProcessPerformance();
 #ifdef ZERORK_GPU
   UpdateRankWeights();
 #endif

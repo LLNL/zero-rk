@@ -326,6 +326,16 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
+    'name':"output_performance_log",
+    'type':'int',
+    'shortDesc' : "Write performance log",
+    'defaultValue' : 1,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
     'name':"cvode_num_retries",
     'type':'int',
     'shortDesc' : "Number of times to retry after CVODE failure",
