@@ -1,4 +1,9 @@
 {
+  "environments": [
+    {
+      "ONEAPI_ROOT": "C:\\Program Files (x86)\\Intel\\oneAPI",
+    }
+  ],
   "configurations": [
     {
       "name": "x64-Debug",
