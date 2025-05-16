@@ -1,10 +1,10 @@
 [project]
-name = "rate_opt"
+name = "zerork"
 version = "0.0.1"
 authors = [
   { name="Russell Whitesides", email="whitesides1@llnl.gov" },
 ]
-description='Chemkin-style Mechanism Rate Optimizer'
+description='Zero-RK Python Toolkit'
 #readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -12,11 +12,13 @@ classifiers = [
     'Intended Audience :: Science/Research',
     'Topic :: Scientific/Engineering :: Chemistry',
     'Topic :: Scientific/Engineering :: Physics',
-    'Topic :: Scientific/Engineering :: Combustion'
+    'Topic :: Scientific/Engineering :: Combustion',
+    'Private :: Do Not Upload' #Do not publish to PyPI
 ]
 keywords=['zerork', 'zeror-rk', 'kinetics']
-dependencies = [ 'ruamel.yaml', 'numpy', 'scipy', 'matplotlib' ]
+dependencies = [ 'ruamel.yaml', 'numpy', 'scipy', 'matplotlib', 'dill', 'pyDOE', 'mpi4py', 'tqdm', 'ctREFPROP']
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0",
+            "setuptools-scm>=8.0"] # this is so setuptools can find data files
 build-backend = "setuptools.build_meta"

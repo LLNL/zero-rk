@@ -117,8 +117,6 @@ class ZeroRKReactorManager : public ZeroRKReactorManagerBase
   int n_steps_gpu_;
   int n_gpu_groups_;
   int n_weight_updates_;
-  int n_reactors_min_;
-  int n_reactors_max_;
   double gpu_multiplier_;
   double sum_cpu_reactor_time_;
   double sum_gpu_reactor_time_;

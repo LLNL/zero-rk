@@ -13,6 +13,8 @@
 #include "compute_lewis.h"
 #include "set_initial_conditions.h"
 
+#include "equil/zerork_equilibrium_solver.h"
+
 int main(int argc, char *argv[])
 {
 
@@ -37,71 +39,23 @@ int main(int argc, char *argv[])
 
   SetConstantInlet(flame_params, flame_state_ptr);
 
+#ifdef ZERORK_HAVE_EQUILIBRIUM_SOLVER
   // ------------ BEGIN Constrained Equibrium calc  -----------//
   if(flame_params.use_equilibrium_) {
     printf("Using equilibrium composition to evaluate Lewis numbers\n");
-    int k,l;
-    std::vector<double> thermoCoeffs(num_species*16);
-    std::vector<double> thermoCoeffs_CEQ(num_species*15);
-    flame_params.mechanism_->getThermoCoeffs(&thermoCoeffs[0]);
-    for(k=0; k<num_species; k++)
-      for(l=0; l<15; l++) //transpose
-        thermoCoeffs_CEQ[l*num_species+k] = thermoCoeffs[k*16 + l];
 
-    int ne;
-    ne = flame_params.mechanism_->getNumElements();
-    std::vector<int> Ein_int(num_species*ne);
-    std::vector<double> Ein_double(num_species*ne);
-    flame_params.mechanism_->getSpeciesOxygenCount(&Ein_int[0]);
-    flame_params.mechanism_->getSpeciesNitrogenCount(&Ein_int[2*num_species]);
-    flame_params.mechanism_->getSpeciesHydrogenCount(&Ein_int[num_species]);
-    if(ne>3) flame_params.mechanism_->getSpeciesCarbonCount(&Ein_int[3*num_species]);
-    if(ne>4) flame_params.mechanism_->getSpeciesArgonCount(&Ein_int[4*num_species]);
-    if(ne>5) flame_params.mechanism_->getSpeciesHeliumCount(&Ein_int[5*num_species]);
+    zerork::equilibrium_solver zeq(*flame_params.mechanism_);
+    double Teq = flame_state_ptr[num_species+1]*flame_params.ref_temperature_;
+    zeq.equilibrate(flame_params.pressure_, Teq, flame_state_ptr);
+    flame_state_ptr[num_species+1] = Teq/flame_params.ref_temperature_;
 
-    for(k=0; k<num_species*ne; k++)
-      Ein_double[k] = (double)Ein_int[k];
-
-    ofstream file1;
-    file1.open("CEQ-inputs");
-    file1 << num_species << "\n";
-    file1 << ne << "\n";
-    file1 << flame_params.pressure_ << "\n";
-    file1 << flame_state_ptr[num_species+1]*flame_params.ref_temperature_ << "\n";
-    for(k=0; k<num_species; k++)
-      file1 << 1.0/flame_params.inv_molecular_mass_[k] << " ";
-    file1 << "\n";
-    for(k=0; k<num_species*15; k++)
-      file1 << thermoCoeffs_CEQ[k] << " ";
-    file1 << "\n";
-    for(k=0; k<num_species*ne; k++)
-      file1 << Ein_double[k] << " ";
-    file1 << "\n";
-    for(k=0; k<num_species; k++)
-      file1 << flame_state_ptr[k] << " ";
-    file1 << "\n";
-    file1.close();
-
-    // Call CEQ
-    system("/usr/apps/advcomb/bin/eqHPfromFile.x");
-
-    // Read equilibrium state
-    std::ifstream infile("CEQ.dat");
-    std::string line;
-    k=0;
-    double val;
-    while (std::getline(infile, line))
-    {
-      std::istringstream iss(line);
-      iss >> val;
-      if(k<num_species)
-        flame_state_ptr[k] = val;
-      if(k==num_species)
-        flame_state_ptr[k+1] = val/flame_params.ref_temperature_;
-
-    k++;
-    }
-  } else {
+  } else
+#else
+  if(flame_params.use_equilibrium_) {
+    printf("No equilibrium interface enabled.  Please re-configure/re-build Zero-RK to enable CEQ or Cantera equilibrium interface.\n");
+  }
+#endif
+  {
     printf("Using inlet composition to evaluate Lewis numbers\n");
   }
   // ------------ END Constrained Equibrium calc  -----------//

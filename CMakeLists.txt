@@ -72,6 +72,8 @@ if(${ENABLE_MPI})
   include(cmake/superlu_dist.cmake)
 endif()
 include(cmake/sundials.cmake)
+include(cmake/ceq.cmake)
+include(cmake/cantera.cmake)
 
 add_subdirectory(src)
 add_subdirectory(tools)

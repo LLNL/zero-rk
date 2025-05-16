@@ -9,36 +9,36 @@ end
 
 
 ! multiplier to convert activation energies from cal/mol to kelvin
-! CAL_PER_MOL_TACT = 4184.0/8.3144598e3
-!                  = 5.032197040630348450e-01
+! CAL_PER_MOL_TACT = 4184.0/8.314462618e3
+!                  = 5.0321953350804-01
 reactions cal/mol
 
 ! reaction 1
 ! single pressure
 h + h => h2    2.0e12  0.0  0.0
-plog / 1.0   1.0e9   2.0  1.987203585086042040e+03 / 
+plog / 1.0   1.0e9   2.0  1.98720425860421e+03 / 
 
 ! reaction 2
 ! single pressure
 h + h => h2    2.0e12  0.0  0.0
-plog / 1.0   -1.0e9   2.0  1.987203585086042040e+03 / 
+plog / 1.0   -1.0e9   2.0  1.98720425860421e+03 / 
 
 ! reaction 3
 ! single pressure
 h + h => h2    2.0e12  0.0  0.0
-plog / 1.0   -1.0e8   2.0  1.987203585086042040e+03 / 
-plog / 1.0    4.0e8   2.0  1.987203585086042040e+03 / 
-plog / 1.0    6.0e8   2.0  1.987203585086042040e+03 / 
+plog / 1.0   -1.0e8   2.0  1.98720425860421e+03 / 
+plog / 1.0    4.0e8   2.0  1.98720425860421e+03 / 
+plog / 1.0    6.0e8   2.0  1.98720425860421e+03 / 
 
 ! reaction 4
 ! single pressure
 h + h <=> h2    2.0e12  0.0  0.0
-plog / 1.0   1.0e9   2.0  1.987203585086042040e+03 / 
+plog / 1.0   1.0e9   2.0  1.98720425860421e+03 / 
 
 ! reaction 5
 ! single pressure
 h + h <=> h2    2.0e12  0.0  0.0
-plog / 1.0   -1.0e9   2.0  1.987203585086042040e+03 / 
+plog / 1.0   -1.0e9   2.0  1.98720425860421e+03 / 
 
 ! reaction 6
 ! multiple pressures example from Judit Zador at SNL

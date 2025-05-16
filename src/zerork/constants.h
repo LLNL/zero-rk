@@ -7,23 +7,17 @@ namespace zerork {
 
 const int MAX_ELEMENTS = 92;
 
-//const double NIST_RU = 8.31447215e3;  // [J/kmol-k] gas constant in cantera
-//const double NIST_RU = 8.3144621e3;  // [J/kmol-k] accessed NIST site 7-8-2011
-// http://physics.nist.gov/cgi-bin/cuu/Value?r
-const double NIST_RU = 8.3144598e3;  // [J/kmol-k] accessed NIST site 1-18-2015
-// http://physics.nist.gov/cgi-bin/cuu/Value?r
+const double NIST_RU = 8.314462618e3; // [J/kmol-k]; accessed NIST site 11-22-2024
 
 const double P_ATM = 1.01325e5;  // [Pa] reference pressure for Keq calculation
 
 
-const double KAvogadroNumber = 6.02214129e26; // [molecules/kmol]
-const double KBoltzmann = 1.3806488e-23;      // [J/K]
-
+const double KAvogadroNumber = 6.02214076e26; // [molecules/kmol]
+const double KBoltzmann = 1.380649e-23; // [J/K]
 
 // multiplier to convert activation energies from cal/mol to kelvin
 const double CAL_PER_MOL_TACT = 4184.0/NIST_RU;
 const double KCAL_PER_MOL_TACT = 4184.0/NIST_RU*1000.0;
-//const double CAL_PER_MOL_TACT = 0.50321956485916268714484849236368519858909;
 
 // convert from kj/mol to cal/mol then cal/mol to kelvin
 const double KJOULES_PER_MOL_TACT = 238.846*CAL_PER_MOL_TACT;

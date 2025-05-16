@@ -1,3 +1,3 @@
 
-python sweep_steady.py
+@Python3_EXECUTABLE@ sweep_steady.py
 

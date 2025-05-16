@@ -281,6 +281,68 @@ namespace ckr {
         log << endl;
     }
 
+    /**
+     * Write to the log file the real order rate of progress.
+     */
+    void writeRealOrder(const Reaction& rxn, ostream& log) {
+        
+        log.precision(15);
+        log.width(0);
+        log.flags(ios::uppercase);
+
+        const int nreactants = rxn.reactants.size();
+        const int nproducts  = rxn.products.size();
+        const int nford      = rxn.fwdOrder.size();
+        const int nrord      = rxn.revOrder.size();
+
+        std::map<string, double>::iterator it;
+        log << "    forward reaction concentration powers:" << endl;
+
+        // report all the specified real-order coefficients
+        for(it=rxn.fwdOrder.begin(); it != rxn.fwdOrder.end(); it++) {
+            log << "        " << "[" << it->first << "]**"
+                << it->second << "    (FORD)" << endl;
+        }
+
+        // check the reactant list to see if any species are not found in
+        // the fwdOrder map
+        for(int j=0; j<nreactants; ++j) {
+
+            it = rxn.fwdOrder.find(rxn.reactants[j].name);
+            if(it == rxn.fwdOrder.end()) {
+                // reactant species not found in FORD list
+                log << "        [" << rxn.reactants[j].name << "]**"
+                    << rxn.reactants[j].number << "    (STOIC)" << endl;
+
+            }
+        }
+
+        if(rxn.isReversible) {
+            log << "    reverse reaction concentration powers:" << endl;
+
+            // report all the specified real-order coefficients
+            for(it=rxn.revOrder.begin(); it != rxn.revOrder.end(); it++) {
+                log << "        " << "[" << it->first << "]**"
+                    << it->second << "    (RORD)" << endl;
+            }
+
+            // check the reactant list to see if any species are not found in
+            // the revOrder map
+            for(int j=0; j<nproducts; ++j) {
+
+                it = rxn.revOrder.find(rxn.products[j].name);
+                if(it == rxn.revOrder.end()) {
+                    // product species not found in RORD list
+                    log << "        [" << rxn.products[j].name << "]**"
+                        << rxn.products[j].number << "    (STOIC)" << endl;
+
+                }
+            }
+
+            // TODO: Add equilibrium check/warning 
+        }
+    }
+
 
 }
 

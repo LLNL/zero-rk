@@ -1,6 +1,7 @@
 
 set(SRCS big_molecule_gtest.cpp non_integer_gtest.cpp
-   plog_gtest.cpp sri_gtest.cpp troe_gtest.cpp)
+   plog_gtest.cpp sri_gtest.cpp troe_gtest.cpp rord_propane_gtest.cpp
+   ford_propane_gtest.cpp)
 
 foreach(TEST_SRC ${SRCS})
 string(REPLACE .cpp .x TEST ${TEST_SRC})

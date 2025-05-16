@@ -111,6 +111,18 @@ int ReactorJacobianSetupAndFactor(double t, N_Vector y, N_Vector fy,
 #error "Unsupported SUNDIALS version"
 #endif
 
+int ReactorComplexJacobianFactor(int k, double alpha, double beta, void* user_data)
+{
+  ReactorBase* reactor = static_cast<ReactorBase*>(user_data);
+  return reactor->ComplexJacobianFactor(k, alpha, beta);
+}
+
+int ReactorComplexJacobianSolve(int k, N_Vector ax, N_Vector bx, void *user_data)
+{
+  ReactorBase* reactor = static_cast<ReactorBase*>(user_data);
+  return reactor->ComplexJacobianSolve(k, ax, bx);
+}
+
 int ReactorGetNumRootFunctions(void *user_data)
 {
   ReactorBase* reactor = static_cast<ReactorBase*>(user_data);

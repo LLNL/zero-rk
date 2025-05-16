@@ -18,7 +18,7 @@ static const char PARSER_LOGNAME[] = "parser.log";
 static const int NUM_SPECIES = 2;
 static const int NUM_REACTIONS = 8;
 
-static const double LOCAL_GAS_CONST = 8314.4598;
+static const double LOCAL_GAS_CONST = 8.314462618e3;
 static const double ATOMIC_A0 =  2.5;
 static const double ATOMIC_A5 =  2.54737667e+04;
 static const double ATOMIC_A6 = -4.46703359e-01; 

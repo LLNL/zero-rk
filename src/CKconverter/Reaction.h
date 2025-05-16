@@ -37,6 +37,7 @@ namespace ckr {
 #endif
 
     const int PLogInterpolation = 10000;
+    //const int RealOrder = 10001; // use of FORD and/or RORD
     //@}
 
     /**
@@ -138,7 +139,8 @@ namespace ckr {
                      isThreeBodyRxn(false), 
                      isReversible(false),
                      isDuplicate(false),
-	             isPLogInterpolation(false), 
+	             isPLogInterpolation(false),
+                     isRealOrder(false),
                      duplicate(0), 
                      thirdBody("<none>"), 
                      number(0),
@@ -152,11 +154,13 @@ namespace ckr {
                                     isReversible(r.isReversible),
                                     isDuplicate(r.isDuplicate),
 	                            isPLogInterpolation(r.isPLogInterpolation), 
+                                    isRealOrder(r.isRealOrder),
                                     duplicate(r.duplicate),
                                     thirdBody(r.thirdBody), 
                                     number(r.number), 
                                     reactants(r.reactants), 
                                     fwdOrder(r.fwdOrder),
+                                    revOrder(r.revOrder),
                                     products(r.products),
                                     e3b(r.e3b),
                                     kf(r.kf), 
@@ -181,6 +185,9 @@ namespace ckr {
         bool isDuplicate;         ///< True if reaction is declared to be a duplicate;
         bool isPLogInterpolation; ///< True if reaction is declared to be a
                                   ///< pressure interpolation reaction
+        bool isRealOrder;         ///< True if reaction is declared to be a
+                                  ///< real-order reaction (FORD/RORD)
+
         /**
          * reaction number this one is a duplicate to (declared or not). 
          * If the reaction is not a duplicate, the value is zero.
@@ -205,6 +212,8 @@ namespace ckr {
         vector<RxnSpecies> reactants;
         
         mutable map<string, double> fwdOrder;
+        mutable map<string, double> revOrder;
+
 
         /** 
          * list of species that participate as products,

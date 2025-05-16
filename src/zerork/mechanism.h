@@ -28,8 +28,8 @@ class mechanism
 
   int getIdxFromName(const char *nm);
   int getNumElements() const {return nElm;}
-  std::map<std::string, double> getElementInfo();
-  std::map<std::string, std::map<std::string, int> > getSpeciesElementInfo();
+  std::map<std::string, double> getElementInfo() const;
+  std::map<std::string, std::map<std::string, int> > getSpeciesElementInfo() const;
   int getNumSpecies() const {return nSpc;}
   int getNumReactions() const {return nRxn;}
   int getNumSteps() const {return nStep;}

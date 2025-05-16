@@ -486,9 +486,9 @@ spify_parser_params.append(
 
 spify_parser_params.append(
 {
-    'name':'use_ceq_for_init',
+    'name':'use_equilibrium_for_init',
     'type':'bool',
-    'longDesc' : "Flag that when set to true [y] uses CEQ code to set initial conditions",
+    'longDesc' : "Flag that when set to true [y] uses equilibrium solver to set initial conditions",
     'defaultValue' : 0
 }
 )

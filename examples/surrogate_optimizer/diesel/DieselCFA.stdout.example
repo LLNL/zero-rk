@@ -1,0 +1,60 @@
+Starting optimization 0
+Done optimization 0
+Starting optimization 1
+Done optimization 1
+Starting optimization 2
+Done optimization 2
+Starting optimization 3
+Done optimization 3
+Starting optimization 4
+Done optimization 4
+------------------------------------------------------------------------
+Status Update (nsteps=1, objective ratio=0)
+------------------------------------------------------------------------
+           Species   Volume Fraction     Mole Fraction     Mass Fraction
+------------------------------------------------------------------------
+           NC12H26        1.2208e-10          1.13e-10        1.0904e-10
+           NC14H30        2.2165e-11        1.7921e-11        2.0142e-11
+           NC16H34           0.19006           0.13676           0.17544
+           NC18H38          0.053699          0.034605          0.049893
+           NC20H42          0.056639          0.033087          0.052964
+             TETRA          0.087805           0.13585           0.10179
+          TDECALIN           0.14922           0.19823           0.15528
+               PBZ        7.3913e-13        1.1188e-12        7.6205e-13
+          C6H5C4H9        2.7494e-13        3.7181e-13        2.8281e-13
+           T124MBZ        1.4665e-10        2.2507e-10         1.533e-10
+             A2CH3           0.11685           0.17675           0.14246
+               HMN           0.27224           0.19646           0.25203
+              NBCH          0.073496          0.088258          0.070137
+------------------------------------------------------------------------
+       Target Name      Target Value     Current Value         Objective
+------------------------------------------------------------------------
+     Cetane Number                44             44.07           0.00604
+           Density             0.848            0.8341           0.04908
+       Dist. Curve                --                --            0.4048
+       Carbon Type                --                --                 0
+                HC             1.782             1.781          0.002886
+    Carbon Type #1             0.176             0.191           0.06011
+    Carbon Type #2              0.26            0.3065             0.186
+    Carbon Type #3             0.057           0.01537          0.008326
+    Carbon Type #4             0.254            0.2011            0.2117
+    Carbon Type #5             0.037          0.006904           0.06019
+    Carbon Type #6             0.008           0.03101           0.04602
+    Carbon Type #7             0.115            0.1393           0.09715
+    Carbon Type #8             0.046           0.01383           0.03217
+    Carbon Type #9             0.025           0.02125          0.003746
+   Carbon Type #10             0.022           0.02765          0.005651
+   Carbon Type #11                 0            0.0461           0.02305
+    NC18H38 < 5.0%              0.05            0.0537           0.03699
+    NC20H42 < 5.0%              0.05           0.05664           0.06639
+TDECALIN < 15.0% (mass)              0.15            0.1553           0.05276
+A2CH3 < 15.0% (mass)              0.15            0.1425                 0
+TETRA < 10.0% (mass)               0.1            0.1018           0.01792
+C6H5C4H9 < 15.0% (mass)              0.15         2.828e-13                 0
+T124MBZ < 15.0% (mass)              0.15         1.533e-10                 0
+NBCH < 15.0% (mass)              0.15           0.07014                 0
+HMN < 30.0% (mass)               0.3             0.252                 0
+          YSI (CT)             122.2             111.8          0.008515
+   Total Objective                --                --         0.5245701
+------------------------------------------------------------------------
+

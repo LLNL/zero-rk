@@ -712,6 +712,9 @@ void FlameParams::SetMemory()
   max_velocity_ = 0.0;
   min_velocity_ = 0.0;
   max_thermal_diffusivity_ = 0.0;
+  P_left_ = 0.0;
+  P_right_ = 0.0;
+  G_right_ = 0.0;
 
   stagnation_plane_ = length_*0.25; //initialize at quarter length?
 

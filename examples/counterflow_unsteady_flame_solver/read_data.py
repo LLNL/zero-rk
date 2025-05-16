@@ -18,7 +18,7 @@ index = 0
 # Read variable names
 name = []
 for j in range(num_vars):
-    name.append(struct.unpack_from("64c",data1,offset=4+4+8+index))
+    name.append(struct.unpack_from("64s",data1,offset=4+4+8+index)[0].split(b'\0')[0].decode())
     index = index + 64
 
 # Read variable values
@@ -31,6 +31,10 @@ for j in range(num_vars+1):
 # Write to ascii file
 fh = open("ascii_data","w")
 # Write data
+for j in range(num_vars):
+    fh.write(name[j]+'\t')
+fh.write('\n')
+
 for i in range(num_points1):
     fh.write(str(grid1[i]) + '\t')
     for j in range(num_vars+1):

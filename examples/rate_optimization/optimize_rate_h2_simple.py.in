@@ -2,7 +2,7 @@
 import os
 import sys
 import scipy.optimize as optimize
-from rate_opt import mech_optimizer, cv_opt
+from zerork.rate_opt import mech_optimizer, cv_opt
 
 if __name__ == '__main__':
     #Instantiate the mechanism_optimizer object with the model to be optimized

@@ -131,7 +131,7 @@ spify_parser_params.append(
     'type':'int',
     'shortDesc' : "Integrator",
     'defaultValue' : 0,
-    'discreteValues': [0,1]
+    'discreteValues': [0,1,2,3]
 }
 )
 

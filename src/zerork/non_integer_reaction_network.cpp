@@ -24,6 +24,17 @@ static std::string IntToString(const int i)
   return std::string(int_c_str);
 }
 
+static int FindIntVectorId(const int search_elem, std::vector<int> &vec) {
+  const int nelems = vec.size();
+  for(int j=0; j<nelems; ++j) {
+
+    if(search_elem == vec[j]) {
+      return j;
+    }
+  }
+  return -1; // search_elem not found
+}
+
 NonIntegerReactionNetwork::NonIntegerReactionNetwork()
 {
   num_non_integer_steps_     = 0;
@@ -46,6 +57,9 @@ int NonIntegerReactionNetwork::AddStep(const ckr::Reaction &ckreader_reaction,
                       const int step_id)
 {
   NonIntegerStepParams add_params;
+
+  std::map<std::string, double> forward_rop_map, reverse_rop_map;
+  std::map<std::string, double>::const_iterator rop_it;
 
   // extract the necessary parameters from the reaction data
   add_params.step_id_ = step_id;
@@ -71,6 +85,15 @@ int NonIntegerReactionNetwork::AddStep(const ckr::Reaction &ckreader_reaction,
 
     add_params.reactant_species_ids_.push_back(map_iter->second);
     add_params.reactant_stoich_num_.push_back(stoich_num);
+    
+    if(forward_rop_map.find(species_name) == forward_rop_map.end()) {
+      forward_rop_map[species_name] = stoich_num;      
+    } else {
+      // CKParser does not combine repeated stoichiometric coefficients
+      // on the same side of the reaction
+      forward_rop_map[species_name] += stoich_num;
+    }
+
   }
   // process the products stoichiometric data
   for(size_t j=0; j<ckreader_reaction.products.size(); ++j) {
@@ -94,35 +117,104 @@ int NonIntegerReactionNetwork::AddStep(const ckr::Reaction &ckreader_reaction,
 
     add_params.product_species_ids_.push_back(map_iter->second);
     add_params.product_stoich_num_.push_back(stoich_num);
-  }
 
-  // swap the reactants and product vectors if the direction is reverse
-  if(reaction_dir == REVERSE) {
-    add_params.product_species_ids_.swap(add_params.reactant_species_ids_);
-    add_params.product_stoich_num_.swap(add_params.reactant_stoich_num_);
+    if(reverse_rop_map.find(species_name) == reverse_rop_map.end()) {
+      reverse_rop_map[species_name] = stoich_num;
+    } else {
+      // CKParser does not combine repeated stoichiometric coefficients
+      // on the same side of the reaction
+      reverse_rop_map[species_name] += stoich_num;
+    }
+
   }
 
   // Process the rate-of-progress concentration exponents specified by
-  // the FORD and RORD keywords. If step is forward direction use FORD,
-  // otherwise RORD. If the FORD or RORD keywords aren't present, then
-  // rate-of-progress concentration exponents are the same as the reactants
-
-  add_params.rop_species_ids_ = add_params.reactant_species_ids_;
-  add_params.rop_concentration_powers_ = add_params.reactant_stoich_num_;
-
-  // the reverse rate-of-progress concentration information is also stored to
-  // facilitate the calculation of the equilibrium constant
-  add_params.reverse_rop_species_ids_ = add_params.product_species_ids_;
-  add_params.reverse_rop_concentration_powers_ = add_params.product_stoich_num_;
-
-  // TODO: add FORD/RORD info to the reaction class and special processing
-  // to set rop_species_ids_, and rop_concentration_powers_.
+  // the FORD and RORD keywords. If the FORD (or RORD)  keyword isn't present, 
+  // then the rate-of-progress concentration exponents are the same as the 
+  // reactants (or products). 
   //
-  // Chemkin Pro allows for the species that don't even appear as reactants
-  // or products to be used in the rate-of-progress calculation.  The default
-  // is to use the stoichiometric coefficients of the reactants.  To add this
-  // capabity, one needs to check if the defined FORD/RORD species already
-  // exists. Then add or overwrite its concentration_power_.
+  // forward_rop_map and reverse_rop_map at this point are set to the
+  // stoichiometric values 
+    
+  // Overwrite if the FORD or RORD keywords are found
+  if(ckreader_reaction.isRealOrder) {
+    //printf("# DEBUG: Add step found FORD/RORD\n"); fflush(stdout);
+
+    for(rop_it=ckreader_reaction.fwdOrder.begin();
+      rop_it != ckreader_reaction.fwdOrder.end(); rop_it++) {
+      
+      forward_rop_map[rop_it->first] = rop_it->second;
+    }
+
+    for(rop_it=ckreader_reaction.revOrder.begin();
+      rop_it != ckreader_reaction.revOrder.end(); rop_it++) {
+      
+      reverse_rop_map[rop_it->first] = rop_it->second;
+    }
+  }
+  // forward_rop_map and reverse_rop_map at this point are set to the
+  // final real order values. 
+
+  // Copy forward_rop_map info to add_params.rop_species_ids_ and
+  // add_params.rop_concetration_powers_
+  
+  for(rop_it=forward_rop_map.begin(); 
+    rop_it != forward_rop_map.end(); rop_it++) {
+
+    std::map<std::string, int>::const_iterator map_iter;
+    map_iter = id_of_name.find(rop_it->first);
+
+    if(map_iter == id_of_name.end()) {
+      // species not found, do not add step and return negative flag
+      printf("# WARNING: In NonIntegerReactionNetwork::AddStep(...),\n");
+      printf("#          could not add step id = %d (reaction id = %d)\n",
+             step_id, reaction_id);
+      printf("#          because species index not found for reactant = %s\n",
+             rop_it->first.c_str());
+      fflush(stdout);
+      return -1;
+    }
+    add_params.rop_species_ids_.push_back(map_iter->second);
+    add_params.rop_concentration_powers_.push_back(rop_it->second);  
+  }
+
+  // Copy reverse_rop_map info to add_params.reverse_rop_species_ids_ and
+  // add_params.reverse_rop_concentration_powers_
+  //
+  // The reverse rate-of-progress concentration information is also stored to
+  // facilitate the calculation of the equilibrium constant
+
+  for(rop_it=reverse_rop_map.begin();
+    rop_it != reverse_rop_map.end(); rop_it++) {
+
+    std::map<std::string, int>::const_iterator map_iter;
+    map_iter = id_of_name.find(rop_it->first);
+
+    if(map_iter == id_of_name.end()) {
+      // species not found, do not add step and return negative flag
+      printf("# WARNING: In NonIntegerReactionNetwork::AddStep(...),\n");
+      printf("#          could not add step id = %d (reaction id = %d)\n",
+             step_id, reaction_id);
+      printf("#          because species index not found for product = %s\n",
+             rop_it->first.c_str());
+      fflush(stdout);
+      return -1;
+    }
+    add_params.reverse_rop_species_ids_.push_back(map_iter->second);
+    add_params.reverse_rop_concentration_powers_.push_back(rop_it->second);  
+  }
+
+  // swap the reactants and products if the direction is reverse
+  // seap forward and reverse ROP vectors if the direction is reverse
+  if(reaction_dir == REVERSE) {
+    
+    add_params.reactant_species_ids_.swap(add_params.product_species_ids_);
+    add_params.reactant_stoich_num_.swap(add_params.product_stoich_num_);    
+
+    add_params.rop_species_ids_.swap(add_params.reverse_rop_species_ids_);
+    add_params.rop_concentration_powers_.swap(
+      add_params.reverse_rop_concentration_powers_);
+  }
 
 
   // At this point the NonIntegerStepParams data is set

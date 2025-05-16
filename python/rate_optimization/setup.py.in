@@ -1,5 +1,0 @@
-from setuptools import setup
-
-setup(package_data={'rate_opt': ['data/*.yml']},
-      zip_safe=False)
-

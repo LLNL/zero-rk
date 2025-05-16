@@ -210,13 +210,13 @@ double PLogReaction::GetRateCoefficientFromTP(const double temperature,
   if(temperature <= 0.0 || pressure <= 0.0) {
     if(!neg_pressure_warned) {
       neg_pressure_warned=true;
-      printf("# WARNING: In PLogReaction::GetRateCoefficientFromTP(...),\n");
-      printf("#          can not use log interpolation on a negative pressure\n");
-      printf("#          or temperature:\n");
-      printf("#              p = %.18g [Pa]\n", pressure);
-      printf("#              T = %.18g [K]\n", temperature);
-      printf("#          Reaction %d\n", reaction_index_);
-      printf("#          Returning a rate coefficient of zero.\n");
+      fprintf(stderr,"# WARNING: In PLogReaction::GetRateCoefficientFromTP(...),\n");
+      fprintf(stderr,"#          can not use log interpolation on a negative pressure\n");
+      fprintf(stderr,"#          or temperature:\n");
+      fprintf(stderr,"#              p = %.18g [Pa]\n", pressure);
+      fprintf(stderr,"#              T = %.18g [K]\n", temperature);
+      fprintf(stderr,"#          Reaction %d\n", reaction_index_);
+      fprintf(stderr,"#          Returning a rate coefficient of zero.\n");
     }
     return 0.0;
   }
@@ -260,16 +260,16 @@ double PLogReaction::GetRateCoefficientFromTP(const double temperature,
     if(rate_coefficient_p1 <= 0.0) {
       if(!neg_coeff_warned) {
         neg_coeff_warned = true;
-        printf("# ERROR:   In PLogReaction::GetRateCoefficientFromTP(...),\n");
-        printf("#          can not use log interpolation on a negative rate coefficient:\n");
-        printf("#              K(p,T) = %.18g\n",
+        fprintf(stderr,"# ERROR:   In PLogReaction::GetRateCoefficientFromTP(...),\n");
+        fprintf(stderr,"#          can not use log interpolation on a negative rate coefficient:\n");
+        fprintf(stderr,"#              K(p,T) = %.18g\n",
                rate_coefficient_p1);
-        printf("#                  p  = %.18g [Pa]\n",
+        fprintf(stderr,"#                  p  = %.18g [Pa]\n",
                pressure_points_[range_id]);
-        printf("#                  T  = %.18g [K]\n",
+        fprintf(stderr,"#                  T  = %.18g [K]\n",
                temperature);
-        printf("#          Reaction %d\n", reaction_index_);
-        printf("#          Returning a rate coefficient of zero.\n");
+        fprintf(stderr,"#          Reaction %d\n", reaction_index_);
+        fprintf(stderr,"#          Returning a rate coefficient of zero.\n");
       }
       return 0.0;
     }
@@ -280,16 +280,16 @@ double PLogReaction::GetRateCoefficientFromTP(const double temperature,
     if(rate_coefficient_p2 <= 0.0) {
       if(!neg_coeff_warned) {
         neg_coeff_warned = true;
-        printf("# ERROR:   In PLogReaction::GetRateCoefficientFromTP(...),\n");
-        printf("#          can not use log interpolation on a negative rate coefficient:\n");
-        printf("#              K(p,T) = %.18g\n",
+        fprintf(stderr,"# ERROR:   In PLogReaction::GetRateCoefficientFromTP(...),\n");
+        fprintf(stderr,"#          can not use log interpolation on a negative rate coefficient:\n");
+        fprintf(stderr,"#              K(p,T) = %.18g\n",
                rate_coefficient_p2);
-        printf("#                  p  = %.18g [Pa]\n",
+        fprintf(stderr,"#                  p  = %.18g [Pa]\n",
                pressure_points_[range_id+1]);
-        printf("#                  T  = %.18g [K]\n",
+        fprintf(stderr,"#                  T  = %.18g [K]\n",
                temperature);
-        printf("#          Reaction %d\n", reaction_index_);
-        printf("#          Returning a rate coefficient of zero.\n");
+        fprintf(stderr,"#          Reaction %d\n", reaction_index_);
+        fprintf(stderr,"#          Returning a rate coefficient of zero.\n");
       }
       return 0.0;
     }
@@ -323,13 +323,13 @@ double PLogReaction::GetRateCoefficientFromTP(const double temperature,
                                               const double pressure)
 {
   if(temperature <= 0.0 || pressure <= 0.0) {
-    printf("# WARNING: In PLogReaction::GetRateCoefficientFromTP(...),\n");
-    printf("#          can not use log interpolation on a negative pressure\n");
-    printf("#          or temperature:\n");
-    printf("#              p = %.18g [Pa]\n", pressure);
-    printf("#              T = %.18g [K]\n", temperature);
-    printf("#          Reaction %d\n", reaction_index_);
-    printf("#          Returning a rate coefficient of zero.\n");
+    fprintf(stderr,"# WARNING: In PLogReaction::GetRateCoefficientFromTP(...),\n");
+    fprintf(stderr,"#          can not use log interpolation on a negative pressure\n");
+    fprintf(stderr,"#          or temperature:\n");
+    fprintf(stderr,"#              p = %.18g [Pa]\n", pressure);
+    fprintf(stderr,"#              T = %.18g [K]\n", temperature);
+    fprintf(stderr,"#          Reaction %d\n", reaction_index_);
+    fprintf(stderr,"#          Returning a rate coefficient of zero.\n");
     return 0.0;
   }
 

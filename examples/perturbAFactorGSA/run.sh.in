@@ -1,5 +1,5 @@
 
-python create_lognormal_mtx.py
+"@Python3_EXECUTABLE@" create_lognormal_mtx.py
 
 app=perturbAFactorGSA_mpi.x
 inp=perturbAFactorGSA_example.yml

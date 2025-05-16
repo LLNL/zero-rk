@@ -62,7 +62,7 @@ TEST_F (PhysicalConstantsTestFixture, GasConstant)
     "physical_constants_ = new PhysicalConstants()";
 
   EXPECT_TRUE(NearScalar(physical_constants_->GetGasConstant(),
-                         8314.4598,
+                         8.314462618e3,
                          relative_tolerance,
                          absolute_tolerance)) << std::setprecision(3) <<
     "with relative_tolerance = "  << relative_tolerance <<
@@ -79,7 +79,7 @@ TEST_F (PhysicalConstantsTestFixture, AvogadroNum)
     "physical_constants_ = new PhysicalConstants()";
 
   EXPECT_TRUE(NearScalar(physical_constants_->GetAvogadroNum(),
-                         6.022140857e26,
+                         6.022140767e26,
                          relative_tolerance,
                          absolute_tolerance)) << std::setprecision(3) <<
     "with relative_tolerance = "  << relative_tolerance <<
@@ -95,7 +95,7 @@ TEST_F (PhysicalConstantsTestFixture, BoltzmannConstant)
     "physical_constants_ = new PhysicalConstants()";
 
   EXPECT_TRUE(NearScalar(physical_constants_->GetBoltzmannConstant(),
-                         1.38064852e-23,
+                         1.380649e-23,
                          relative_tolerance,
                          absolute_tolerance)) << std::setprecision(3) <<
     "with relative_tolerance = "  << relative_tolerance <<

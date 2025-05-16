@@ -1,14 +1,18 @@
 
+#include <cuComplex.h>
 #include <stdio.h>
+
 #include "cuda_la_manager.h"
 
-cuda_la_manager::cuda_la_manager() 
+template<typename T>
+cuda_la_manager<T>::cuda_la_manager() 
  :
    use_lu_(false)
 {
 };
 
-int cuda_la_manager::factor(int num_batches, int n, double* values) {
+template<typename T>
+int cuda_la_manager<T>::factor(int num_batches, int n, T* values) {
  if(use_lu_) {
    return(this->factor_lu(num_batches, n, values));
  } else {
@@ -16,7 +20,8 @@ int cuda_la_manager::factor(int num_batches, int n, double* values) {
  }
 }
 
-int cuda_la_manager::solve(int num_batches, int n, const double* rhs, double* soln) {
+template<typename T>
+int cuda_la_manager<T>::solve(int num_batches, int n, const T* rhs, T* soln) {
  if(use_lu_) {
    return(this->solve_lu(num_batches, n, rhs, soln));
  } else {
@@ -24,4 +29,7 @@ int cuda_la_manager::solve(int num_batches, int n, const double* rhs, double* so
  }
 }
 
+
+template class cuda_la_manager<double>;
+template class cuda_la_manager<cuDoubleComplex>;
 

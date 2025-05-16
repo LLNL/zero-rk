@@ -19,7 +19,7 @@ static const int NUM_SPECIES = 5;
 static const int NUM_REACTIONS = 2;
 static const int NUM_STEPS = 3;
 
-static const double LOCAL_GAS_CONST = 8314.4598;
+static const double LOCAL_GAS_CONST = 8.314462618e3;
 
 static double GetEquilibriumConstReaction01(const double temperature);
 

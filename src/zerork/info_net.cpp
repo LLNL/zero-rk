@@ -437,9 +437,10 @@ void info_net::setReactionFlags(ckr::CKReader *ckrobj)
     {
        all_non_integer = atoi(all_non_integer_char);
     }
-    if( all_non_integer != 0 ) {
+    if( all_non_integer != 0 || ckrobj->reactions[j].isRealOrder) {
       isNonIntegerStoich[j] = 1;
-    } else {
+    }
+    else {
       isNonIntegerStoich[j] = 0;
       double count;
       int int_count;
@@ -465,6 +466,9 @@ void info_net::setReactionFlags(ckr::CKReader *ckrobj)
           }
         }
       }
+      //
+      // TODO - check if reaction is Real Order 
+      //
     }
   }   
 }

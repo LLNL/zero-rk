@@ -413,6 +413,24 @@ spify_parser_params.append(
 }
 )
 
+spify_parser_params.append(
+{
+    'name':'write_step_rates_to_field_files',
+    'type':'bool',
+    'longDesc' : "Flag that when set to true [y] includes step rates in field file output",
+    'defaultValue' : 0
+}
+)
+
+spify_parser_params.append(
+{
+    'name':'use_equilibrium_for_init',
+    'type':'bool',
+    'longDesc' : "Flag that when set to true [y] uses equilibrium composition for initialization",
+    'defaultValue' : 0
+}
+)
+
 #Generate parser code
 spg().generate(spify_parser_name,spify_parser_params)
 
