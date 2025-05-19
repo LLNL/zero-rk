@@ -51,4 +51,24 @@ do
                   ./data/state10_p20T0900.inp \
                   /dev/null $rctrs $((${numnum}/$rctrs))
 
+    nm=ford
+    mf=real_order/ford_propane.mech
+    tf=ideal/const_specific_heat.therm
+    ./gpuMultiOdeFuncTester.x ${ZERORK_DATA_DIR}/mechanisms/${mf} \
+                  ${ZERORK_DATA_DIR}/mechanisms/${tf} \
+                  ./${nm}.cklog \
+                  ./data/state10_p20T0900.inp \
+                  /dev/null $rctrs $((${numnum}/$rctrs))
+
+    nm=rord
+    mf=real_order/rord_propane.mech
+    tf=ideal/const_specific_heat.therm
+    ./gpuMultiOdeFuncTester.x ${ZERORK_DATA_DIR}/mechanisms/${mf} \
+                  ${ZERORK_DATA_DIR}/mechanisms/${tf} \
+                  ./${nm}.cklog \
+                  ./data/state10_p20T0900.inp \
+                  /dev/null $rctrs $((${numnum}/$rctrs))
+
+
+
 done

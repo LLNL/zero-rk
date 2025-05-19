@@ -269,6 +269,15 @@ void ReactorNVectorSerial::SetupSparseJacobianArrays() {
     noninteger_sparse_id_temperature_[j] = nzAddr-1;
     noninteger_sparse_id_no_temperature_[j] = nzAddr-1 - noninteger_column_id[j];
   }
+
+
+  // complex J for radau
+  lpmz_.resize(ncmplx_jacs_);
+  slumz_.resize(ncmplx_jacs_);
+  preconditioner_column_sums_z_.resize(ncmplx_jacs_);
+  preconditioner_row_indexes_z_.resize(ncmplx_jacs_);
+  preconditioner_data_z_.resize(ncmplx_jacs_);
+
 }
 
 
@@ -335,6 +344,17 @@ int ReactorNVectorSerial::SparseToDense(const std::vector<int>& sums, const std:
   for(int j=0; j < num_vars; ++j) {
     for(int k = sums[j]; k < sums[j+1]; ++k) {
       (*dense)[j*num_vars + idxs[k]] = vals[k];
+    }
+  }
+  return 0;
+}
+
+int ReactorNVectorSerial::SparseToDenseComplex(const std::vector<int>& sums, const std::vector<int>& idxs,
+                                               const std::vector<doublecomplex>& vals, std::vector<std::complex<double>>* dense) {
+  const int num_vars = GetNumStateVariables();
+  for(int j=0; j < num_vars; ++j) {
+    for(int k = sums[j]; k < sums[j+1]; ++k) {
+      (*dense)[j*num_vars + idxs[k]] = std::complex<double>(vals[k].r, vals[k].i);
     }
   }
   return 0;
@@ -486,6 +506,106 @@ int ReactorNVectorSerial::JacobianSolve(double t, N_Vector y, N_Vector fy,
   return flag;
 }
 
+int ReactorNVectorSerial::ComplexJacobianFactor(int k, double alpha, double beta)
+{
+  int flag = 0;
+  bool dense_numeric = (int_options_["dense"] == 1) && (int_options_["analytic"] == 0);
+  if( !dense_numeric ) {
+    int preconditioner_nnz = 0;
+
+    preconditioner_column_sums_z_[k].assign(num_variables_+1,0);
+    preconditioner_row_indexes_z_[k].assign(nnz_,0);
+    doublecomplex zero;
+    zero.r = 0.0;
+    zero.i = 0.0;
+    preconditioner_data_z_[k].assign(nnz_,zero);
+    for(int j=0; j<num_variables_; j++) { // column number
+      preconditioner_column_sums_z_[k][j+1] = preconditioner_column_sums_z_[k][j];
+      for(int i=(*jacobian_column_sums_ptr_)[j]; i<(*jacobian_column_sums_ptr_)[j+1]; ++i) { //row
+        int row = (*jacobian_row_indexes_ptr_)[i];
+        bool diag = row == j;
+        double element_value = -jacobian_data_[i];
+
+        preconditioner_data_z_[k][preconditioner_nnz].r = element_value;
+        preconditioner_data_z_[k][preconditioner_nnz].i = 0.0;
+        if(diag) {
+          preconditioner_data_z_[k][preconditioner_nnz].r += alpha;
+          preconditioner_data_z_[k][preconditioner_nnz].i = beta;
+        }
+        preconditioner_row_indexes_z_[k][preconditioner_nnz] = row;
+        preconditioner_column_sums_z_[k][j+1] += 1;
+        preconditioner_nnz += 1;
+      }
+    }
+    preconditioner_row_indexes_z_[k].resize(preconditioner_nnz);
+    preconditioner_data_z_[k].resize(preconditioner_nnz);
+  }
+
+
+  if(int_options_["dense"] == 1) {
+    std::complex<double> czero(0.0, 0.0);
+    std::vector<std::complex<double>> dense_preconditioner_z(num_variables_*num_variables_, czero);
+    if(int_options_["analytic"] == 1) {
+      SparseToDenseComplex(preconditioner_column_sums_z_[k], preconditioner_row_indexes_z_[k], preconditioner_data_z_[k],
+                           &dense_preconditioner_z);
+    } else {
+      for(int col = 0; col < num_variables_; ++col) {
+        for(int row = 0; row < num_variables_; ++row) {
+          const int idx = row*num_variables_ + col;
+          dense_preconditioner_z[idx].real(-dense_jacobian_[idx]);
+	  if(row == col) {
+            dense_preconditioner_z[idx] += std::complex<double>(alpha , beta);
+	  }
+        }
+      }
+    }
+    flag = lpmz_[k].factor(num_variables_, num_variables_, dense_preconditioner_z);
+  } else {
+    flag = slumz_[k].refactor(preconditioner_data_z_[k]);
+    if(flag != 0) {
+      flag = slumz_[k].factor(preconditioner_row_indexes_z_[k],
+                              preconditioner_column_sums_z_[k],
+                              preconditioner_data_z_[k],
+                              superlu_manager_z::CSC);
+    }
+  }
+  return flag;
+}
+
+
+int ReactorNVectorSerial::ComplexJacobianSolve(int k, N_Vector ax, N_Vector bx)
+{
+  double * a_ptr = NV_DATA_S(ax); //real
+  double * b_ptr = NV_DATA_S(bx); //imaginary
+  int flag = 0;
+  if(int_options_["dense"] == 1) {
+    std::vector<std::complex<double>> rhs(num_variables_);
+    std::vector<std::complex<double>> sol(num_variables_);
+    for(int i=0; i<num_variables_; ++i) {
+      rhs[i] = std::complex<double>(a_ptr[i], b_ptr[i]);
+    }
+    flag = lpmz_[k].solve(rhs, &sol);
+    for(int i=0; i<num_variables_; ++i) {
+      a_ptr[i] = sol[i].real();
+      b_ptr[i] = sol[i].imag();
+    }
+  } else {
+    std::vector<doublecomplex> rhs(num_variables_);
+    std::vector<doublecomplex> sol(num_variables_);
+
+    for(int i=0; i<num_variables_; ++i) {
+      rhs[i].r = a_ptr[i];
+      rhs[i].i = b_ptr[i];
+    }
+    flag = slumz_[k].solve(rhs, &sol);
+    for(int i=0; i<num_variables_; ++i) {
+      a_ptr[i] = sol[i].r;
+      b_ptr[i] = sol[i].i;
+    }
+  }
+
+  return flag;
+}
 
 int ReactorNVectorSerial::SetupJacobianSparse(realtype t, N_Vector y,N_Vector fy)
 {

@@ -1,9 +1,0 @@
-#!/bin/bash
-
-"@Python3_EXECUTABLE@" -m venv zerork_rate_optimization_env
-source zerork_rate_optimization_env/bin/activate
-cd @CMAKE_INSTALL_PREFIX@/share/zerork/python
-"@Python3_EXECUTABLE@" -m pip install --upgrade pip
-"@Python3_EXECUTABLE@" -m pip install .
-
-

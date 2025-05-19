@@ -16,8 +16,7 @@ endif()
 
 if((NOT EXISTS ${magma_prefix}) OR (NOT ${magma_system_working}))
   message(STATUS "Building: Magma...")
-  set(GPU_TARGET_LIST "${HIP_ARCHITECTURES}")
-  string(REPLACE ";" " " GPU_TARGET "${GPU_TARGET_LIST}")
+  set(GPU_TARGET ${CMAKE_HIP_ARCHITECTURES_EXT})
   configure_file(
 	${CMAKE_CURRENT_LIST_DIR}/magma.CMakeLists.txt
 	${CMAKE_BINARY_DIR}/external/magma-build/CMakeLists.txt)

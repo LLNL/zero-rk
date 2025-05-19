@@ -9,6 +9,7 @@
 
 #include "set_initial_conditions.h"
 
+#include "equil/zerork_equilibrium_solver.h"
 
 
 // Set initial composition
@@ -82,116 +83,63 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
 
   zst = flame_params.stoichiometric_mixture_fraction_;
 
-  /*
-  // ------------ BEGIN Constrained Equibrium calc  -----------//
-  // Only on root
-  if(my_pe == 0) {
-    printf("# Using equilibrium composition to initialize Y and T\n");
-    int k,l;
-    std::vector<double> thermoCoeffs(num_species*16);
-    std::vector<double> thermoCoeffs_CEQ(num_species*15);
-    flame_params.mechanism_->getThermoCoeffs(&thermoCoeffs[0]);
-    for(k=0; k<num_species; k++)
-      for(l=0; l<15; l++) //transpose
-        thermoCoeffs_CEQ[l*num_species+k] = thermoCoeffs[k*16 + l];
-
-    int ne;
-    ne = flame_params.mechanism_->getNumElements();
-    std::vector<int> Ein_int(num_species*ne);
-    std::vector<double> Ein_double(num_species*ne);
-    flame_params.mechanism_->getSpeciesOxygenCount(&Ein_int[0]);
-    flame_params.mechanism_->getSpeciesNitrogenCount(&Ein_int[2*num_species]);
-    flame_params.mechanism_->getSpeciesHydrogenCount(&Ein_int[num_species]);
-    if(ne>3) flame_params.mechanism_->getSpeciesCarbonCount(&Ein_int[3*num_species]);
-    if(ne>4) flame_params.mechanism_->getSpeciesArgonCount(&Ein_int[4*num_species]);
-    if(ne>5) flame_params.mechanism_->getSpeciesHeliumCount(&Ein_int[5*num_species]);
-
-    for(k=0; k<num_species*ne; k++)
-      Ein_double[k] = (double)Ein_int[k];
-
-    ofstream file1;
-    file1.open("CEQ-inputs");
-    file1 << num_species << "\n";
-    file1 << ne << "\n";
-    file1 << pressure << "\n";
-    if(flame_params.flame_type_ == 0) {
-      file1 << 0.5*(flame_params.fuel_temperature_ +
-                    flame_params.oxidizer_temperature_)*
-        flame_params.ref_temperature_ << "\n";
-    } else {
-      file1 << flame_params.fuel_temperature_*flame_params.ref_temperature_ << "\n";
-    }
-    for(k=0; k<num_species; k++)
-      file1 << 1.0/flame_params.inv_molecular_mass_[k] << " ";
-    file1 << "\n";
-    for(k=0; k<num_species*15; k++)
-      file1 << thermoCoeffs_CEQ[k] << " ";
-    file1 << "\n";
-    for(k=0; k<num_species*ne; k++)
-      file1 << Ein_double[k] << " ";
-    file1 << "\n";
-    for(k=0; k<num_species; k++) {
+#ifdef ZERORK_HAVE_EQUILIBRIUM_SOLVER
+  if(flame_params.parser_->use_equilibrium_for_init()) {
+    // ------------ BEGIN Constrained Equibrium calc  -----------//
+    // Only on root
+    if(my_pe == 0) {
       if(flame_params.flame_type_ == 0) {
-        file1 << zst*flame_params.fuel_mass_fractions_[k] + (1.0-zst)*flame_params.oxidizer_mass_fractions_[k] << " ";
+        temperature_eq = 0.5*(flame_params.fuel_temperature_ + flame_params.oxidizer_temperature_)*
+                         flame_params.ref_temperature_;
       } else {
-        file1 << flame_params.inlet_mass_fractions_[k] << " ";
+        temperature_eq = flame_params.fuel_temperature_*flame_params.ref_temperature_;
       }
+      for(int k=0; k<num_species; k++) {
+        if(flame_params.flame_type_ == 0) {
+          eq_mass_fractions[k] = zst*flame_params.fuel_mass_fractions_[k]
+                                 + (1.0-zst)*flame_params.oxidizer_mass_fractions_[k];
+        } else {
+          eq_mass_fractions[k] = flame_params.inlet_mass_fractions_[k];
+        }
+      }
+      zerork::equilibrium_solver zeq(*flame_params.mechanism_);
+      zeq.equilibrate(pressure, temperature_eq,
+                      &eq_mass_fractions[0]);
+      temperature_eq /= flame_params.ref_temperature_;
     }
-    file1 << "\n";
-    file1.close();
-
-    // Call CEQ
-    int ceq_return = system("eqHPfromFile.x");
-    if(ceq_return != 0) {
-      printf("# ERROR: could not get equilibrium mixture from CEQ.\n");
-      exit(-1);
+    // Broadcast eq. T & Y to all procs
+    MPI_Bcast(&temperature_eq, 1, MPI_DOUBLE, 0, comm);
+    MPI_Bcast(&eq_mass_fractions[0], num_species, MPI_DOUBLE, 0, comm);
+    // ------------ END Constrained Equibrium calc  -----------//
+  } else
+#else
+  if(flame_params.parser_->use_equilibrium_for_init()) {
+    if(my_pe == 0) {
+      printf("No equilibrium interface enabled.  Please re-configure/re-build Zero-RK to enable CEQ or Cantera equilibrium interface.\n");
+      printf("Falling back to \"simple\" initialization\n");
     }
-
-    // Read equilibrium state
-    std::ifstream infile("CEQ.dat");
-    std::string line;
-    k=0;
-    double val;
-    while (std::getline(infile, line))
-    {
-      std::istringstream iss(line);
-      iss >> val;
-      if(k<num_species)
-        eq_mass_fractions[k] = val;
-      if(k==num_species)
-        temperature_eq = val/flame_params.ref_temperature_;
-
-      k++;
-    }
-    printf("# Eq. temp: %5.3e\n",temperature_eq);
   }
-
-  // Broadcast eq. T & Y to all procs
-  MPI_Bcast(&temperature_eq, 1, MPI_DOUBLE, 0, comm);
-  MPI_Bcast(&eq_mass_fractions[0], num_species, MPI_DOUBLE, 0, comm);
-  // ------------ END Constrained Equibrium calc  -----------//
-  */
-
-  /**/
-  // "Simple" initialization sometimes works better than EQ
-  sumY = 0.0;
-  for(int k=0; k<num_species; ++k){
-    if(flame_params.flame_type_ == 0) {
-      eq_mass_fractions[k] = zst*flame_params.fuel_mass_fractions_[k] +
-        (1.0-zst)*flame_params.oxidizer_mass_fractions_[k];
+#endif
+  {
+    // "Simple" initialization sometimes works better than EQ
+    sumY = 0.0;
+    for(int k=0; k<num_species; ++k){
+      if(flame_params.flame_type_ == 0) {
+        eq_mass_fractions[k] = zst*flame_params.fuel_mass_fractions_[k] +
+          (1.0-zst)*flame_params.oxidizer_mass_fractions_[k];
       } else {
-      eq_mass_fractions[k] = flame_params.inlet_mass_fractions_[k];
+        eq_mass_fractions[k] = flame_params.inlet_mass_fractions_[k];
       }
 
-    if(k==OH_id)
-      eq_mass_fractions[k] += 0.003; // add OH to help ignition
-    sumY += eq_mass_fractions[k];
-  }
-  for(int k=0; k<num_species; ++k)
-    eq_mass_fractions[k] /= sumY;
+      if(k==OH_id)
+        eq_mass_fractions[k] += 0.003; // add OH to help ignition
+      sumY += eq_mass_fractions[k];
+    }
+    for(int k=0; k<num_species; ++k)
+      eq_mass_fractions[k] /= sumY;
 
-  temperature_eq = temperature_stoich;
-  /**/
+    temperature_eq = temperature_stoich;
+  }
 
   // Renormalize and compute mixture weight
   mixture_molecular_mass = 0.0;
@@ -428,9 +376,6 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
 
     MPI_File_read_all(restart_file, &num_points_file, 1, MPI_INT, MPI_STATUS_IGNORE);
     MPI_File_read_all(restart_file, &num_vars_file, 1, MPI_INT, MPI_STATUS_IGNORE);
-    if(num_vars_file != num_states) {
-      cerr << "WARNING: restart file and mechanism have different number of species. Species not found will be initialized at 0.\n";
-    }
 
     MPI_File_read_all(restart_file, &time_file, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
     *time = time_file;
@@ -477,7 +422,9 @@ void SetInitialComposition(FlameParams &flame_params, double *y, double *time)
         }
         if (i==num_vars_file-1 && state_name != file_state_names[i]) {
           // Variable not found
-          cerr << "WARNING: " << state_name << " not found in restart file.\n";
+          if(my_pe == 0) {
+            cerr << "WARNING: " << state_name << " not found in restart file.\n";
+	  }
         }
       } // for i<num_vars_file
     } // for j<num_states

@@ -106,14 +106,18 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
   Tchanged = true;
   Tcurrent = 0;
 
-  int allocSize = nDistinctArrhenius;
-  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 32
-  arrWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
-  memset(arrWorkArray,0.0,sizeof(double)*allocSize);
-  allocSize = nFromKeqStep;
-  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 32
-  keqWorkArray = (double*)aligned_alloc(32, sizeof(double)*allocSize);
-  memset(keqWorkArray,0.0,sizeof(double)*allocSize);
+  int allocSize = nDistinctArrhenius*sizeof(double);
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
+  arrWorkArray = (double*)aligned_alloc(32, allocSize);
+  memset(arrWorkArray,0.0, allocSize);
+  allocSize = nFromKeqStep*sizeof(double);
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
+  keqWorkArray = (double*)aligned_alloc(32, allocSize);
+  memset(keqWorkArray, 0.0, allocSize);
+  allocSize = nFalloffRxn*sizeof(double);
+  allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
+  falloffWorkArray = (double*)aligned_alloc(32, allocSize);
+  memset(falloffWorkArray, 0.0, allocSize);
 
   use_external_arrh = false;
   use_external_keq = false;
@@ -135,6 +139,7 @@ rate_const::~rate_const()
   delete [] Kwork;
   _aligned_free(arrWorkArray);
   _aligned_free(keqWorkArray);
+  _aligned_free(falloffWorkArray);
 }
 
 void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)
@@ -658,7 +663,7 @@ void rate_const::updateArrheniusStep()
                  	     +distinctArrheniusTpow[j]*local_log_e_Tcurrent
      	             -distinctArrheniusTact[j]*local_invTcurrent;
     }
-    fast_vec_exp(arrWorkArray,nDistinctArrhenius+nDistinctArrhenius%4);
+    fast_vec_exp(arrWorkArray,nDistinctArrhenius);
   }
   for(j=0; j<nArrheniusStep; ++j) {
       Kwork[arrheniusStepList[j].stepIdx] =
@@ -701,7 +706,7 @@ void rate_const::updateFromKeqStep()
       }
       keqWorkArray[j] = thermo_sum-fromKeqStepList[j].nDelta*log_e_PatmInvRuT;
     }
-    fast_vec_exp(keqWorkArray,nFromKeqStep+nFromKeqStep%4);
+    fast_vec_exp(keqWorkArray,nFromKeqStep);
   }
   for(j=0; j<nFromKeqStep; j++) {
 
@@ -871,6 +876,14 @@ void rate_const::updateFalloffRxn(const double C[])
 {
   int j,k;
   double Cmult,Klow,Pr,log_10_Pr,Pcorr,Fcenter,fTerm,nTerm;
+  if(Tchanged) {
+    for(j=0; j<nFalloffRxn; j++) {
+      falloffWorkArray[j] = falloffRxnList[j].param[0]+
+                            falloffRxnList[j].param[1]*log_e_Tcurrent-
+                            falloffRxnList[j].param[2]*invTcurrent;
+    }
+    fast_vec_exp(falloffWorkArray, nFalloffRxn);
+  }
   for(j=0; j<nFalloffRxn; j++) {
 
     if(falloffRxnList[j].falloffSpcIdx >= 0) {
@@ -886,10 +899,7 @@ void rate_const::updateFalloffRxn(const double C[])
       }
     }
 
-    Klow = exp(falloffRxnList[j].param[0]+
-               falloffRxnList[j].param[1]*log_e_Tcurrent-
-	       falloffRxnList[j].param[2]*invTcurrent);
-
+    Klow = falloffWorkArray[j];
     Pr = Klow*Cmult/Kwork[falloffRxnList[j].fwdStepIdx];
     if(Pr < 1.0e-300) {
       Pr = 1.0e-300; // ck SMALL constant

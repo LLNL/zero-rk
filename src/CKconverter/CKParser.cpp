@@ -1611,18 +1611,33 @@ next:
                         else 
                             missingAuxData("HIGH");
                     }
-
+                    // FORD reaction
                     else if (match(name,"FORD")) {
-                        throw CK_SyntaxError(*m_log, "FORD reaction type not supported", m_line);
-//                        vector<string> nmord;
-//                        if (hasAuxData) {
-//                            getTokens(data, static_cast<int>(data.size()), 
-//                                nmord);
-//                            rxn.fwdOrder[nmord[0]] = de_atof(nmord[1]);
-//                        }
-//                        else
-//                            missingAuxData("FORD");
+                        //throw CK_SyntaxError(*m_log, "FORD reaction type not supported", m_line);
+                        //rxn.type = RealOrder;
+                        rxn.isRealOrder = true;
+                        vector<string> nmord;
+                        if (hasAuxData) {
+                            getTokens(data, static_cast<int>(data.size()), 
+                                nmord);
+                            rxn.fwdOrder[nmord[0]] = de_atof(nmord[1]);
+                        }
+                        else
+                            missingAuxData("FORD");
                     }
+                    else if (match(name,"RORD")) {
+                        //rxn.type = RealOrder;
+                        rxn.isRealOrder = true;
+                        vector<string> nmord;
+                        if (hasAuxData) {
+                            getTokens(data, static_cast<int>(data.size()),  
+                                nmord);
+                            rxn.revOrder[nmord[0]] = de_atof(nmord[1]);
+                        }
+                        else
+                            missingAuxData("RORD");
+                    }
+
 
                     // PLOG reaction
                     else if(match(name,"PLOG")) {

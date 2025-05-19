@@ -300,7 +300,7 @@ int jac_full_prec_solveV3(realtype t, N_Vector y, N_Vector fy,
 {
   cv_param *cvp=(cv_param *)user_data;
   int flag;
-  int nsize=(cvp->nSpc)+1;
+  int nsize=(cvp->nSpc)+2;
   int cpysize=nsize*sizeof(double);
   double *zptr=NV_DATA_S(z);
   double *rptr=NV_DATA_S(r);

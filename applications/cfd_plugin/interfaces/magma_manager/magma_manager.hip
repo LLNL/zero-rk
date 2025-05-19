@@ -1,9 +1,10 @@
 #include "hip/hip_runtime.h"
-#include "magma_manager.h"
 #include "../../gpu_err_check.h"
+#include "magma_manager.h"
 
 
-magma_manager::magma_manager() :
+template<typename T>
+magma_manager<T>::magma_manager() :
   n_(-1),
   num_batches_(-1),
   factored_(false)
@@ -14,7 +15,8 @@ magma_manager::magma_manager() :
   magma_queue_create(device_id, &magma_queue_);
 }
 
-magma_manager::~magma_manager()
+template<typename T>
+magma_manager<T>::~magma_manager()
 {
   if(factored_) {
     FreeDeviceMemory();
@@ -23,7 +25,8 @@ magma_manager::~magma_manager()
   magma_finalize();
 }
 
-void magma_manager::setup_memory()
+template<typename T>
+void magma_manager<T>::setup_memory()
 {
   if(factored_) {
     FreeDeviceMemory();
@@ -32,35 +35,36 @@ void magma_manager::setup_memory()
 }
 
 
-void magma_manager::AllocateDeviceMemory()
+template<typename T>
+void magma_manager<T>::AllocateDeviceMemory()
 {
   hipDeviceSynchronize();
   gpu_err_check(hipGetLastError());
 
-  gpu_err_check(hipMalloc((void**)&matrix_inverse_dev_,sizeof(double)*(n_*n_*num_batches_)));
-  gpu_err_check(hipMalloc((void**)&matrix_inverse_pointers_dev_,sizeof(double*)*num_batches_));
-  gpu_err_check(hipMalloc((void**)&matrix_pointers_dev_,sizeof(double*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&matrix_inverse_dev_,sizeof(T)*(n_*n_*num_batches_)));
+  gpu_err_check(hipMalloc((void**)&matrix_inverse_pointers_dev_,sizeof(T*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&matrix_pointers_dev_,sizeof(T*)*num_batches_));
   gpu_err_check(hipMalloc((void**)&info_dev_,sizeof(int)*num_batches_));
   gpu_err_check(hipMalloc((void**)&ipiv_dev_,sizeof(int)*n_*num_batches_));
-  gpu_err_check(hipMalloc((void**)&tmp_dev_,sizeof(double)*num_batches_*n_));
-  gpu_err_check(hipMalloc((void**)&tmp_pointers_dev_,sizeof(double*)*num_batches_));
+  gpu_err_check(hipMalloc((void**)&tmp_dev_,sizeof(T)*num_batches_*n_));
+  gpu_err_check(hipMalloc((void**)&tmp_pointers_dev_,sizeof(T*)*num_batches_));
   gpu_err_check(hipMalloc((void**)&ipiv_pointers_dev_,sizeof(int*)*num_batches_));
 
   data_ptrs_.resize(num_batches_);
 
   std::vector<int*> tmpi_ptrs(num_batches_);
-  std::vector<double*> tmp_ptrs(num_batches_);
+  std::vector<T*> tmp_ptrs(num_batches_);
 
   for(int j = 0; j < num_batches_; ++j) {
     data_ptrs_[j] = matrix_inverse_dev_ + j*n_*n_;
   }
-  hipMemcpy(matrix_inverse_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
+  hipMemcpy(matrix_inverse_pointers_dev_, data_ptrs_.data(), sizeof(T*)*num_batches_, hipMemcpyHostToDevice);
   gpu_err_check(hipGetLastError());
 
   for(int j = 0; j < num_batches_; ++j) {
     tmp_ptrs[j] = tmp_dev_ + j*n_;
   }
-  hipMemcpy(tmp_pointers_dev_, tmp_ptrs.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
+  hipMemcpy(tmp_pointers_dev_, tmp_ptrs.data(), sizeof(T*)*num_batches_, hipMemcpyHostToDevice);
   gpu_err_check(hipGetLastError());
 
   for(int j = 0; j < num_batches_; ++j) {
@@ -70,7 +74,8 @@ void magma_manager::AllocateDeviceMemory()
   gpu_err_check(hipGetLastError());
 }
 
-void magma_manager::FreeDeviceMemory()
+template<typename T>
+void magma_manager<T>::FreeDeviceMemory()
 {
   hipFree(matrix_inverse_dev_);
   hipFree(matrix_inverse_pointers_dev_);
@@ -82,7 +87,62 @@ void magma_manager::FreeDeviceMemory()
   hipFree(tmp_pointers_dev_);
 }
 
-int magma_manager::factor_invert(int num_batches, int n, double* values) {
+template<>
+void magma_manager<double>::getrf_batched() {
+  magma_dgetrf_batched(n_, /* number of rows per block */
+                       n_, /* number of columns per block */
+                       matrix_pointers_dev_,
+                       n_, /* leading dimension of each block */
+                       ipiv_pointers_dev_,
+                       info_dev_,
+                       num_batches_,
+                       magma_queue_);
+}
+
+template<>
+void magma_manager<hipDoubleComplex>::getrf_batched() {
+  magmaDoubleComplex** loc_matrix_pointers = (magmaDoubleComplex**) matrix_pointers_dev_;
+  magma_zgetrf_batched(n_, /* number of rows per block */
+                       n_, /* number of columns per block */
+                       loc_matrix_pointers,
+                       n_, /* leading dimension of each block */
+                       ipiv_pointers_dev_,
+                       info_dev_,
+                       num_batches_,
+                       magma_queue_);
+}
+
+template<>
+void magma_manager<double>::getri_batched() {
+  magma_dgetri_outofplace_batched(n_, /* order of block */
+                                  matrix_pointers_dev_,
+                                  n_, /* leading dimension of each block */
+                                  ipiv_pointers_dev_,
+                                  matrix_inverse_pointers_dev_,
+                                  n_, /* leading dimension of each block of inverse */
+                                  info_dev_,
+                                  num_batches_,
+                                  magma_queue_);
+}
+
+template<>
+void magma_manager<hipDoubleComplex>::getri_batched() {
+  magmaDoubleComplex** loc_matrix_pointers = (magmaDoubleComplex**) matrix_pointers_dev_;
+  magmaDoubleComplex** loc_matrix_inverse_pointers = (magmaDoubleComplex**) matrix_inverse_pointers_dev_;
+  magma_zgetri_outofplace_batched(n_, /* order of block */
+                                  loc_matrix_pointers,
+                                  n_, /* leading dimension of each block */
+                                  ipiv_pointers_dev_,
+                                  loc_matrix_inverse_pointers,
+                                  n_, /* leading dimension of each block of inverse */
+                                  info_dev_,
+                                  num_batches_,
+                                  magma_queue_);
+}
+
+
+template<typename T>
+int magma_manager<T>::factor_invert(int num_batches, int n, T* values) {
   if(n != n_ || num_batches != num_batches_) {
     n_ = n;
     num_batches_ = num_batches;
@@ -100,27 +160,11 @@ int magma_manager::factor_invert(int num_batches, int n, double* values) {
     }
   }
   if(need_tx) {
-    hipMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
+    hipMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(T*)*num_batches_, hipMemcpyHostToDevice);
   }
 
-  magma_dgetrf_batched(n_, /* number of rows per block */
-                       n_, /* number of columns per block */
-                       matrix_pointers_dev_,
-                       n_, /* leading dimension of each block */
-                       ipiv_pointers_dev_,
-                       info_dev_,
-                       num_batches_,
-                       magma_queue_);
-
-  magma_dgetri_outofplace_batched(n_, /* order of block */
-                                  matrix_pointers_dev_,
-                                  n_, /* leading dimension of each block */
-                                  ipiv_pointers_dev_,
-                                  matrix_inverse_pointers_dev_,
-                                  n_, /* leading dimension of each block of inverse */
-                                  info_dev_,
-                                  num_batches_,
-                                  magma_queue_);
+  getrf_batched();
+  getri_batched();
 
 
   int ierr = 0;
@@ -143,7 +187,8 @@ int magma_manager::factor_invert(int num_batches, int n, double* values) {
   return ierr;
 }
 
-int magma_manager::factor_lu(int num_batches, int n, double* values) {
+template<typename T>
+int magma_manager<T>::factor_lu(int num_batches, int n, T* values) {
   if(n != n_ || num_batches != num_batches_) {
     n_ = n;
     num_batches_ = num_batches;
@@ -161,17 +206,10 @@ int magma_manager::factor_lu(int num_batches, int n, double* values) {
     }
   }
   if(need_tx) {
-    hipMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(double*)*num_batches_, hipMemcpyHostToDevice);
+    hipMemcpy(matrix_pointers_dev_, data_ptrs_.data(), sizeof(T*)*num_batches_, hipMemcpyHostToDevice);
   }
 
-  magma_dgetrf_batched(n_, /* number of rows per block */
-                       n_, /* number of columns per block */
-                       matrix_pointers_dev_,
-                       n_, /* leading dimension of each block */
-                       ipiv_pointers_dev_,
-                       info_dev_,
-                       num_batches_,
-                       magma_queue_);
+  getrf_batched();
 
   int ierr = 0;
 #ifdef ZERORK_FULL_DEBUG
@@ -198,9 +236,10 @@ int magma_manager::factor_lu(int num_batches, int n, double* values) {
 #define TRANSPOSE_TILE_DIM    32
 #define TRANSPOSE_BLOCK_ROWS  8
 
-static __global__ void MAGMA_MANAGER_TransposeNoBankConflicts(double *odata, const double *idata, const int width, const int height)
+template<typename T>
+static __global__ void MAGMA_MANAGER_TransposeNoBankConflicts(T *odata, const T *idata, const int width, const int height)
 {
-    __shared__ double tile[TRANSPOSE_TILE_DIM][TRANSPOSE_TILE_DIM+1];
+    __shared__ T tile[TRANSPOSE_TILE_DIM][TRANSPOSE_TILE_DIM+1];
     int xIndex,yIndex,index_in,index_out;
 
     xIndex = blockIdx.x * TRANSPOSE_TILE_DIM + threadIdx.x;
@@ -226,7 +265,8 @@ static __global__ void MAGMA_MANAGER_TransposeNoBankConflicts(double *odata, con
     }
 }
 
-void magma_manager::cuda_transpose(double* odata, const double* idata, const int width, const int height)
+template<typename T>
+void magma_manager<T>::gpu_transpose(T* odata, const T* idata, const int width, const int height)
 {
     // Put df/dy in "normal" order
     dim3 nBlocks2D,nThreads2D;
@@ -234,7 +274,7 @@ void magma_manager::cuda_transpose(double* odata, const double* idata, const int
     nThreads2D.y = TRANSPOSE_BLOCK_ROWS;
     nBlocks2D.x = (width+TRANSPOSE_TILE_DIM-1)/TRANSPOSE_TILE_DIM;
     nBlocks2D.y = (height+TRANSPOSE_TILE_DIM-1)/TRANSPOSE_TILE_DIM;
-    MAGMA_MANAGER_TransposeNoBankConflicts<<<nBlocks2D,nThreads2D>>>(odata,idata,width,height);
+    MAGMA_MANAGER_TransposeNoBankConflicts<T><<<nBlocks2D,nThreads2D>>>(odata,idata,width,height);
 #ifdef ZERORK_FULL_DEBUG
     gpu_err_check( hipPeekAtLastError() );
     gpu_err_check( hipDeviceSynchronize() );
@@ -242,13 +282,15 @@ void magma_manager::cuda_transpose(double* odata, const double* idata, const int
 }
 
 
-static void __global__ MAGMA_MANAGER_cuda_bdmv_kernel
+namespace {
+template<typename T>
+void __global__ MAGMA_MANAGER_gpu_bdmv_kernel
 (
     const int mtx_block_size,
     const int num_mtx_blocks,
-    const double* A_dev,
-    const double* X_dev ,
-    double * Y_dev
+    const T* A_dev,
+    const T* X_dev ,
+    T * Y_dev
 )
 {
   int tidx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -257,7 +299,7 @@ static void __global__ MAGMA_MANAGER_cuda_bdmv_kernel
   {
     int local_row   = tidx % mtx_block_size;
     int local_block = tidx / mtx_block_size;
-    double Y_dev_accum = 0.0;
+    T Y_dev_accum = 0.0;
     for(int i = 0; i < mtx_block_size; ++i) //columns
     {
       int data_idx = mtx_block_size*mtx_block_size*local_block + mtx_block_size*i + local_row;
@@ -267,11 +309,40 @@ static void __global__ MAGMA_MANAGER_cuda_bdmv_kernel
   }
 }
 
-int magma_manager::cuda_bdmv(int n, int nbatch, double* A_dev, double* B_dev, double* Y_dev)
+template<>
+void __global__ MAGMA_MANAGER_gpu_bdmv_kernel
+(
+    const int mtx_block_size,
+    const int num_mtx_blocks,
+    const hipDoubleComplex* A_dev,
+    const hipDoubleComplex* X_dev ,
+    hipDoubleComplex * Y_dev
+)
+{
+  int tidx = blockIdx.x*blockDim.x + threadIdx.x;
+  int stride = gridDim.x*blockDim.x;
+  for( ; tidx < num_mtx_blocks*mtx_block_size; tidx += stride)
+  {
+    int local_row   = tidx % mtx_block_size;
+    int local_block = tidx / mtx_block_size;
+    hipDoubleComplex Y_dev_accum = make_hipDoubleComplex(0.0,0.0);
+    for(int i = 0; i < mtx_block_size; ++i) //columns
+    {
+      int data_idx = mtx_block_size*mtx_block_size*local_block + mtx_block_size*i + local_row;
+      //Y_dev_accum += A_dev[data_idx]*X_dev[i+local_block*mtx_block_size];
+      Y_dev_accum = hipCadd(Y_dev_accum, hipCmul(A_dev[data_idx],X_dev[i+local_block*mtx_block_size]));
+    }
+    Y_dev[local_row+local_block*mtx_block_size] = Y_dev_accum;
+  }
+}
+} //anonymous namespace
+
+template<typename T>
+int magma_manager<T>::gpu_bdmv(int n, int nbatch, T* A_dev, T* B_dev, T* Y_dev)
 {
   int threads = std::min(n*nbatch,1024);
   int blocks=(nbatch*n+threads-1)/threads;
-  MAGMA_MANAGER_cuda_bdmv_kernel<<<blocks,threads>>>(n, nbatch, A_dev, B_dev, Y_dev);
+  MAGMA_MANAGER_gpu_bdmv_kernel<T><<<blocks,threads>>>(n, nbatch, A_dev, B_dev, Y_dev);
 #ifdef ZERORK_FULL_DEBUG
   gpu_err_check(hipPeekAtLastError());
   gpu_err_check(hipDeviceSynchronize());
@@ -279,31 +350,26 @@ int magma_manager::cuda_bdmv(int n, int nbatch, double* A_dev, double* B_dev, do
   return 0;  
 }
 
-int magma_manager::solve_invert(int num_batches, int n, const double* rhs, double* soln) {
+template<typename T>
+int magma_manager<T>::solve_invert(int num_batches, int n, const T* rhs, T* soln) {
   if(n != n_ || num_batches != num_batches_) {
     return 1;
   }
 
   // Transpose rhs into soln
-  cuda_transpose(soln,rhs,num_batches_,n_);
+  this->gpu_transpose(soln,rhs,num_batches_,n_);
 
   // Block-diagonal matrix vector multiplication
-  cuda_bdmv(n_, num_batches_, matrix_inverse_dev_, soln, tmp_dev_);
+  this->gpu_bdmv(n_, num_batches_, matrix_inverse_dev_, soln, tmp_dev_);
 
   // Put tmp back into block order
-  cuda_transpose(soln,tmp_dev_,n_,num_batches_);
+  this->gpu_transpose(soln,tmp_dev_,n_,num_batches_);
 
   return(0);
 }
 
-int magma_manager::solve_lu(int num_batches, int n, const double* rhs, double* soln) {
-  if(n != n_ || num_batches != num_batches_) {
-    return 1;
-  }
-
-  // Transpose rhs into tmp_dev_
-  cuda_transpose(tmp_dev_,rhs,num_batches_,n_);
-
+template<>
+void magma_manager<double>::getrs_batched() {
   // Magma forward and back substitution
   magma_dgetrs_batched(MagmaNoTrans,
                        n_, /* order of the matrix */
@@ -315,10 +381,42 @@ int magma_manager::solve_lu(int num_batches, int n, const double* rhs, double* s
                        n_, /* leading dimension of b */
                        num_batches_,
                        magma_queue_);
+}
+
+template<>
+void magma_manager<hipDoubleComplex>::getrs_batched() {
+  // Magma forward and back substitution
+  magmaDoubleComplex** loc_matrix_pointers = (magmaDoubleComplex**) matrix_pointers_dev_;
+  magmaDoubleComplex** loc_tmp_pointers = (magmaDoubleComplex**) tmp_pointers_dev_;
+  magma_zgetrs_batched(MagmaNoTrans,
+                       n_, /* order of the matrix */
+                       1, /* number of right hand sides */
+                       loc_matrix_pointers,
+                       n_, /* leading dimension of A */
+                       ipiv_pointers_dev_,
+                       loc_tmp_pointers, /* right hand side (input), solution (output) */
+                       n_, /* leading dimension of b */
+                       num_batches_,
+                       magma_queue_);
+}
+
+template<typename T>
+int magma_manager<T>::solve_lu(int num_batches, int n, const T* rhs, T* soln) {
+  if(n != n_ || num_batches != num_batches_) {
+    return 1;
+  }
+
+  // Transpose rhs into tmp_dev_
+  this->gpu_transpose(tmp_dev_,rhs,num_batches_,n_);
+
+  this->getrs_batched();
 
   // Put tmp back into block order
-  cuda_transpose(soln,tmp_dev_,n_,num_batches_);
+  this->gpu_transpose(soln,tmp_dev_,n_,num_batches_);
 
   return(0);
 }
+
+template class magma_manager<double>;
+template class magma_manager<hipDoubleComplex>;
 

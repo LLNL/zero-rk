@@ -1,6 +1,6 @@
 
 
-find_package(MPI REQUIRED)
+find_package(MPI REQUIRED COMPONENTS C CXX)
 
 function(add_mpi_executable)
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})

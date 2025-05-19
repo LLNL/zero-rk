@@ -47,6 +47,10 @@ class ReactorNVectorSerialGpu : public ReactorBase
   int JacobianSolve(double t, N_Vector y, N_Vector fy,
                             N_Vector r, N_Vector z);
 
+  int ComplexJacobianFactor(int k, double alpha, double beta);
+
+  int ComplexJacobianSolve(int k, N_Vector ax, N_Vector bx);
+
   int GetNumStateVariables() { return num_variables_; };
 
   int GetNumBatchReactors() { return num_reactors_; };
@@ -71,7 +75,8 @@ class ReactorNVectorSerialGpu : public ReactorBase
   hipsolver_rf_manager hsrfm_temperature_;
   hipsolver_rf_manager hsrfm_no_temperature_;
   hipsolver_rf_manager* hsrfm_ptr_;
-  std::unique_ptr<hip_la_manager> hip_la_manager_;
+  std::unique_ptr<hip_la_manager<double>> hip_la_manager_;
+  std::vector<std::unique_ptr<hip_la_manager<hipDoubleComplex>>> hip_la_manager_z_;
 
   bool solve_temperature_;
   int nnz_;
@@ -170,6 +175,8 @@ class ReactorNVectorSerialGpu : public ReactorBase
   thrust::host_vector<double> dense_preconditioner_;
   thrust::device_vector<double> dense_jacobian_dev_;
   thrust::device_vector<double> dense_preconditioner_dev_;
+  thrust::device_vector<hipDoubleComplex> dense_preconditioner_dev_z_;
+  thrust::device_vector<hipDoubleComplex> complex_workspace_dev_;
 
   // non-integer reaction network
   int num_noninteger_jacobian_nonzeros_;
@@ -208,6 +215,11 @@ class ReactorNVectorSerialGpu : public ReactorBase
   int FormPreconditionerDevice(double gamma);
   int FactorPreconditioner();
   int AddConstantBlockDiagonal(int n, int nbatch, double constant, double* A_dev);
+
+
+  int AddComplexConstantBlockDiagonal(int n, int nbatch,
+                                      hipDoubleComplex constant, hipDoubleComplex* A_dev);
+  int FormDenseComplexPreconditioner(int k, double alpha, double beta);
 
   std::vector<double> weights_;
   thrust::device_vector<double> step_limiter_;

@@ -1,27 +1,32 @@
 {
+  "environments": [
+    {
+      "ONEAPI_ROOT": "C:\\Program Files (x86)\\Intel\\oneAPI",
+    }
+  ],
   "configurations": [
     {
       "name": "x64-Debug",
-      "generator": "Visual Studio 15 2017 Win64",
+      "generator": "Visual Studio 17 2022 Win64",
       "configurationType": "Debug",
       "inheritEnvironments": [
         "msvc_x64_x64"
       ],
-      "buildRoot": "D:\\zerork_dbg\\build",
-      "installRoot": "D:\\zerork_dbg",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "-DENABLE_MPI=OFF -DZERORK_EXTERNALS_BUILD_TYPE=Debug",
       "buildCommandArgs": "",
       "ctestCommandArgs": ""
     },
     {
       "name": "x64-Release",
-      "generator": "Visual Studio 15 2017 Win64",
+      "generator": "Visual Studio 17 2022 Win64",
       "configurationType": "Release",
       "inheritEnvironments": [
         "msvc_x64_x64"
       ],
-      "buildRoot": "D:\\zerork_rls\\build",
-      "installRoot": "D:\\zerork_rls",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "-DENABLE_MPI=OFF -DZERORK_EXTERNALS_BUILD_TYPE=Release",
       "buildCommandArgs": "",
       "ctestCommandArgs": ""

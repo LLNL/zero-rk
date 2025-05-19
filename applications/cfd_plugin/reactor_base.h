@@ -66,6 +66,10 @@ class ReactorBase : public Optionable {
   virtual int JacobianSolve(double t, N_Vector y, N_Vector fy,
                             N_Vector r, N_Vector z) = 0;
 
+  virtual int ComplexJacobianFactor(int k, double alpha, double beta) = 0;
+
+  virtual int ComplexJacobianSolve(int k, N_Vector ax, N_Vector bx) = 0;
+
   virtual int RootFunction(double t, N_Vector y, double *root_function) = 0;
 
   virtual int SetRootTime(double t) = 0;
@@ -144,6 +148,10 @@ int ReactorJacobianSolveCVODE(double t, N_Vector y, N_Vector fy,
 
 int ReactorJacobianSolve(double t, N_Vector y, N_Vector fy,
                          N_Vector r, N_Vector z, void *user_data);
+
+int ReactorComplexJacobianFactor(int k, double alpha, double beta, void* user_data);
+
+int ReactorComplexJacobianSolve(int k, N_Vector ax, N_Vector bx, void* user_data);
 
 int ReactorGetNumRootFunctions(void *user_data);
 

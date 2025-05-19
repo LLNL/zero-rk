@@ -2,8 +2,6 @@
 app=lewisGenerator.x
 inp=lewis_generator.yml
 
-"@MPIEXEC_EXECUTABLE@" @MPIEXEC_NUMPROC_FLAG@ \
-  @MPIEXEC_EXAMPLE_NUMPROCS@ @MPIEXEC_PREFLAGS@ \
-  "@CMAKE_INSTALL_PREFIX@/bin/$app" @MPIEXEC_POSTFLAGS@ $inp
+"@CMAKE_INSTALL_PREFIX@/bin/$app" $inp
 
 

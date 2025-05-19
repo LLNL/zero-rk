@@ -2,9 +2,12 @@
 #define REACTOR_NVECTOR_SERIAL_H
 
 #include <memory>
+#include <complex>
 #include "reactor_base.h"
 #include "interfaces/lapack_manager/lapack_manager.h"
+#include "interfaces/lapack_manager/lapack_manager_z.h"
 #include "interfaces/superlu_manager/superlu_manager.h"
+#include "interfaces/superlu_manager/superlu_manager_z.h"
 #include "zerork/mechanism.h"
 
 class ReactorNVectorSerial : public ReactorBase
@@ -40,6 +43,10 @@ class ReactorNVectorSerial : public ReactorBase
 
   int JacobianSolve(double t, N_Vector y, N_Vector fy,
                     N_Vector r, N_Vector z);
+
+  int ComplexJacobianFactor(int k, double alpha, double beta);
+
+  int ComplexJacobianSolve(int k, N_Vector ax, N_Vector bx);
 
   int RootFunction(double t, N_Vector y, double *root_function);
 
@@ -119,6 +126,14 @@ class ReactorNVectorSerial : public ReactorBase
   std::vector<int> preconditioner_column_sums_;
   std::vector<int> preconditioner_row_indexes_;
 
+  // Complex J for radau
+  int ncmplx_jacs_ = (7 - 1)/2;
+  std::vector<lapack_manager_z> lpmz_;
+  std::vector<superlu_manager_z> slumz_;
+  std::vector<std::vector<doublecomplex>> preconditioner_data_z_;
+  std::vector<std::vector<int>> preconditioner_column_sums_z_;
+  std::vector<std::vector<int>> preconditioner_row_indexes_z_;
+
   std::vector<double> dense_jacobian_;
   std::vector<double> dense_preconditioner_;
 
@@ -150,6 +165,9 @@ class ReactorNVectorSerial : public ReactorBase
 #endif
   int SparseToDense(const std::vector<int>& sums, const std::vector<int>& idxs,
                     const std::vector<double>& vals, std::vector<double>* dense);
+  int SparseToDenseComplex(const std::vector<int>& sums, const std::vector<int>& idxs,
+                           const std::vector<doublecomplex>& vals,
+			   std::vector<std::complex<double>>* dense);
   int FormPreconditioner(double gamma);
   int FactorPreconditioner();
 

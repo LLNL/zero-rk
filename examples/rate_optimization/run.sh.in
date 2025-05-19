@@ -1,11 +1,6 @@
 #!/bin/bash
 
-if [ ! -d zerork_rate_optimization_env ]
-then
-  echo "rate_opt: Building python environment"
-  sh make_env.sh >& env.stdout
-fi
-source zerork_rate_optimization_env/bin/activate
+source "@CMAKE_INSTALL_PREFIX@/share/zerork/python/env/bin/activate"
 
 #make a fake mechanism with modified rates
 sed 's/h+o2 = o+oh    1.915E+14   0.00  1.644E+04/h+o2 = o+oh    2.5E+14   0.00  1.59E+04/' "@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt" > h2_v1b_mech_mod.txt
@@ -13,7 +8,7 @@ sed -i 's/oh+h2 = h+h2o   2.160E+08   1.51  3.430E+03/oh+h2 = h+h2o   1.800E+08 
 sed -i 's/h2o2+h = h2+ho2   6.025E+13   0.00  7.950E+03/h2o2+h = h2+ho2   4.025E+13   0.00  7.850E+03/' h2_v1b_mech_mod.txt
 
 echo "rate_opt: running optimization"
-"@Python3_EXECUTABLE@" -u optimize_rate_h2_simple.py >& optimization.log
+python3 -u optimize_rate_h2_simple.py >& optimization.log
 
 echo "rate_opt: comparing mechanism ignition delays"
 orig="@CMAKE_INSTALL_PREFIX@/share/zerork/mechanisms/hydrogen/h2_v1b_mech.txt"
@@ -35,5 +30,5 @@ cp $opti chem.inp
 mv idt.dat idt_opti.dat
 
 #Run this separately to compare rates between original, modified, and optimized mechanisms
-#python plot_idts.py
+#python3 plot_idts.py
 

@@ -231,11 +231,11 @@ int mechanism::getIdxFromName(const char *nm)
 }
 
 
-std::map<std::string, double> mechanism::getElementInfo() {
+std::map<std::string, double> mechanism::getElementInfo() const {
    return elementInfo;
 }
 
-std::map<std::string, std::map<std::string, int> > mechanism::getSpeciesElementInfo() {
+std::map<std::string, std::map<std::string, int> > mechanism::getSpeciesElementInfo() const {
    return speciesElementInfo;
 }
 

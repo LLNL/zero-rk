@@ -18,7 +18,7 @@ add_library(zerork_flame_api SHARED ${COMMON_SRCS})
 target_link_libraries(zerork_flame_api zerorkutilities mechanisminfo reactor
                       zerorktransport zerork superlu spify sundials_kinsol
                       sundials_nvecserial)
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
 target_link_options(zerork_flame_api PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)
 endif()
 target_include_directories(zerork_flame_api PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
@@ -38,7 +38,7 @@ add_mpi_library(zerork_flame_api_mpi SHARED ${COMMON_SRCS} sparse_matrix_dist.cp
 target_link_libraries(zerork_flame_api_mpi zerorkutilities mechanisminfo reactor
                       zerorktransport zerork superlu_dist superlu spify sundials_kinsol
                       sundials_nvecparallel)
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
 target_link_options(zerork_flame_api_mpi PRIVATE -Wl,-Bsymbolic-functions -Wl,-Bsymbolic)
 endif()
 target_include_directories(zerork_flame_api_mpi PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

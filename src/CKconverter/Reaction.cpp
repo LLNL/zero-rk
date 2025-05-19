@@ -44,6 +44,7 @@ namespace ckr {
         type = b.type;
         reactants = b.reactants;
         fwdOrder = b.fwdOrder;
+        revOrder = b.revOrder;
         products = b.products;
         thirdBody = b.thirdBody;
         e3b = b.e3b;
@@ -59,6 +60,7 @@ namespace ckr {
         isThreeBodyRxn = b.isThreeBodyRxn;
         isDuplicate = b.isDuplicate;
         isPLogInterpolation = b.isPLogInterpolation;
+        isRealOrder = b.isRealOrder;
         lines = b.lines;
         number = b.number;
         comment = b.comment;

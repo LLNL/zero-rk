@@ -40,9 +40,9 @@ if(${ZERORK_HAVE_MKL})
   #Below pulled from MKL Link Advisor 2018.0.
   if(WIN32)
     target_link_libraries(mkl INTERFACE
-      "${ZERORK_MKLROOT}/lib/intel64/mkl_intel_lp64.lib"
-      "${ZERORK_MKLROOT}/lib/intel64/mkl_sequential.lib"
-      "${ZERORK_MKLROOT}/lib/intel64/mkl_core.lib")
+      "${ZERORK_MKLROOT}/lib/mkl_intel_lp64.lib"
+      "${ZERORK_MKLROOT}/lib/mkl_sequential.lib"
+      "${ZERORK_MKLROOT}/lib/mkl_core.lib")
   else()
     target_link_libraries(mkl INTERFACE
       -Wl,--start-group

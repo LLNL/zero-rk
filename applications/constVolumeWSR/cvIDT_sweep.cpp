@@ -418,6 +418,12 @@ void cvReactor(int inp_argc, char **inp_argv)
       flag = CVodeReInit(cvode_mem, tcurr, systemState);
       isBadStep = 0;
 
+      //Make sure all work arrays are initialized
+      N_Vector tmp_deriv;
+      tmp_deriv = N_VNew_Serial(nSpc+1);
+      const_vol_wsr(0.0, systemState, tmp_deriv, (void*)&systemParam);
+      N_VDestroy_Serial(tmp_deriv);
+
       getTimeHistLine_full(tcurr,NV_DATA_S(systemState),&idt_ctrl,
                            &systemParam,0.0,&thistLine);
 #ifdef ZERORK_MPI
@@ -489,7 +495,7 @@ void cvReactor(int inp_argc, char **inp_argv)
 #endif
 
   	  if(flag == CV_ROOT_RETURN) {
-            std::vector<int> roots_found(systemParam.numTempRoots);
+            std::vector<int> roots_found(num_roots);
             flag = CVodeGetRootInfo(cvode_mem, &roots_found[0]);
             if(flag != CV_SUCCESS) {
               printf("ERROR: CVodeGetRootInfo failed.\n");

@@ -21,8 +21,6 @@
 const int MAX_SPECNAME_LEN=256;
 const int MAX_FLOAT_LEN=256;
 
-//#include <culapack.h>
-
 #include <cvode/cvode.h>            // prototypes for CVODE fcts. and consts.
 #include <nvector/nvector_serial.h> // serial N_Vector types, fcts., and macros
 
@@ -39,6 +37,7 @@ const int MAX_FLOAT_LEN=256;
 #include <CKconverter/CKReader.h>
 #include <zerork/constants.h>
 #include <zerork/constants_api.h>
+#include "equil/zerork_equilibrium_solver.h"
 
 #include "matrix_funcs.h"
 #include "cv_param_sparse.h"
@@ -51,9 +50,6 @@ const int MAX_FLOAT_LEN=256;
 #include "utility_funcs.h"
 
 using zerork::getHighResolutionTime;
-
-int setMoleFracFromFile(zerork::mechanism &mechInp, const char *fileName,
-			double moleFrac[]);
 
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 #ifdef ZERORK_MPI
@@ -384,19 +380,29 @@ void cvReactor(int inp_argc, char **inp_argv)
     idt_ctrl.getInitMassFrac(massFracPtr);
     for(k=0; k<nSpc; k++) {systemParam.yInlet[k]=massFracPtr[k];}
     systemParam.pressure=idt_ctrl.getInitPres();
-    systemParam.Dens=idt_ctrl.getDensity();
-    systemParam.invDens=1.0/systemParam.Dens;
-    systemParam.mass=systemParam.Dens*idt_ctrl.getVolume();
-    systemParam.volume=idt_ctrl.getVolume();
-    NV_Ith_S(systemState,nSpc)=
-	idt_ctrl.getInitTemp()/idt_ctrl.getRefTemp();
-    NV_Ith_S(systemState,nSpc+1)=systemParam.mass;
+
     systemParam.mech->getEnthalpy_RT(idt_ctrl.getInitTemp(),systemParam.Energy);
     systemParam.enthalpyInlet=0.0;
     for(k=0; k<nSpc; k++)
     {systemParam.enthalpyInlet+=systemParam.Energy[k]*massFracPtr[k]*systemParam.invMolWt[k];}
-    systemParam.enthalpyInlet*=systemParam.mech->getGasConstant()*NV_Ith_S(systemState,nSpc);
+    systemParam.enthalpyInlet*=systemParam.mech->getGasConstant()*idt_ctrl.getInitTemp()/idt_ctrl.getRefTemp();
     systemParam.residenceTime=idt_ctrl.getResidenceTime();
+
+    if(idt_ctrl.use_equilibrium_for_initialization()) {
+      zerork::equilibrium_solver zcm(*systemParam.mech);
+      double Teq = idt_ctrl.getInitTemp()-50;
+      zcm.equilibrate(systemParam.pressure, Teq, &massFracPtr[0]);
+      systemParam.Dens = systemParam.mech->getDensityFromTPY(Teq,systemParam.pressure,&massFracPtr[0]);
+      NV_Ith_S(systemState,nSpc)= Teq/idt_ctrl.getRefTemp();
+    } else {
+      systemParam.Dens=idt_ctrl.getDensity();
+      NV_Ith_S(systemState,nSpc)= idt_ctrl.getInitTemp()/idt_ctrl.getRefTemp();
+    }
+    systemParam.invDens=1.0/systemParam.Dens;
+    systemParam.volume=idt_ctrl.getVolume();
+    systemParam.mass=systemParam.Dens*systemParam.volume;
+    NV_Ith_S(systemState,nSpc+1)=systemParam.mass;
+
 
     // reset the time
     tcurr=0.0;
@@ -434,23 +440,33 @@ void cvReactor(int inp_argc, char **inp_argv)
           did_cvodeFail++;
           if(did_cvodeFail <= idt_ctrl.getMaxPrimaryCvodeFails()) {
 
-            printf("WARNING: attempting CVodeReInit at t=%.18g [s]\n",tcurr);
-            printf("         after cvode failure count = %d for reactor %d\n",
-                   did_cvodeFail,j);
+            fprintf(stderr, "WARNING: attempting CVodeReInit at t=%.18g [s]\n",tcurr);
+            fprintf(stderr, "         after cvode failure count = %d for reactor %d\n",
+                    did_cvodeFail,j);
+	    double currentTemperature = NV_Ith_S(systemState,nSpc)*idt_ctrl.getRefTemp();
+	    if (currentTemperature <  idt_ctrl.getInitTemp()) {
+              idt_ctrl.getInitMassFrac(massFracPtr);
+              systemParam.pressure=idt_ctrl.getInitPres();
+	      NV_Ith_S(systemState,nSpc) = idt_ctrl.getInitTemp()/idt_ctrl.getRefTemp();
+              systemParam.Dens = systemParam.mech->getDensityFromTPY(NV_Ith_S(systemState,nSpc)*idt_ctrl.getRefTemp(),
+			                                             systemParam.pressure,&massFracPtr[0]);
+              systemParam.mass=systemParam.Dens*systemParam.volume;
+              NV_Ith_S(systemState,nSpc+1)=systemParam.mass;
+	    }
 
-	      flag = CVodeReInit(cvode_mem, tcurr, systemState);
+            flag = CVodeReInit(cvode_mem, tcurr, systemState);
           }
           else if(did_cvodeFail <= idt_ctrl.getMaxPrimaryCvodeFails() +
                   idt_ctrl.getMaxSecondaryCvodeFails()) {
-            printf("WARNING: resetting the preconditioner threshold to %g\n",
-                   idt_ctrl.getSafetyThreshold());
+            fprintf(stderr, "WARNING: resetting the preconditioner threshold to %g\n",
+                    idt_ctrl.getSafetyThreshold());
             // reset the preconditioner threshold
             change_JsparseThresh(systemParam.sparseMtx,
                                  idt_ctrl.getSafetyThreshold());
 
-            printf("WARNING: attempting CVodeReInit at t=%.18g [s]\n",tcurr);
-            printf("         after cvode failure count = %d for reactor %d\n",
-                   did_cvodeFail,j);
+            fprintf(stderr, "WARNING: attempting CVodeReInit at t=%.18g [s]\n",tcurr);
+            fprintf(stderr, "         after cvode failure count = %d for reactor %d\n",
+                    did_cvodeFail,j);
 
             flag = CVodeReInit(cvode_mem, tcurr, systemState);
           }

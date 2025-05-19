@@ -114,6 +114,8 @@ ReactorNVectorSerialGpu::ReactorNVectorSerialGpu(std::shared_ptr<zerork::mechani
 
   weights_.assign(max_num_reactors_,1.0);
 
+  int ncmplx_jacs = (7 - 1)/2; //Should query the solver for this number
+  hip_la_manager_z_.resize(ncmplx_jacs);
 #ifdef ZERORK_HAVE_MAGMA
   bool use_magma = true;
   int use_hipblas_env = 0;
@@ -125,13 +127,18 @@ ReactorNVectorSerialGpu::ReactorNVectorSerialGpu(std::shared_ptr<zerork::mechani
   }
 
   if(use_magma) {
-    hip_la_manager_ = std::make_unique<magma_manager>();
-  } else {
-    hip_la_manager_ = std::make_unique<hipblas_manager>();
-  }
-#else
-  hip_la_manager_ = std::make_unique<hipblas_manager>();
+    hip_la_manager_ = std::make_unique<magma_manager<double>>();
+    for(int i = 0; i < ncmplx_jacs; ++i) {
+      hip_la_manager_z_[i] = std::make_unique<magma_manager<hipDoubleComplex>>();
+    }
+  } else 
 #endif
+  {
+    hip_la_manager_ = std::make_unique<hipblas_manager<double>>();
+    for(int i = 0; i < ncmplx_jacs; ++i) {
+      hip_la_manager_z_[i] = std::make_unique<hipblas_manager<hipDoubleComplex>>();
+    }
+  }
 
   bool use_lu = false;
   int use_lu_env = 0;
@@ -142,6 +149,9 @@ ReactorNVectorSerialGpu::ReactorNVectorSerialGpu(std::shared_ptr<zerork::mechani
      }
   }
   hip_la_manager_->set_lu(use_lu);
+  for(int i = 0; i < ncmplx_jacs; ++i) {
+    hip_la_manager_z_[i]->set_lu(use_lu);
+  }
 }
 
 ReactorNVectorSerialGpu::~ReactorNVectorSerialGpu()
@@ -1030,6 +1040,138 @@ int ReactorNVectorSerialGpu::JacobianSolve(double t, N_Vector y, N_Vector fy,
   return flag;
 }
 
+
+static void __global__ RNSC_AddComplexConstantBlockDiagonalKernel
+(
+    const int mtx_block_size,
+    const int num_mtx_blocks,
+    const hipDoubleComplex constant,
+    hipDoubleComplex* A_dev
+)
+{
+  int tidx   = blockIdx.x*blockDim.x + threadIdx.x;
+  int stride = gridDim.x*blockDim.x;
+  for( ; tidx < num_mtx_blocks*mtx_block_size; tidx += stride)
+  {
+      int local_row   = tidx % mtx_block_size;
+      int local_block = tidx / mtx_block_size;
+      int data_idx = mtx_block_size*mtx_block_size*local_block+local_row*mtx_block_size+local_row;
+      A_dev[data_idx] = hipCadd(A_dev[data_idx],constant);
+  }
+}
+
+
+int ReactorNVectorSerialGpu::AddComplexConstantBlockDiagonal(int n, int nbatch,
+                                          hipDoubleComplex constant, hipDoubleComplex* A_dev)
+{
+  int threads=1024;
+  int blocks=(n*nbatch + threads - 1)/threads;
+  RNSC_AddComplexConstantBlockDiagonalKernel<<<blocks,threads>>>(n,nbatch,constant,A_dev);
+#ifdef ZERORK_FULL_DEBUG
+  cudaErrChk(hipPeekAtLastError(), 1);
+  cudaErrChk(hipDeviceSynchronize(), 1);
+#endif
+  return 0;  
+}
+
+void __global__ RNSC_InitializeDenseComplexPreconditioner(
+    const int n, const double A[], hipDoubleComplex B[])
+{
+  int tidx = blockIdx.x*blockDim.x + threadIdx.x;
+  int stride = gridDim.x*blockDim.x;
+  for( ; tidx < n; tidx += stride) {
+    B[tidx] = make_hipDoubleComplex(-A[tidx],0.0);
+  }
+}
+
+int ReactorNVectorSerialGpu::FormDenseComplexPreconditioner(int k, double alpha, double beta) {
+  const int num_data_total = num_reactors_*num_variables_*num_variables_;
+  dense_preconditioner_dev_z_.resize(num_data_total);
+  int num_threads = std::min(MAX_THREADS_PER_BLOCK,num_data_total);
+  int num_blocks = (num_data_total + num_threads - 1)/num_threads;
+  RNSC_InitializeDenseComplexPreconditioner<<<num_blocks,num_threads>>>
+                        (num_data_total,
+                         thrust::raw_pointer_cast(&dense_jacobian_dev_[0]),
+                         thrust::raw_pointer_cast(&dense_preconditioner_dev_z_[0]));
+#ifdef ZERORK_FULL_DEBUG
+  cudaErrChk(hipPeekAtLastError(), 1);
+  cudaErrChk(hipDeviceSynchronize(), 1);
+#endif
+
+  //preconditioner is equal to negative jacobian (in hipDoubleComplex)
+  const int num_data_diagonal = num_reactors_*num_variables_;
+  num_threads = std::min(MAX_THREADS_PER_BLOCK,num_data_diagonal);
+  num_blocks = (num_data_diagonal + num_threads - 1)/num_threads;
+  hipDoubleComplex constant = make_hipDoubleComplex(alpha, beta);
+  RNSC_AddComplexConstantBlockDiagonalKernel<<<num_blocks,num_threads>>>(num_variables_,num_reactors_,constant,
+                         thrust::raw_pointer_cast(&dense_preconditioner_dev_z_[0]));
+#ifdef ZERORK_FULL_DEBUG
+  cudaErrChk(hipPeekAtLastError(), 1);
+  cudaErrChk(hipDeviceSynchronize(), 1);
+#endif
+  return 0;
+}
+
+int ReactorNVectorSerialGpu::ComplexJacobianFactor(int k, double alpha, double beta)
+{
+  if(int_options_["dense"] != 1) {
+    assert(("Not implemented.",false));
+  }
+  // compute M = -numerical_jacobian+alpha + beta*i
+  FormDenseComplexPreconditioner(k, alpha, beta);
+  int flag = hip_la_manager_z_[k]->factor(num_reactors_, num_variables_, thrust::raw_pointer_cast(&dense_preconditioner_dev_z_[0]));
+
+  return flag;
+}
+
+void __global__ RNSC_DoubleArraysToComplex(
+    const int n, const double a[], const double b[], hipDoubleComplex c[])
+{
+  int tidx = blockIdx.x*blockDim.x + threadIdx.x;
+  int stride = gridDim.x*blockDim.x;
+  for( ; tidx < n; tidx += stride) {
+    c[tidx] = make_hipDoubleComplex(a[tidx],b[tidx]);
+  }
+}
+
+void __global__ RNSC_ComplexArrayToDouble(
+    const int n, hipDoubleComplex c[], double a[], double b[])
+{
+  int tidx = blockIdx.x*blockDim.x + threadIdx.x;
+  int stride = gridDim.x*blockDim.x;
+  for( ; tidx < n; tidx += stride) {
+    a[tidx] = c[tidx].x;
+    b[tidx] = c[tidx].y;
+  }
+}
+
+int ReactorNVectorSerialGpu::ComplexJacobianSolve(int k, N_Vector ax, N_Vector bx)
+{
+  if(int_options_["dense"] != 1) {
+    assert(("Not implemented.",false));
+  }
+  const int num_data = num_variables_*num_reactors_;
+  complex_workspace_dev_.resize(num_data);
+  double * a_ptr = N_VGetDeviceArrayPointer_Hip(ax);
+  double * b_ptr = N_VGetDeviceArrayPointer_Hip(bx);
+  hipDoubleComplex* tmp_ptr = thrust::raw_pointer_cast(&complex_workspace_dev_[0]);
+  int num_threads = std::min(MAX_THREADS_PER_BLOCK,num_data);
+  int num_blocks = (num_data + num_threads - 1)/num_threads;
+  RNSC_DoubleArraysToComplex<<<num_blocks,num_threads>>>(num_data,a_ptr, b_ptr, tmp_ptr);
+#ifdef ZERORK_FULL_DEBUG
+  cudaErrChk(cudaPeekAtLastError(), 1);
+  cudaErrChk(cudaDeviceSynchronize(), 1);
+#endif
+
+  int flag = hip_la_manager_z_[k]->solve(num_reactors_, num_variables_, tmp_ptr, tmp_ptr);
+
+  RNSC_ComplexArrayToDouble<<<num_blocks,num_threads>>>(num_data, tmp_ptr, a_ptr, b_ptr);
+#ifdef ZERORK_FULL_DEBUG
+  cudaErrChk(cudaPeekAtLastError(), 1);
+  cudaErrChk(cudaDeviceSynchronize(), 1);
+#endif
+  return flag;
+}
 
 void __global__ RNSC_SparseToDenseDevice(
     const int num_reactors, const int num_vars,

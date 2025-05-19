@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source "@CMAKE_INSTALL_PREFIX@/share/zerork/python/env/bin/activate"
+
+python3 -u tprf.py >& tprf.stdout 
+

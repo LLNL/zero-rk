@@ -131,7 +131,7 @@ spify_parser_params.append(
     'type':'int',
     'shortDesc' : "Integrator",
     'defaultValue' : 0,
-    'discreteValues': [0,1]
+    'discreteValues': [0,1,2,3]
 }
 )
 
@@ -320,6 +320,16 @@ spify_parser_params.append(
     'type':'int',
     'shortDesc' : "Dump failed reactors to files",
     'defaultValue' : 0,
+    'discreteValues': [0,1]
+}
+)
+
+spify_parser_params.append(
+{
+    'name':"output_performance_log",
+    'type':'int',
+    'shortDesc' : "Write performance log",
+    'defaultValue' : 1,
     'discreteValues': [0,1]
 }
 )

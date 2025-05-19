@@ -21,7 +21,7 @@ const char precondThresholdName[5][24]=
    "fixed fraction of terms"};
 
 
-class idt_sweep_params : idt_sweep_IFP
+class idt_sweep_params : public idt_sweep_IFP
 {
  public:
   idt_sweep_params(char *inputFileName);

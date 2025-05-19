@@ -1,0 +1,38 @@
+ELEMENTS
+h
+c
+n
+o
+END
+
+SPECIES
+c3h8
+o2
+n2
+h2o
+co2
+co
+END
+
+REACTIONS     CAL/MOLE
+
+! Two-step propane mechanism inferred from Eqs. (2-5) and Table 4  
+!
+! A. Ghani, T. Poinsot, L. Gicquel, and G. Staffelbach, "LES of longitudinal 
+! and transverse self-excited combustion instabilities in a bluff-body 
+! stabilized turbulent premixed flame," Combustion and Flame, 162(11),
+! pp. 4075-4083, 2015. DOI:10.1016/j.combustflame.2015.08.024
+! * downloaded from https://hal.science/hal-01235018/document
+
+! Arrhenius parameters are given in Table 4 in [cgs] units for the 
+! pre-exponential factor and [cal/mol] for the activation energy, which
+! is consistent with the default Chemkin units. The stoichiometric
+! coefficients are given in equations (2-3) and the reactant species
+! reaction orders are inferred from equations (4-5). 
+c3h8 + o2 + 2 o2 + 0.5 o2  => 3 co + 4 h2o        2.0e12  0.0  3.3e3
+ford /c3h8  0.9028/
+ford /o2    0.6855/
+co + 0.5 o2 <=> co2                   4.5e10  0.0  1.2e3
+ford /co    1.0/   ! already inferred from stoichiometry - testing purposes
+rord /co2   1.0/   ! already inferred from stoichiometry - testing purposes    
+END

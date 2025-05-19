@@ -26,6 +26,8 @@ namespace ckr {
     void printReactionEquation(ostream& f, const Reaction& r);
     void writeSpeciesData(ostream& log, const Species& spec);
     string reactionEquation(const Reaction& r);
+
+    void writeRealOrder(const Reaction& rxn, ostream& log);
 }
 
 #endif

@@ -350,6 +350,11 @@ bool CKReader::writeReactions(ostream& log) {
             }
             log << endl;
         }
+ 
+        if (r.isRealOrder) {
+            writeRealOrder(r, log);
+        }
+
         if (r.isDuplicate) log
             << "   declared duplicate reaction. See reaction "
             << r.duplicate << "." << endl;

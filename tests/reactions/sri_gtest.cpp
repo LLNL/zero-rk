@@ -20,7 +20,7 @@ static const int NUM_REACTIONS = 2;
 static const int NUM_STEPS = 4;
 
 
-static const double LOCAL_GAS_CONST = 8314.4598;
+static const double LOCAL_GAS_CONST = 8314.462618;
 
 static double GetRateConstant(zerork::mechanism *mech,
                               const double temperature,

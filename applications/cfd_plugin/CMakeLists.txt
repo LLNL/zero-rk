@@ -11,12 +11,16 @@ set(COMMON_SRCS utility_funcs.cpp
        reactor_constant_volume_cpu.cpp
        reactor_constant_pressure_cpu.cpp
        reactor_nvector_serial.cpp solver_cvode.cpp 
-       solver_seulex.cpp utility_funcs.cpp
+       solver_seulex.cpp solver_sodex.cpp 
+       solver_radau.cpp utility_funcs.cpp
        zerork_reactor_manager.cpp
        interfaces/superlu_manager/superlu_manager.cpp
        interfaces/superlu_manager/superlu_manager_z.cpp
        interfaces/lapack_manager/lapack_manager.cpp
-       interfaces/seulex_cpp/seulex_cpp.cpp)
+       interfaces/lapack_manager/lapack_manager_z.cpp
+       interfaces/seulex_cpp/seulex_cpp.cpp
+       interfaces/sodex_cpp/sodex_cpp.cpp
+       interfaces/radau5_cpp/radau_cpp.cpp)
 
 
 if(ZERORK_ENABLE_SUNDIALS_LAPACK)

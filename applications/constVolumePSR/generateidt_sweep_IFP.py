@@ -381,6 +381,15 @@ spify_parser_params.append(
 )
 
 
+spify_parser_params.append(
+{
+    'name':"use_equilibrium_for_initialization",
+    'type':'bool',
+    'shortDesc' : "Use equilibrium state to initialize reactor",
+    'defaultValue': 0,
+}
+)
+
 #Make sure we can import SpifyParserGenerator
 sys.path.append(os.path.join(os.path.expandvars(SPIFY_SRC_DIR),'src'))
 

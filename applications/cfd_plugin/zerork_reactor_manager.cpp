@@ -11,6 +11,8 @@
 
 #include "solver_cvode.h"
 #include "solver_seulex.h"
+#include "solver_sodex.h"
+#include "solver_radau.h"
 #include "reactor_constant_volume_cpu.h"
 #include "reactor_constant_pressure_cpu.h"
 
@@ -60,6 +62,7 @@ ZeroRKReactorManager::ZeroRKReactorManager()
   int_options_["reactor_weight_mult"] = 1;
   int_options_["dump_reactors"] = 0;
   int_options_["dump_failed_reactors"] = 0;
+  int_options_["output_performance_log"] = 1;
 
   //Solver options
   int_options_["max_steps"] = 5000;
@@ -180,6 +183,7 @@ zerork_status_t ZeroRKReactorManager::ReadOptionsFile(const std::string& options
 #endif
   int_options_["dump_reactors"] = inputFileDB.dump_reactors();
   int_options_["dump_failed_reactors"] = inputFileDB.dump_failed_reactors();
+  int_options_["output_performance_log"] = inputFileDB.output_performance_log();
 
   string_options_["reactor_timing_log_filename"] = inputFileDB.reactor_timing_log();
   string_options_["mechanism_parsing_log_filename"] = inputFileDB.mechanism_parsing_log();
@@ -240,6 +244,18 @@ zerork_status_t ZeroRKReactorManager::LoadMechanism() {
 //Auto-assigns based on node rank
 //Use CUDA_VISIBLE_DEVICES to choose/re-order
 void ZeroRKReactorManager::AssignGpuId() {
+  int n_devices;
+  //This is to work-around issues with job schedulers that
+  //don't show all GPUs to all ranks on the node
+  if(getenv("ZERORK_GPUS_PER_NODE") != NULL) {
+    n_devices = atoi(getenv("ZERORK_GPUS_PER_NODE"));
+  } else {
+    hipGetDeviceCount(&n_devices);
+  }
+  if(rank_ == 0) printf("n_devices = %d\n",n_devices);
+  if(n_devices == 0) {
+    gpu_id_ = -1;
+  }
   if(gpu_id_ == -2) {
 #ifdef USE_MPI
     gpu_id_ = -1;
@@ -280,14 +296,8 @@ void ZeroRKReactorManager::AssignGpuId() {
       ranks_per_gpu = atoi(getenv("ZERORK_GPU_MPS_RANKS"));
     }
     /* Assign device to MPI process*/
-    int n_devices;
-    hipGetDeviceCount(&n_devices);
     if(node_rank / n_devices < ranks_per_gpu) {
       gpu_id_ = node_rank % n_devices;
-    }
-    if(getenv("ROCR_VISIBLE_DEVICES") != NULL) {
-      if (rank==0) printf("Setting gpu id from ROCR_VISIBLE_DEVICES ...\n");
-      gpu_id_ = atoi(getenv("ROCR_VISIBLE_DEVICES"));
     }
     if(gpu_id_ >= 0) {
 #ifdef USE_MPI
@@ -299,6 +309,11 @@ void ZeroRKReactorManager::AssignGpuId() {
       hipDeviceSynchronize();
       if(hipGetLastError() != hipSuccess) {
         //Failed to set device.  Fall back to cpu.
+#ifdef USE_MPI
+        printf("Failed to assign device %d to process on node %s rank %d \n", gpu_id_, host_name, rank);
+#else
+        printf("Failed to assign device %d to process\n", gpu_id_);
+#endif
         gpu_id_ = -1;
       }
     }
@@ -597,28 +612,30 @@ zerork_status_t ZeroRKReactorManager::FinishInit() {
       if(int_options_["verbosity"] > 1) {
         printf("* %-25s%-31s *\n", "Zero-RK Lib Build Date: ",__DATE__);
       }
-      reactor_log_file_.open(string_options_["reactor_timing_log_filename"]);
+      if(int_options_["output_performance_log"]!=0) {
+        reactor_log_file_.open(string_options_["reactor_timing_log_filename"]);
 
-      // Timing log file
-      reactor_log_file_ << "#";
-      reactor_log_file_ << std::setw(11) << "solve_number";
-      reactor_log_file_ << std::setw(17) << "reactors_solved";
-      reactor_log_file_ << std::setw(17) << "n_cpu";
-      reactor_log_file_ << std::setw(17) << "n_cpu_notemp";
-      reactor_log_file_ << std::setw(17) << "n_gpu";
-      reactor_log_file_ << std::setw(17) << "n_gpu_notemp";
-      reactor_log_file_ << std::setw(17) << "n_gpu_groups";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg_cpu";
-      reactor_log_file_ << std::setw(17) << "n_steps_avg_gpu";
-      reactor_log_file_ << std::setw(17) << "max_time_cpu";
-      reactor_log_file_ << std::setw(17) << "max_time_gpu";
-      reactor_log_file_ << std::setw(17) << "step_time_cpu";
-      reactor_log_file_ << std::setw(17) << "step_time_gpu";
-      reactor_log_file_ << std::setw(17) << "avg_time_total";
-      reactor_log_file_ << std::setw(17) << "max_time_total";
-      reactor_log_file_ << std::endl;
-      reactor_log_file_.flush();
+        // Timing log file
+        reactor_log_file_ << "#";
+        reactor_log_file_ << std::setw(11) << "solve_number";
+        reactor_log_file_ << std::setw(17) << "reactors_solved";
+        reactor_log_file_ << std::setw(17) << "n_cpu";
+        reactor_log_file_ << std::setw(17) << "n_cpu_notemp";
+        reactor_log_file_ << std::setw(17) << "n_gpu";
+        reactor_log_file_ << std::setw(17) << "n_gpu_notemp";
+        reactor_log_file_ << std::setw(17) << "n_gpu_groups";
+        reactor_log_file_ << std::setw(17) << "n_steps_avg";
+        reactor_log_file_ << std::setw(17) << "n_steps_avg_cpu";
+        reactor_log_file_ << std::setw(17) << "n_steps_avg_gpu";
+        reactor_log_file_ << std::setw(17) << "max_time_cpu";
+        reactor_log_file_ << std::setw(17) << "max_time_gpu";
+        reactor_log_file_ << std::setw(17) << "step_time_cpu";
+        reactor_log_file_ << std::setw(17) << "step_time_gpu";
+        reactor_log_file_ << std::setw(17) << "avg_time_total";
+        reactor_log_file_ << std::setw(17) << "max_time_total";
+        reactor_log_file_ << std::endl;
+        reactor_log_file_.flush();
+      }
     }
 
     num_species_stride_ = num_species_;
@@ -961,8 +978,14 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
         std::unique_ptr<SolverBase> solver;
         if(int_options_["integrator"] == 0) {
           solver.reset(new CvodeSolver(*reactor_gpu_ptr_));
-        } else {
+        } else if(int_options_["integrator"] == 1) {
           solver.reset(new SeulexSolver(*reactor_gpu_ptr_));
+        } else if(int_options_["integrator"] == 2) {
+          solver.reset(new SodexSolver(*reactor_gpu_ptr_));
+        } else if(int_options_["integrator"] == 3) {
+          solver.reset(new RadauSolver(*reactor_gpu_ptr_));
+        } else {
+          throw(std::runtime_error("Invalid integrator specified for GPU"));
         }
 
         solver->SetIntOptions(int_options_);
@@ -1045,8 +1068,14 @@ zerork_status_t ZeroRKReactorManager::SolveReactors()
   std::unique_ptr<SolverBase> solver;
   if(int_options_["integrator"] == 0) {
     solver.reset(new CvodeSolver(*reactor_ptr_));
-  } else {
+  } else if(int_options_["integrator"] == 1) {
     solver.reset(new SeulexSolver(*reactor_ptr_));
+  } else if(int_options_["integrator"] == 2) {
+    solver.reset(new SodexSolver(*reactor_ptr_));
+  } else if(int_options_["integrator"] == 3) {
+    solver.reset(new RadauSolver(*reactor_ptr_));
+  } else {
+    throw(std::runtime_error("Invalid integrator specified"));
   }
   solver->SetIntOptions(int_options_);
   solver->SetDoubleOptions(double_options_);
@@ -1246,7 +1275,7 @@ zerork_status_t ZeroRKReactorManager::RedistributeResults()
 #endif
 
 zerork_status_t ZeroRKReactorManager::PostSolve() {
-  ProcessPerformance();
+  if(int_options_["output_performance_log"]!=0) ProcessPerformance();
 #ifdef ZERORK_GPU
   UpdateRankWeights();
 #endif

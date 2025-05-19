@@ -6,14 +6,17 @@ for d in \
   constVolumeWSR_TLA \
   constVolumePSR \
   idt_diagnostic \
-  perturbAFactor \
   thermo_check \
+  perturbAFactor \
   variable_volume/cv \
   variable_volume/rcm \
   variable_volume_batch \
+  lewisGenerator \
   cfd_plugin_tester \
   rate_optimization \
-  flame_api_tester
+  surrogate_optimizer/diesel \
+  flame_api_tester \
+  #surrogate_optimizer/tprf \
 do
   cd $d
   echo "Running test $d ..."

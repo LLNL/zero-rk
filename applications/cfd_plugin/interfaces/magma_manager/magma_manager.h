@@ -7,7 +7,8 @@
 
 #include "../hip_la_manager/hip_la_manager.h"
 
-class magma_manager : public hip_la_manager
+template<typename T>
+class magma_manager : public hip_la_manager<T>
 {
  public:
   magma_manager();
@@ -16,34 +17,38 @@ class magma_manager : public hip_la_manager
   bool factored() { return this->factored_; };
 
  protected:
-  int factor_invert(int num_batches, int n, double* values);
-  int factor_lu(int num_batches, int n, double* values);
-  int solve_invert(int num_batches, int n, const double* rhs, double* soln);
-  int solve_lu(int num_batches, int n, const double* rhs, double* soln);
+  int factor_invert(int num_batches, int n, T* values);
+  int factor_lu(int num_batches, int n, T* values);
+  int solve_invert(int num_batches, int n, const T* rhs, T* soln);
+  int solve_lu(int num_batches, int n, const T* rhs, T* soln);
 
  private:
   void AllocateDeviceMemory();
   void FreeDeviceMemory();
   void setup_memory();
-  int cuda_bdmv(int n, int nbatch, double* A_dev, double* B_dev, double* Y_dev);
-  void cuda_transpose(double* odata, const double* idata, const int width, const int height);
+  int gpu_bdmv(int n, int nbatch, T* A_dev, T* B_dev, T* Y_dev);
+  void gpu_transpose(T* odata, const T* idata, const int width, const int height);
+
+  void getrf_batched();
+  void getri_batched();
+  void getrs_batched();
 
   bool factored_;
   int n_;
   int num_batches_;
 
-  std::vector<double*> data_ptrs_; //CPU data pointers
+  std::vector<T*> data_ptrs_; //CPU data pointers
   std::vector<int> info_;
 
   //device pointers
   int* info_dev_;
   int* ipiv_dev_;
   int** ipiv_pointers_dev_;
-  double* tmp_dev_;
-  double* matrix_inverse_dev_;
-  double** matrix_inverse_pointers_dev_;
-  double** matrix_pointers_dev_;
-  double** tmp_pointers_dev_;
+  T* tmp_dev_;
+  T* matrix_inverse_dev_;
+  T** matrix_inverse_pointers_dev_;
+  T** matrix_pointers_dev_;
+  T** tmp_pointers_dev_;
 
   magma_queue_t magma_queue_;
 };
