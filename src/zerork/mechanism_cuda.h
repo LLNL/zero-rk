@@ -11,17 +11,11 @@ class mechanism_cuda : public mechanism
   mechanism_cuda(const char *mechFileName,
 		const char *thermFileName, 
 		const char *convertFileName,
-                int verbosity = 1,
-                int nReactorsMax = 64);
+                int verbosity,
+                int nReactorsMax);
   virtual ~mechanism_cuda();
 
   //Multi-reactor code.
-  void getReactionRates_CUDA(const double T, const double C[],
-      double netOut[], double createOut[],
-      double destroyOut[], double stepOut[]);
-  void getReactionRates_CUDA_mr(const int nReactors, const double T[], const double C[],
-      double netOut[], double createOut[],
-      double destroyOut[], double stepOut[], bool transposeInOut = false, bool outputAll = false);
   void getReactionRates_CUDA_mr_dev(const int nReactors, const double T_dev[], const double C_dev[],
              double netOut_dev[], double createOut_dev[],
              double destroyOut_dev[], double stepOut_dev[]);

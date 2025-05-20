@@ -14,7 +14,6 @@ class rate_const_cuda : public rate_const
   rate_const_cuda(ckr::CKReader *ckrobj, info_net *netobj, nasa_poly_group *tobj, int nReactorsMax = 64);
   virtual ~rate_const_cuda();
 
-  void updateK_CUDA(const double T, const double * C, const double * C_dev, double * K_dev);
   void updateK_CUDA_mr(const int nReactors, const double T_dev[], const double * C_dev, double * K_dev);
 
   int nReactorsMax() { return m_nReactorsMax; };

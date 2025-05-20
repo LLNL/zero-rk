@@ -108,16 +108,25 @@ rate_const::rate_const(ckr::CKReader *ckrobj, info_net *netobj,
 
   int allocSize = nDistinctArrhenius*sizeof(double);
   allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
-  arrWorkArray = (double*)aligned_alloc(32, allocSize);
-  memset(arrWorkArray,0.0, allocSize);
+  arrWorkArray = nullptr;
+  if(allocSize > 0) {
+    arrWorkArray = (double*)aligned_alloc(32, allocSize);
+    memset(arrWorkArray,0.0, allocSize);
+  }
   allocSize = nFromKeqStep*sizeof(double);
   allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
-  keqWorkArray = (double*)aligned_alloc(32, allocSize);
-  memset(keqWorkArray, 0.0, allocSize);
+  keqWorkArray = nullptr;
+  if(allocSize > 0) {
+    keqWorkArray = (double*)aligned_alloc(32, allocSize);
+    memset(keqWorkArray, 0.0, allocSize);
+  }
   allocSize = nFalloffRxn*sizeof(double);
   allocSize = ((allocSize + 31)/32)*32; //round to next even multiple of 4 doubles
-  falloffWorkArray = (double*)aligned_alloc(32, allocSize);
-  memset(falloffWorkArray, 0.0, allocSize);
+  falloffWorkArray = nullptr;
+  if(allocSize > 0) {
+    falloffWorkArray = (double*)aligned_alloc(32, allocSize);
+    memset(falloffWorkArray, 0.0, allocSize);
+  }
 
   use_external_arrh = false;
   use_external_keq = false;
@@ -137,9 +146,15 @@ rate_const::~rate_const()
   }
   delete [] Gibbs_RT;
   delete [] Kwork;
-  _aligned_free(arrWorkArray);
-  _aligned_free(keqWorkArray);
-  _aligned_free(falloffWorkArray);
+  if(arrWorkArray != nullptr) {
+    _aligned_free(arrWorkArray);
+  }
+  if(keqWorkArray != nullptr) {
+    _aligned_free(keqWorkArray);
+  }
+  if(falloffWorkArray != nullptr) {
+    _aligned_free(falloffWorkArray);
+  }
 }
 
 void rate_const::setStepCount_Ttype(ckr::CKReader *ckrobj)

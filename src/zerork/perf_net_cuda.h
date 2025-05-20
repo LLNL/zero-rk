@@ -16,12 +16,6 @@ class perf_net_cuda : public perf_net
   perf_net_cuda(info_net &netobj, rate_const &Kobj);
   virtual ~perf_net_cuda();
 
-  void calcRatesFromTC_CUDA(const double T, const double C[],
-           double netOut[], double createOut[], double destroyOut[],
-     double stepOut[]);
-  void calcRatesFromTC_CUDA_mr(const int nReactors, const double T[], const double C[],
-           double netOut[], double createOut[], double destroyOut[],
-     double stepOut[], bool transposeInOut = false, bool outputAll = false);
   void calcRatesFromTC_CUDA_mr_dev(const int nReactors, const double T_dev[],
 		                   const double C_dev[], const double stepLimiter_dev[],
 				   double *netOut_dev, double *createOut_dev, double *destroyOut_dev,
@@ -39,11 +33,6 @@ class perf_net_cuda : public perf_net
   int *nOpsDestroy_dev;
   int *nOpsCreate_dev;
   double *C_dev;
-  double *stepOut_dev;
-  double *createOut_dev;
-  double *destroyOut_dev;
-  double *netOut_dev;
-  double *Tmulti_dev;
 
   double* rop_concentration_powers_dev;
   int *niReactantSpcIdxList_dev;
