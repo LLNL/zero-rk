@@ -7,24 +7,6 @@
 
 namespace zerork {
 
-void __global__ updateArrheniusStep_CUDA
-(
-    const int nStep,
-    double *K_dev,
-    const double *logAfact_dev,
-    const double *Tpow_dev,
-    const double *Tact_dev,
-    const double log_e_Tcurrent,
-    const double invTcurrent
-)
-{
-    int tid = blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid < nStep)
-    {
-        K_dev[tid] = exp(logAfact_dev[tid] + Tpow_dev[tid]*log_e_Tcurrent - Tact_dev[tid]*invTcurrent);
-    }
-}
-
 void __global__ updateArrheniusStep_CUDA_mr
 (
     const int nReactors,
@@ -69,32 +51,6 @@ void __global__ updateArrheniusStep_CUDA_mr
     }
 }
 
-void __global__ updateFromKeqStep_CUDA
-(
-    const int nFromKeqStep,
-    const int nSpcPerStep,
-    const int *fromKeq_reacIdx_dev,
-    const int *fromKeq_prodIdx_dev,
-    const int *fromKeq_stepIdx_dev,
-    const double *fromKeq_nDelta_dev,
-    const double *Gibbs_RT_dev,
-    double* K_dev,
-    double log_e_PatmInvRuT
-)
-{
-  int tid = blockIdx.x*blockDim.x + threadIdx.x;
-  if(tid < nFromKeqStep)
-  {
-      double gibbs_net = 0.0;
-      for(int k=0; k<nSpcPerStep; ++k)
-      {
-          gibbs_net -= Gibbs_RT_dev[fromKeq_reacIdx_dev[tid*nSpcPerStep+k]];
-          gibbs_net += Gibbs_RT_dev[fromKeq_prodIdx_dev[tid*nSpcPerStep+k]];
-      }
-
-      K_dev[fromKeq_stepIdx_dev[tid]] *= exp(gibbs_net-fromKeq_nDelta_dev[tid]*log_e_PatmInvRuT);
-  }
-}
 
 void __global__ updateFromKeqStep_CUDA_mr
 (
@@ -202,37 +158,6 @@ void __global__ updateFromKeqStepNI_CUDA_mr
   }
 }
 
-void __global__ updateThirdBody_CUDA
-(
-    const int nThirdBodyRxn,
-    const int nSpcPerStep,
-    const int *thirdBody_nEnhanced_dev,
-    const int *thirdBody_etbSpcIdx_dev,
-    const int *thirdBody_fwdStepIdx_dev,
-    const int *thirdBody_revStepIdx_dev,
-    const double *thirdBody_etbSpcEff_dev,
-    const double *C_dev,
-    const double Csum,
-    double *K_dev
-)
-{
-  int tid = blockIdx.x*blockDim.x + threadIdx.x;
-  if(tid < nThirdBodyRxn)
-  {
-      double Cmult=Csum;
-      for(int k=0; k<thirdBody_nEnhanced_dev[tid]; k++)
-      {
-          Cmult += C_dev[thirdBody_etbSpcIdx_dev[tid*nSpcPerStep + k]]*
-                         thirdBody_etbSpcEff_dev[tid*nSpcPerStep + k];
-      }
-      K_dev[thirdBody_fwdStepIdx_dev[tid]] *= Cmult;
-      if(thirdBody_revStepIdx_dev[tid] >= 0)
-      {
-          K_dev[thirdBody_revStepIdx_dev[tid]] *= Cmult;
-      }
-  }
-}
-
 void __global__ updateThirdBody_CUDA_mr
 (
     const int nReactors,
@@ -268,86 +193,6 @@ void __global__ updateThirdBody_CUDA_mr
           {
               K_dev[thirdBody_revStepIdx_dev[tid]*nReactors+reactorid] *= Cmult;
           }
-      }
-  }
-}
-
-
-void __global__ updateFalloff_CUDA
-(
-    const int nFalloffRxn,
-    const int nSpcPerStep,
-    const int nFalloffParams,
-    const int *falloff_falloffType_dev,
-    const int *falloff_nEnhanced_dev,
-    const int *falloff_etbSpcIdx_dev,
-    const int *falloff_fwdStepIdx_dev,
-    const int *falloff_revStepIdx_dev,
-    const double *falloff_etbSpcEff_dev,
-    const double *falloff_param_dev,
-    const double *logAfact_dev,
-    const double *Tpow_dev,
-    const double *Tact_dev,
-    const double *C_dev,
-    const double Csum,
-    const double Tcurrent,
-    double *K_dev
-)
-{
-  int tid = blockIdx.x*blockDim.x + threadIdx.x;
-  if(tid < nFalloffRxn)
-  {
-      int fwdArrhIdx;
-      double Pr,Klow,log_10_Pr,fTerm,Fcenter,Cmult,log_e_Tcurrent,invTcurrent,
-             Kfwd,nTerm,Pcorr;
-      Cmult=Csum;
-      log_e_Tcurrent = log(Tcurrent);
-      invTcurrent = 1.0/Tcurrent;
-
-      for(int k=0; k<nSpcPerStep; k++)
-      {
-          Cmult+=C_dev[falloff_etbSpcIdx_dev[tid*nSpcPerStep+k]]*
-                       falloff_etbSpcEff_dev[tid*nSpcPerStep+k];
-      }
-
-      Klow = exp(falloff_param_dev[tid*nFalloffParams+0]
-                +falloff_param_dev[tid*nFalloffParams+1]*log_e_Tcurrent
-                -falloff_param_dev[tid*nFalloffParams+2]*invTcurrent);
-      Pr = Klow*Cmult/K_dev[falloff_fwdStepIdx_dev[tid]];
-      if(Pr < 1.0e-300) {Pr = 1.0e-300;} // ck SMALL constant
-      log_10_Pr=log10(Pr);
-
-      fTerm=1.0; // default is Lindemann
-      if(falloff_falloffType_dev[tid]==TROE_THREE_PARAMS ||
-         falloff_falloffType_dev[tid]==TROE_FOUR_PARAMS) {
-          // Troe - 3 and 4 parameter fits
-          Fcenter=(1.0-falloff_param_dev[tid*nFalloffParams+3])
-                    *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+4])
-                 +falloff_param_dev[tid*nFalloffParams+3]
-                    *exp(-Tcurrent/falloff_param_dev[tid*nFalloffParams+5]);
-          if(falloff_falloffType_dev[tid]==TROE_FOUR_PARAMS)
-          {
-             // Troe - 4 parameter fit
-             Fcenter+=exp(-falloff_param_dev[tid*nFalloffParams+6]*invTcurrent); //300 term
-          }
-
-          if(Fcenter < 1.0e-300)
-            {Fcenter=1.0e-300;}
-          fTerm=log10(Fcenter);
-          nTerm=0.75-1.27*fTerm;
-          log_10_Pr-=(0.4+0.67*fTerm);
-          log_10_Pr=log_10_Pr/(nTerm-0.14*log_10_Pr);
-          log_10_Pr*=log_10_Pr;
-          fTerm/=(1.0+log_10_Pr);
-          fTerm=pow(10.,fTerm);
-      }
-
-      Pcorr = fTerm*Pr/(1.0+Pr);
-
-      K_dev[falloff_fwdStepIdx_dev[tid]] *= Pcorr;
-      if(falloff_revStepIdx_dev[tid] >= 0)
-      {
-          K_dev[falloff_revStepIdx_dev[tid]] *= Pcorr;
       }
   }
 }
@@ -498,7 +343,8 @@ void __global__  updatePLogInterpolationStep_CUDA_mr
   const double *activation_temperature,
   const double *Csum_dev,
   const double *T_dev,
-  double *K_dev)
+  double *K_dev
+)
 {
     int stepid = blockIdx.x*blockDim.x + threadIdx.x;
     int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
@@ -575,115 +421,6 @@ void __global__ concentrationSum
       Csum_dev[reactorid] = Csum_local;
   }
 }
-
-
-
-
-void rate_const_updateArrheniusStep_CUDA(const int nStep, double *K_dev,
-    const double* logAfact_dev, const double* Tpow_dev, const double* Tact_dev,
-    const double log_e_Tcurrent, const double invTcurrent, hipStream_t arrhStream)
-{
-  int nThreads = THREADS_PER_BLOCK;
-  int nBlocks = (nStep+nThreads-1)/nThreads;
-  updateArrheniusStep_CUDA<<<nBlocks,nThreads,0,arrhStream>>>(nStep,K_dev,logAfact_dev,Tpow_dev,Tact_dev,log_e_Tcurrent,invTcurrent);
-#ifdef ZERORK_FULL_DEBUG
-  hipDeviceSynchronize();
-  checkCudaError(hipGetLastError(),"updateArrheniusGPU");
-#endif
-}
-
-void rate_const_updateFromKeqStep_CUDA(const int nFromKeqStep,const int keqPadSize,
-      const int *fromKeq_reacIdx_dev, const int *fromKeq_prodIdx_dev,
-      const int *fromKeq_stepIdx_dev, const double *fromKeq_nDelta_dev,
-      const double *Gibbs_RT_dev, double * K_dev, const double log_e_PatmInvRuT,
-      hipStream_t kEqStream)
-{
-  int nThreads = THREADS_PER_BLOCK;
-  int nBlocks = (nFromKeqStep+nThreads-1)/nThreads;
-  updateFromKeqStep_CUDA<<<nBlocks,nThreads,0,kEqStream>>>
-  (
-      nFromKeqStep,
-      keqPadSize,
-      fromKeq_reacIdx_dev,
-      fromKeq_prodIdx_dev,
-      fromKeq_stepIdx_dev,
-      fromKeq_nDelta_dev,
-      Gibbs_RT_dev,
-      K_dev,
-      log_e_PatmInvRuT
-  );
-#ifdef ZERORK_FULL_DEBUG
-  hipDeviceSynchronize();
-  checkCudaError(hipGetLastError(),"updateFromKeqStep_CUDA");
-#endif
-}
-
-
-void rate_const_updateFalloff_CUDA(const int nFalloffRxn, const int maxThirdBodySpc,
-     const int  maxFalloffParams, const int * falloff_falloffType_dev,
-     const int *falloff_nEnhanced_dev, const int *falloff_etbSpcIdx_dev, 
-     const int *falloff_fwdStepIdx_dev, const int *falloff_revStepIdx_dev,
-     const double *falloff_etbSpcEff_dev, const double *falloff_param_dev, 
-     const double *logAfact_dev, const double * Tpow_dev, const double *Tact_dev,
-     const double *C_dev, const double Csum, const double Tcurrent, double *K_dev,
-     hipStream_t falloffStream)
-{
-  int nThreads = THREADS_PER_BLOCK;
-  int nBlocks = (nFalloffRxn+nThreads-1)/nThreads;
-  updateFalloff_CUDA<<<nBlocks,nThreads,0,falloffStream>>>
-  (
-     nFalloffRxn,
-     maxThirdBodySpc,
-     maxFalloffParams,
-     falloff_falloffType_dev,
-     falloff_nEnhanced_dev,
-     falloff_etbSpcIdx_dev,
-     falloff_fwdStepIdx_dev,
-     falloff_revStepIdx_dev,
-     falloff_etbSpcEff_dev,
-     falloff_param_dev,
-     logAfact_dev,
-     Tpow_dev,
-     Tact_dev,
-     C_dev,
-     Csum,
-     Tcurrent,
-     K_dev
-  );
-#ifdef ZERORK_FULL_DEBUG
-  hipDeviceSynchronize();
-  checkCudaError(hipGetLastError(),"updateFalloff_CUDA");
-#endif
-}
-
-void rate_const_updateThirdBody_CUDA(const int nThirdBodyRxn, const int maxThirdBodySpc,
-     const int *thirdBody_nEnhanced_dev, const int *thirdBody_etbSpcIdx_dev,
-     const int *thirdBody_fwdStepIdx_dev, const int *thirdBody_revStepIdx_dev,
-     const double *thirdBody_etbSpcEff_dev, const double * C_dev, const double Csum,
-     double *K_dev, hipStream_t thirdBodyStream)
-{
-  int nThreads = THREADS_PER_BLOCK;
-  int nBlocks = (nThirdBodyRxn+nThreads-1)/nThreads;
-  updateThirdBody_CUDA<<<nBlocks,nThreads,0,thirdBodyStream>>>
-  (
-     nThirdBodyRxn,
-     maxThirdBodySpc,
-     thirdBody_nEnhanced_dev,
-     thirdBody_etbSpcIdx_dev,
-     thirdBody_fwdStepIdx_dev,
-     thirdBody_revStepIdx_dev,
-     thirdBody_etbSpcEff_dev,
-     C_dev,
-     Csum,
-     K_dev
-  );
-#ifdef ZERORK_FULL_DEBUG
-  hipDeviceSynchronize();
-  checkCudaError(hipGetLastError(),"updateThirdBody_CUDA");
-#endif
-}
-
-
 
 
 void rate_const_updateArrheniusStep_CUDA_mr(const int nReactors,const int nStep,

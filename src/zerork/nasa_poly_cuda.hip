@@ -33,11 +33,6 @@ nasa_poly_group_cuda::~nasa_poly_group_cuda()
   hipFree(thermoCoeff_dev);
 }
 
-void nasa_poly_group_cuda::getG_RT_CUDA(const double T, double * G_RT_dev, hipStream_t stream) const
-{
-    nasa_poly_group_getG_RT_CUDA(T, G_RT_dev, nGroupSpc, thermoCoeff_dev, stream);
-}
-
 void nasa_poly_group_cuda::getG_RT_CUDA_mr(const int nReactors, const double *T_dev, double *G_RT_dev, hipStream_t stream) const
 {
     nasa_poly_group_getG_RT_CUDA_mr(nReactors, T_dev, G_RT_dev, nGroupSpc, thermoCoeff_dev, stream);

@@ -579,36 +579,6 @@ void rate_const_cuda::setGpuParams()
 #endif
 }
 
-void rate_const_cuda::updateK_CUDA(const double T, const double * C, const double * C_dev, double * K_dev)
-{
-  updateTcurrent(T);
-  hipMemset(&Gibbs_RT_dev[nSpc],0,sizeof(double));
-  static_cast<nasa_poly_group_cuda*>(thermoPtr)->getG_RT_CUDA(Tcurrent,Gibbs_RT_dev, falloffStream);
-
-  rate_const_updateArrheniusStep_CUDA(nStep,K_dev,logAfact_dev,Tpow_dev,Tact_dev,log_e_Tcurrent,invTcurrent,arrhStream);
-
-  Csum=0.0;
-  for(int j=0; j<nSpc;)
-    {Csum+=C[j]; ++j;}
-  
-
-  hipStreamSynchronize(arrhStream);
-  hipStreamSynchronize(falloffStream); //G_RT ops
-  rate_const_updateFromKeqStep_CUDA(nFromKeqStep,keqPadSize,fromKeq_reacIdx_dev,fromKeq_prodIdx_dev,
-      fromKeq_stepIdx_dev,fromKeq_nDelta_dev,Gibbs_RT_dev,K_dev,log_e_PatmInvRuT,kEqStream);
-
-  hipStreamSynchronize(kEqStream);
-  rate_const_updateFalloff_CUDA(nFalloffRxn, maxThirdBodySpc, maxFalloffParams, falloff_falloffType_dev,
-     falloff_nEnhanced_dev, falloff_etbSpcIdx_dev, falloff_fwdStepIdx_dev, falloff_revStepIdx_dev,
-     falloff_etbSpcEff_dev, falloff_param_dev, logAfact_dev, Tpow_dev, Tact_dev, C_dev, Csum,
-     Tcurrent, K_dev, falloffStream);
-
-  rate_const_updateThirdBody_CUDA(nThirdBodyRxn, maxThirdBodySpc, thirdBody_nEnhanced_dev, thirdBody_etbSpcIdx_dev,
-     thirdBody_fwdStepIdx_dev, thirdBody_revStepIdx_dev, thirdBody_etbSpcEff_dev, C_dev, Csum, K_dev, thirdBodyStream);
-
-  printf("WARNING: Old CODE.  Falloff and PLog reactions not included.\n");
-}
-
 
 void rate_const_cuda::updateK_CUDA_mr
 (

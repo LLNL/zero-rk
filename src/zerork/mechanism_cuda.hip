@@ -146,27 +146,12 @@ int mechanism_cuda::nReactorsMax()
   return static_cast<rate_const_cuda*>(Kconst)->nReactorsMax();
 }
 
-void mechanism_cuda::getReactionRates_CUDA(const double T, const double C[],
-                                     double netOut[], double createOut[],
-                                     double destroyOut[], double stepOut[])
-{
-  static_cast<perf_net_cuda*>(perfNet)->calcRatesFromTC_CUDA(T,&C[0],&netOut[0],&createOut[0],&destroyOut[0],
-                           &stepOut[0]);
-}
-
-
-void mechanism_cuda::getReactionRates_CUDA_mr(const int nReactors, const double T[], const double C[],
-                                     double netOut[], double createOut[],
-                                     double destroyOut[], double stepOut[], bool transposeInOut, bool outputAll)
-{
-  static_cast<perf_net_cuda*>(perfNet)->calcRatesFromTC_CUDA_mr(nReactors,T,C,netOut,createOut,destroyOut,stepOut,transposeInOut,outputAll);
-}
-
 
 void mechanism_cuda::getReactionRates_CUDA_mr_dev(const int nReactors, const double T_dev[], const double C_dev[],
                                      double netOut_dev[], double createOut_dev[],
                                      double destroyOut_dev[], double stepOut_dev[])
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   static_cast<perf_net_cuda*>(perfNet)->calcRatesFromTC_CUDA_mr_dev(nReactors,T_dev,C_dev, nullptr, netOut_dev,createOut_dev,destroyOut_dev,stepOut_dev);
 }
 
@@ -174,6 +159,7 @@ void mechanism_cuda::getReactionRatesLimiter_CUDA_mr_dev(const int nReactors, co
                                      double netOut_dev[], double createOut_dev[],
                                      double destroyOut_dev[], double stepOut_dev[])
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   static_cast<perf_net_cuda*>(perfNet)->calcRatesFromTC_CUDA_mr_dev(nReactors,T_dev,C_dev,stepLimiter_dev,netOut_dev,createOut_dev,destroyOut_dev,stepOut_dev);
 }
 
@@ -181,6 +167,7 @@ void mechanism_cuda::getReactionRatesLimiter_CUDA_mr_dev(const int nReactors, co
 void mechanism_cuda::getMassCpFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                       double cpSpc_dev[], double cpReactors_dev[]) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   hipMemsetAsync(cpReactors_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
   static_cast<nasa_poly_group_cuda*>(thermo)->getCp_R_CUDA_mr(nReactors,T_dev,cpSpc_dev, (hipStream_t) 0);
   //Convert to mass based Cp and calculate means
@@ -191,6 +178,7 @@ void mechanism_cuda::getMassCpFromTY_mr_dev(const int nReactors, const double T_
 void mechanism_cuda::getMassCvFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                       double cvSpc_dev[], double cvReactors_dev[]) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   hipMemsetAsync(cvReactors_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
   static_cast<nasa_poly_group_cuda*>(thermo)->getCp_R_CUDA_mr(nReactors,T_dev,cvSpc_dev, (hipStream_t) 0);
   Cv_from_Cp_mr(nReactors,nSpc,RuInvMolWt_dev,y_dev,cvSpc_dev,cvReactors_dev);
@@ -199,12 +187,14 @@ void mechanism_cuda::getMassCvFromTY_mr_dev(const int nReactors, const double T_
 
 void mechanism_cuda::getEnthalpy_RT_mr_dev(const int nReactors, const double T_dev[], double h_RT_dev[]) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev,h_RT_dev, (hipStream_t) 0);
 }
 
 
 void mechanism_cuda::getIntEnergy_RT_mr_dev(const int nReactors, const double T_dev[], double u_RT_dev[]) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev,u_RT_dev, (hipStream_t) 0);
   minusEqualOne(nSpc*nReactors,u_RT_dev);
 }
@@ -213,12 +203,14 @@ void mechanism_cuda::getIntEnergy_RT_mr_dev(const int nReactors, const double T_
 void mechanism_cuda::getCfromVY_mr_dev(const int nReactors, const double v_dev[], const double y_dev[],
                                double c_dev[]) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   getCfromVY_mr_dev_wrapper(nReactors, nSpc, v_dev, y_dev, invMolWt_dev, c_dev);
 }
 
 void mechanism_cuda::getMassIntEnergyFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                                    double u_spc_dev[], double u_dev[] ) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   hipMemsetAsync(u_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
   static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev, u_spc_dev, (hipStream_t) 0);
   getMassIntEnergyFromTY_mr_dev_wrapper(nReactors, nSpc, T_dev, y_dev, RuInvMolWt_dev, u_spc_dev, u_dev);
@@ -227,6 +219,7 @@ void mechanism_cuda::getMassIntEnergyFromTY_mr_dev(const int nReactors, const do
 void mechanism_cuda::getMassEnthalpyFromTY_mr_dev(const int nReactors, const double T_dev[], const double y_dev[],
                                                   double h_spc_dev[], double h_dev[] ) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   hipMemsetAsync(h_dev,0,sizeof(double)*nReactors, (hipStream_t) 0);
   static_cast<nasa_poly_group_cuda*>(thermo)->getH_RT_CUDA_mr(nReactors,T_dev, h_spc_dev, (hipStream_t) 0);
   getMassEnthalpyFromTY_mr_dev_wrapper(nReactors, nSpc, T_dev, y_dev, RuInvMolWt_dev, h_spc_dev, h_dev);
@@ -234,6 +227,7 @@ void mechanism_cuda::getMassEnthalpyFromTY_mr_dev(const int nReactors, const dou
 
 void mechanism_cuda::getMolWtMixFromY_mr_dev(const int nReactors, const double y_dev[], double molWtMix_dev[]) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   hipMemset(molWtMix_dev,0,sizeof(double)*nReactors);
   getMolWtMixFromY_mr_dev_wrapper(nReactors,nSpc,y_dev,invMolWt_dev,molWtMix_dev);
 }
@@ -242,6 +236,7 @@ void mechanism_cuda::getDensityFromTPY_mr_dev(const int nReactors, const double 
                                               const double P_dev[],const double y_dev[],
                                               double dens_dev[]) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   getMolWtMixFromY_mr_dev(nReactors,y_dev,dens_dev);
   getDensityfromTPMW_wrapper(nReactors,getGasConstant(),T_dev,P_dev,dens_dev);
 }
@@ -249,6 +244,7 @@ void mechanism_cuda::getDensityFromTPY_mr_dev(const int nReactors, const double 
 
 void mechanism_cuda::getTemperatureFromEY_mr_dev(const int nReactors, const double E[], const double y[], double temperature_out[]) const
 {
+    assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
     const int maximum_iterations = 400;
     const double tolerance  = 1.0e-6;
     const double min_temperature = 100;
@@ -303,6 +299,7 @@ void mechanism_cuda::getTemperatureFromEY_mr_dev(const int nReactors, const doub
 
 void mechanism_cuda::getTemperatureFromHY_mr_dev(const int nReactors, const double H[], const double y[], double temperature_out[]) const
 {
+    assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
     const int maximum_iterations = 400;
     const double tolerance  = 1.0e-6;
     const double min_temperature = 100;
@@ -358,6 +355,7 @@ void mechanism_cuda::getTemperatureFromHY_mr_dev(const int nReactors, const doub
 void mechanism_cuda::getPressureFromTVY_mr_dev(const int nReactors, const double* T, const double* v,
                                                const double* y, double* P) const
 {
+  assert(nReactors <= static_cast<rate_const_cuda*>(Kconst)->nReactorsMax());
   getMolWtMixFromY_mr_dev(nReactors, y, P);
   getPressureFromTVY_wrapper(nReactors,getGasConstant(),T,v,P);
 }

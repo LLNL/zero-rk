@@ -102,16 +102,12 @@ int GetLine(FILE *InFile, char *ReadLine, char UntilChar, int MaxChar);
 int const_vol_wsr(realtype t, N_Vector y, N_Vector ydot,
 		  void *user_data);
 
-int const_vol_wsr_mr(realtype t, N_Vector y, N_Vector ydot,
-		  void *user_data);
-
 int const_vol_wsr_mr_dev(realtype t, N_Vector y, N_Vector ydot,
 		  void *user_data);
 
 int main(int argc, char *argv[])
 {
   FILE *stateFptr,*outputFptr;
-  CKReader *ckread;
   zerork::mechanism_cuda *mech;
 
   int j,k;
@@ -405,52 +401,18 @@ int main(int argc, char *argv[])
  for(j=0; j<nEval; ++j)
     {
           // calculate the ODE RHS
-          const_vol_wsr_mr(0.0, systemState, systemDeriv, (void *)&systemParam);
+          const_vol_wsr_mr_dev(0.0, systemState, systemDeriv, (void *)&systemParam);
     }
+
  stopTime=getHighResolutionTime();
  printf("# Elapsed time for %d*%d dy/dt calls on GPU [s]: %16.8e\n",nReactors,nEval,
 	stopTime-startTime);
 
 
-  //Test GPU results
-  int max_diff_print = 50;
-  int diffcount = 0;
-  double thresh = 1.0e-10;
-
-  diffcount = 0;  
-  for( k=0; k<nReactors; ++k)
-  {  
-      for( j=0; j<nState; ++j)
-      {  
-          double cpu_val,gpu_val,diff;
-          cpu_val = NV_Ith_S(systemDerivIns[k],j);
-          gpu_val = NV_Ith_S(systemDeriv,j*nReactors+k);
-          
-          diff = fabs((cpu_val-gpu_val)/(cpu_val+gpu_val));
-          if( diff > thresh )
-          {
-               printf("Diff in system derivative [%d,%d]: %g, %g, %g\n",k,j,cpu_val,gpu_val,diff);
-               ++diffcount;
-          }
-          if(diffcount > max_diff_print) break;      
-      }  
-      if(diffcount > max_diff_print) break;      
-  }  
-
- startTime=getHighResolutionTime();
- for(j=0; j<nEval; ++j)
-    {
-          // calculate the ODE RHS
-          const_vol_wsr_mr_dev(0.0, systemState, systemDeriv, (void *)&systemParam);
-    }
-
- stopTime=getHighResolutionTime();
- printf("# Elapsed time for %d*%d dy/dt calls on GPU_dev [s]: %16.8e\n",nReactors,nEval,
-	stopTime-startTime);
-
-
   //Test GPU_dev results
-  diffcount = 0;  
+  const int max_diff_print = 50;
+  const double thresh = 1.0e-10;
+  int diffcount = 0;
   for( k=0; k<nReactors; ++k)
   {  
       for( j=0; j<nState; ++j)
@@ -585,155 +547,6 @@ int const_vol_wsr(realtype t, N_Vector y, N_Vector ydot,
   cvp->dTemp_dt[cvp->currReactor]=-Esum;
 
   NV_Ith_S(ydot,cvp->nSpc)=cvp->dTemp_dt[cvp->currReactor];
-
-  (cvp->nFunc)++;
-  cvp->funcTime += getHighResolutionTime() - startTime;
-  return 0;
-}
-
-
-
-int const_vol_wsr_mr(realtype t, N_Vector y, N_Vector ydot,
-			 void *user_data)
-{
-//  printf("Zero-RK const_vol_wsr_mr\n");
-  ode_cv_param *cvp=(ode_cv_param *)user_data;
-  int nReactors = NV_LENGTH_S(y)/(cvp->nSpc+1);
-  double *mfp=NV_DATA_S(y); // caution: assumes realtype == double
-  double *ydot_ptr = NV_DATA_S(ydot); // caution: see above
-  double Temp[nReactors];
-  int j,k;
-  double startTime=getHighResolutionTime();
-
-  // set concentration via density and mass fraction
-  cvp->mech->getCfromVY_mr(nReactors,cvp->invDens,mfp,cvp->conc);
-
-  // set temperature
-  for(k=0; k<nReactors; ++k)
-  {
-      Temp[k] = NV_Ith_S(y,cvp->nSpc*nReactors+k)*cvp->Tref;
-  } 
-
-  // compute the molar production rates at the current state (aka wdot)
-  cvp->mech->getReactionRates_CUDA_mr(nReactors,Temp,cvp->conc,cvp->netProd,cvp->createRate,
-			      cvp->destroyRate,cvp->fwdROP,false,false);
-
-  cvp->mech->getIntEnergy_RT_mr(nReactors,Temp,cvp->Energy);
-  cvp->mech->getMassCvFromTY_mr(nReactors,Temp,mfp,cvp->CvMass,cvp->meanCvMass);
-
-  // ydot = [kmol/m^3/s] * [kg/kmol] * [m^3/kg] = [(kg spec j)/(kg mix)/s]
-  for(j=0; j<cvp->nSpc; j++)
-  {
-      for(k=0; k<nReactors; ++k)
-      {
-          ydot_ptr[nReactors*j+k] = (cvp->netProd[nReactors*j+k])*(cvp->molWt[j])*(cvp->invDens[k]);
-      }
-  }
-
-//  Esum=0.0;
-//  for(j=0; j<cvp->nSpc; j++)
-//    {Esum+=(cvp->Energy[j])*(cvp->netProd[j]);}
- 
-//  Esum*=cvp->mech->getGasConstant()*NV_Ith_S(y,cvp->nSpc)*(cvp->invDens)
-//    /(cvp->meanCvMass);
-//  cvp->dTemp_dt=-Esum;
-//  NV_Ith_S(ydot,cvp->nSpc)=cvp->dTemp_dt;
-
-  memset(cvp->dTemp_dt,0,nReactors*sizeof(double));
-  for(j=0; j<cvp->nSpc; ++j)
-  {
-      for(k=0; k<nReactors; ++k)
-      {
-          cvp->dTemp_dt[k] += (cvp->Energy[nReactors*j+k])*(cvp->netProd[nReactors*j+k]);
-      }
-  }
-
-  for(k=0; k<nReactors; ++k) 
-  {
-      cvp->dTemp_dt[k] *= cvp->mech->getGasConstant()*NV_Ith_S(y,cvp->nSpc*nReactors+k)*(cvp->invDens[k])
-                          / (cvp->meanCvMass[k]);
-      cvp->dTemp_dt[k] = -cvp->dTemp_dt[k];
-      ydot_ptr[cvp->nSpc*nReactors+k]=cvp->dTemp_dt[k];
-  }
-
-// TESTING CODE
-/*
-  int nStep = cvp->mech->getNumSteps();
-  double mfp_ins[nReactors*cvp->nSpc];
-  double conc_cpu[nReactors*cvp->nSpc];
-  double netRates_cpu[nReactors*cvp->nSpc];
-  double createRates_cpu[nReactors*cvp->nSpc];
-  double destroyRates_cpu[nReactors*cvp->nSpc];
-  double fwdROP_cpu[nReactors*nStep];
-  double energy_cpu[nReactors*cvp->nSpc];
-  double cv_cpu[nReactors*cvp->nSpc];
-  double meancv_cpu[nReactors];
-  for(k=0;k<nReactors;++k)
-  {
-      for(j=0;j<cvp->nSpc; ++j)
-      {
-          mfp_ins[cvp->nSpc*k+j] = mfp[j*nReactors+k];
-      }
-  }
-  for(k=0;k<nReactors;++k)
-  {
-      cvp->mech->getCfromVY(cvp->invDens[k],&(mfp_ins[cvp->nSpc*k]),&(conc_cpu[cvp->nSpc*k]));
-      cvp->mech->getReactionRates(Temp[k],&(conc_cpu[cvp->nSpc*k]),&(netRates_cpu[cvp->nSpc*k]),
-                                                   &(createRates_cpu[cvp->nSpc*k]),
-                                                   &(destroyRates_cpu[cvp->nSpc*k]),
-                                                   &(fwdROP_cpu[nStep*k]));
-      cvp->mech->getIntEnergy_RT(Temp[k],&(energy_cpu[cvp->nSpc*k]));
-      meancv_cpu[k] = cvp->mech->getMassCvFromTY(Temp[k],&(mfp_ins[cvp->nSpc*k]),&(cv_cpu[cvp->nSpc*k]));
-  }
-
-  double diff= 1.0;
-  double cpu_val,gpu_val;
-  double maxdiff = 1.0e-15; 
-  int diffcount = 0;
-  int maxprintdiff = 50;
-  for(k=0;k<nReactors;++k)
-  {
-      for(j=0;j<cvp->nSpc; ++j)
-      {
-          cpu_val = conc_cpu[cvp->nSpc*k + j];
-          gpu_val = cvp->conc[nReactors*j + k];
-          diff = fabs(cpu_val-gpu_val)/fabs(cpu_val+gpu_val);
-//          if(diff > maxdiff)
-          {
-              printf(" diff in conc[%d,%d] : %g %g %g.\n",k,j,cpu_val,gpu_val,diff);
-          }
-          cpu_val = netRates_cpu[cvp->nSpc*k + j];
-          gpu_val = cvp->netProd[nReactors*j + k];
-          diff = fabs(cpu_val-gpu_val)/fabs(cpu_val+gpu_val);
-          if(diff > maxdiff)
-          {
-              printf(" diff in netRates[%d,%d] : %g %g %g.\n",k,j,cpu_val,gpu_val,diff);
-          }
-          cpu_val = energy_cpu[cvp->nSpc*k + j];
-          gpu_val = cvp->Energy[nReactors*j + k];
-          diff = fabs(cpu_val-gpu_val)/fabs(cpu_val+gpu_val);
-//          if(diff > maxdiff)
-          {
-              printf(" diff in energy[%d,%d] : %g %g %g.\n",k,j,cpu_val,gpu_val,diff);
-          }
-          cpu_val = cv_cpu[cvp->nSpc*k + j];
-          gpu_val = cvp->CvMass[nReactors*j + k];
-          diff = fabs(cpu_val-gpu_val)/fabs(cpu_val+gpu_val);
-//          if(diff > maxdiff)
-          {
-              printf(" diff in cv[%d,%d] : %g %g %g.\n",k,j,cpu_val,gpu_val,diff);
-          }
-      }
-      cpu_val = meancv_cpu[k];
-      gpu_val = cvp->meanCvMass[k];
-      diff = fabs(cpu_val-gpu_val)/fabs(cpu_val+gpu_val);
-      if(diff > maxdiff)
-      {
-          printf(" diff in meancv[%d] : %g %g %g.\n",k,cpu_val,gpu_val,diff);
-      }
-  }
-*/
-// END TESTING CODE
 
   (cvp->nFunc)++;
   cvp->funcTime += getHighResolutionTime() - startTime;

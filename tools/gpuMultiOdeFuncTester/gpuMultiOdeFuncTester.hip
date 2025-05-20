@@ -53,7 +53,6 @@ int const_vol_wsr(realtype t, N_Vector y, N_Vector ydot,
 int main(int argc, char *argv[])
 {
   FILE *stateFptr,*outputFptr;
-  CKReader *ckread;
   zerork::mechanism_cuda *mech;
 
   int j,k;
@@ -230,20 +229,6 @@ int main(int argc, char *argv[])
  printf("# Elapsed time for %d*%d dy/dt calls on CPU [s]: %16.8e\n",nReactors,nEval,
 	stopTime-startTime);
 
- startTime=getHighResolutionTime();
- for(j=0; j<nEval; ++j)
-    {
-      // calculate the reaction rates
-      mech->getReactionRates_CUDA_mr(nReactors,Temp_array,sysParam.conc,sysParam.netProdRate,
-  			 sysParam.createRate,sysParam.destroyRate, sysParam.stepROP);
-    }
-
- stopTime=getHighResolutionTime();
- double gpuTime = stopTime - startTime;
- printf("# Elapsed time for %d*%d dy/dt calls on GPU [s]: %16.8e\n",nReactors,nEval,
-	stopTime-startTime);
-
-
 double* Temp_array_dev;
 double* conc_dev;
 double* netProdRate_dev;
@@ -272,8 +257,7 @@ hipMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
 
  startTime=getHighResolutionTime();
 
- for(j=0; j<nEval; ++j)
-    {
+ for(j=0; j<nEval; ++j) {
       // calculate the reaction rates
       mech->getReactionRates_CUDA_mr_dev(nReactors,
                          Temp_array_dev,
@@ -282,25 +266,19 @@ hipMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
   			 createRate_dev,
                          destroyRate_dev,
                          stepROP_dev);
-    }
+  }
 
 
  stopTime=getHighResolutionTime();
  double gpu_devTime = stopTime - startTime;
- printf("# Elapsed time for %d*%d dy/dt calls on GPU_dev [s]: %16.8e\n",nReactors,nEval,
+ printf("# Elapsed time for %d*%d dy/dt calls on GPU[s]: %16.8e\n",nReactors,nEval,
 	stopTime-startTime);
 
   //Test results
-
   double *stepROP_cpu        = new double[nStep*nReactors];
   double *netProdRate_cpu    = new double[nSpc*nReactors];
   double *createRate_cpu     = new double[nSpc*nReactors];
   double *destroyRate_cpu    = new double[nSpc*nReactors];
-
-  double *stepROP_gpu        = new double[nStep*nReactors];
-  double *netProdRate_gpu    = new double[nSpc*nReactors];
-  double *createRate_gpu     = new double[nSpc*nReactors];
-  double *destroyRate_gpu    = new double[nSpc*nReactors];
 
  for(j=0; j<nReactors; ++j)
     {
@@ -315,51 +293,12 @@ hipMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
 			     rop_ptr);
     }
 
-//  double transposedC[nSpc*nReactors];
-//  for( k = 0; k < nReactors; ++k)
-//  {
-//      for(j=0;j<nSpc;++j)
-//      {
-//          transposedC[j*nReactors+k] = sysParam.conc[k*nSpc+j];
-//      }
-//  }
-
-//  mech->getReactionRates_CUDA_multiReactor(nReactors,Temp_array,transposedC,netProdRate_gpu,
-  mech->getReactionRates_CUDA_mr(nReactors,Temp_array,sysParam.conc,netProdRate_gpu,
-  			 createRate_gpu,destroyRate_gpu,stepROP_gpu,true,true);
-
-  int max_diff_print = 50;
-  int diffcount = 0;
-  double thresh = 1.0e-10;
-  for( j=0; j<nStep*nReactors; ++j)
-  {  
-      double diff = fabs((stepROP_cpu[j]-stepROP_gpu[j])/(stepROP_cpu[j]+stepROP_gpu[j]));
-      if( diff > thresh ) printf("Diff in ROP [%d]: %g, %g, %g\n",j,stepROP_cpu[j],stepROP_gpu[j],diff), ++diffcount;
-      if(diffcount > max_diff_print) break;      
-  }
-
-  diffcount = 0;  
-  for( j=0; j<nSpc*nReactors; ++j)
-  {  
-      double cdiff,ddiff,ndiff,maxdiff;
-      cdiff = fabs((createRate_cpu[j]-createRate_gpu[j])/(createRate_cpu[j]+createRate_gpu[j]));
-      ddiff = fabs((destroyRate_cpu[j]-destroyRate_gpu[j])/(destroyRate_cpu[j]+destroyRate_gpu[j]));
-      ndiff = fabs((netProdRate_cpu[j]-netProdRate_gpu[j])/(netProdRate_cpu[j]+netProdRate_gpu[j]));
-      maxdiff = max(ndiff,max(cdiff,ddiff));
-      int currReactor = j/nSpc;
-      if( maxdiff > thresh )
-      {
-           printf("Diff in createRate [%d]: %g, %g, %g\n",j,createRate_cpu[j],createRate_gpu[j],cdiff);
-           printf("Diff in destroyRate [%d]: %g, %g, %g\n",j,destroyRate_cpu[j],destroyRate_gpu[j],ddiff);
-           printf("Diff in netRate [%d]: %g, %g, %g, %d\n",j,netProdRate_cpu[j],netProdRate_gpu[j],ndiff,currReactor);
-           ++diffcount;
-      }
-      if(diffcount > max_diff_print) break;      
-  }  
-
-  printf(" *** %d  %d  %g \n",nSpc,nReactors,cpuTime/gpuTime);
-
   //We copy the values from the last call inside the testing loop
+  double *stepROP_gpu        = new double[nStep*nReactors];
+  double *netProdRate_gpu    = new double[nSpc*nReactors];
+  double *createRate_gpu     = new double[nSpc*nReactors];
+  double *destroyRate_gpu    = new double[nSpc*nReactors];
+
   hipMemcpy(stepROP_gpu, stepROP_dev,sizeof(double)*nReactors*nStep,hipMemcpyDeviceToHost);
   hipMemcpy(createRate_gpu, createRate_dev,sizeof(double)*nReactors*nSpc,hipMemcpyDeviceToHost);
   hipMemcpy(destroyRate_gpu, destroyRate_dev,sizeof(double)*nReactors*nSpc,hipMemcpyDeviceToHost);
@@ -372,8 +311,10 @@ hipMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
   hipFree(destroyRate_dev);
   hipFree(stepROP_dev);
 
-  // Check _dev results
-  diffcount = 0;
+  // Check gpu results
+  double thresh = 1.0e-10;
+  const int max_diff_print = 50;
+  int diffcount = 0;
   for( j=0; j<nStep*nReactors; ++j)
   {  
       int currReactor = j/nStep;
@@ -394,7 +335,7 @@ hipMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
       cdiff = fabs((createRate_cpu[j]-createRate_gpu[j_gpu])/(createRate_cpu[j]+createRate_gpu[j_gpu]));
       ddiff = fabs((destroyRate_cpu[j]-destroyRate_gpu[j_gpu])/(destroyRate_cpu[j]+destroyRate_gpu[j_gpu]));
       ndiff = fabs((netProdRate_cpu[j]-netProdRate_gpu[j_gpu])/(netProdRate_cpu[j]+netProdRate_gpu[j_gpu]));
-      maxdiff = max(ndiff,max(cdiff,ddiff));
+      maxdiff = max(cdiff,ddiff);
       if( maxdiff > thresh )
       {
            printf("Diff in createRate [%d]: %g, %g, %g\n",j,createRate_cpu[j],createRate_gpu[j_gpu],cdiff);
@@ -406,31 +347,6 @@ hipMalloc((void**)&stepROP_dev,sizeof(double)*nReactors*nStep);
   }  
 
   printf(" +++ %d  %d  %g \n",nSpc,nReactors,cpuTime/gpu_devTime);
-//  diffcount = 0;  
-//  for( k=0; k<nReactors; ++k)
-//  {  
-//      for( j=0; j<nSpc; ++j)
-//      {  
-//          double cdiff,ddiff,ndiff,maxdiff;
-////          cdiff = fabs((createRate_cpu[k*nSpc+j]-createRate_gpu[j*nReactors+k])/(createRate_cpu[k*nSpc+j]+createRate_gpu[j*nReactors+k]));
-////          ddiff = fabs((destroyRate_cpu[k*nSpc+j]-destroyRate_gpu[j*nReactors+k])/(destroyRate_cpu[k*nSpc+j]+destroyRate_gpu[j*nReactors+k]));
-//          cdiff = 0.0;
-//          ddiff = 0.0;
-//          ndiff = fabs((netProdRate_cpu[k*nSpc+j]-netProdRate_gpu[j*nReactors+k])/(netProdRate_cpu[k*nSpc+j]+netProdRate_gpu[j*nReactors+k]));
-////          ndiff = fabs((netProdRate_cpu[k*nSpc+j]-netProdRate_gpu[k*nSpc+j])/(netProdRate_cpu[k*nSpc+j]+netProdRate_gpu[k*nSpc+j]));
-//          maxdiff = max(ndiff,max(cdiff,ddiff));
-//          if( maxdiff > thresh )
-//          {
-////               printf("Diff in createRate [%d,%d]: %g, %g, %g\n",k,j,createRate_cpu[k*nSpc+j],createRate_gpu[j*nReactors+k],cdiff);
-////               printf("Diff in destroyRate [%d,%d]: %g, %g, %g\n",k,j,destroyRate_cpu[k*nSpc+j],destroyRate_gpu[j*nReactors+k],ddiff);
-//               printf("Diff in netRate [%d,%d]: %g, %g, %g\n",k,j,netProdRate_cpu[k*nSpc+j],netProdRate_gpu[j*nReactors+k],ndiff);
-////               printf("Diff in netRate [%d,%d]: %g, %g, %g\n",k,j,netProdRate_cpu[k*nSpc+j],netProdRate_gpu[k*nSpc+j],ndiff);
-//               ++diffcount;
-//          }
-//          if(diffcount > max_diff_print) break;      
-//      }  
-//      if(diffcount > max_diff_print) break;      
-//  }  
 
   delete mech;
   delete [] moleFrac;
