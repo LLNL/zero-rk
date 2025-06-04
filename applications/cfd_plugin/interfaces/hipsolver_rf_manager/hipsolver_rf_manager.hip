@@ -4,7 +4,7 @@
 
 
 hipsolver_rf_manager::hipsolver_rf_manager()
-#if HIP_VERSION > (5*10000000 + 6*100000)
+#if HAVE_HIPSOLVERRF
  :
   nnz_(-1),
   n_(-1),
@@ -16,7 +16,7 @@ hipsolver_rf_manager::hipsolver_rf_manager()
 
 hipsolver_rf_manager::~hipsolver_rf_manager()
 {
-#if HIP_VERSION > (5*10000000 + 6*100000)
+#if HAVE_HIPSOLVERRF
   if(factored_) {
     FreeDeviceMemory();
     hipsolverRfDestroy(hipsolverRfHandle_);
@@ -24,7 +24,7 @@ hipsolver_rf_manager::~hipsolver_rf_manager()
 #endif
 }
 
-#if HIP_VERSION > (5*10000000 + 6*100000)
+#if HAVE_HIPSOLVERRF
 void hipsolver_rf_manager::setup_memory()
 {
   if(factored_) {

@@ -968,7 +968,7 @@ int ReactorNVectorSerialGpu::JacobianFactor(realtype gamma)
     AddConstantBlockDiagonal(num_variables_, num_reactors_, 1.0, thrust::raw_pointer_cast(&dense_preconditioner_dev_[0]));
     flag = hip_la_manager_->factor(num_reactors_, num_variables_, thrust::raw_pointer_cast(&dense_preconditioner_dev_[0]));
   } else {
-#if HIP_VERSION > (5*10000000 + 6*100000)
+#if HAVE_HIPSOLVERRF
     //TODO: Sparse numeric
     if(int_options_["analytic"] != 1) {
       assert(false);
@@ -1031,7 +1031,7 @@ int ReactorNVectorSerialGpu::JacobianSolve(double t, N_Vector y, N_Vector fy,
   if(int_options_["dense"] == 1) {
     flag = hip_la_manager_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
   } else {
-#if HIP_VERSION > (5*10000000 + 6*100000)
+#if HAVE_HIPSOLVERRF
     flag = hsrfm_ptr_->solve(num_reactors_, num_variables_, r_ptr, z_ptr);
 #else
     assert(false);
@@ -1624,7 +1624,7 @@ void ReactorNVectorSerialGpu::SetStepLimiter(double value) {
 }
 
 void ReactorNVectorSerialGpu::Reset() {
-#if HIP_VERSION > (5*10000000 + 6*100000)
+#if HAVE_HIPSOLVERRF
   hsrfm_temperature_.reset();
   hsrfm_no_temperature_.reset();
 #endif

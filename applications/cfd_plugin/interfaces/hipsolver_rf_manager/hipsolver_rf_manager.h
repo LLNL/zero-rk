@@ -12,7 +12,7 @@ class hipsolver_rf_manager
   hipsolver_rf_manager();
   virtual ~hipsolver_rf_manager();
 
-#if HIP_VERSION > (5*10000000 + 6*100000)
+#if HAVE_HIPSOLVERRF
   enum matrix_t { CSC, CSR };
   int factor(int num_batches, int n, int nnz, const int* indexs, const int* sums,
              const double* values, hipsolver_rf_manager::matrix_t type);

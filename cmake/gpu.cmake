@@ -1,6 +1,7 @@
 
 option(ENABLE_GPU "Enable CUDA libraries and applications." OFF)
 cmake_dependent_option(ENABLE_MAGMA "Enable MAGMA GPU library" ON "ENABLE_GPU" OFF)
+cmake_dependent_option(ENABLE_HIPSOLVERRF "Enable hipSolverRf library" OFF "ENABLE_GPU" OFF)
 if(${ENABLE_GPU})
   set(CMAKE_HIP_HOST_COMPILER ${CMAKE_CXX_COMPILER})
   enable_language(HIP)
@@ -14,6 +15,24 @@ if(${ENABLE_GPU})
   if(${ENABLE_MAGMA})
     include(cmake/magma.cmake)
     set(ZERORK_HAVE_MAGMA ON)
+  endif()
+  find_package(HIP) # just to get HIP_VERSION
+  message(STATUS "HIP_VERSION: ${HIP_VERSION}")
+  if(HIP_VERSION)
+    string(REPLACE "." ";" _hip_version_list "${HIP_VERSION}")
+    list(GET _hip_version_list 0 HIP_VERSION_MAJOR)
+    list(GET _hip_version_list 1 HIP_VERSION_MINOR)
+    list(GET _hip_version_list 2 HIP_VERSION_PATCH)
+  endif()
+
+  set(ZERORK_HAVE_HIPSOLVERRF OFF)
+  if(${ENABLE_HIPSOLVERRF})
+    if(${HIP_VERSION_MAJOR} GREATER 5 OR 
+       (${HIP_VERSION_MAJOR} EQUAL 5 AND ${HIP_VERSION_MINOR} GREATER 6))
+      set(ZERORK_HAVE_HIPSOLVERRF ON)
+    else()
+      message(WARNING "ENABLE_HIPSOLVERRF set ON, but not supported in HIP version ${HIP_VERSION}")
+    endif()
   endif()
 endif()
 
