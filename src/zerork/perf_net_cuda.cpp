@@ -1065,6 +1065,7 @@ int perf_net_cuda::reorderScatterAdd_by_ntuple(const int ntuple,
   int *destCount;
   int *newSrcId,*newDestId;
   double *newSrcMult;
+  if(nOps == 0) return 0;
 
   destCount = (int *)malloc(sizeof(int)*destSize);
   newSrcId  = (int *)malloc(sizeof(int)*nOps);
