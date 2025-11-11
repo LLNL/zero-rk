@@ -38,8 +38,13 @@ void __global__ updateArrheniusStep_CUDA_mr
                 Tpow_th[threadIdx.y] = Tpow_dev[stepid];
                 Tact_th[threadIdx.y] = Tact_dev[stepid];
             }
-
-            __syncthreads();
+	}
+    }
+    __syncthreads();
+    if(stepid < nStep)
+    {
+        if(reactorid < nReactors)
+        {
             double T = Tmulti_dev[reactorid];
             invT= 1/T;
             log_e_T = log(T);
@@ -70,16 +75,13 @@ void __global__ updateFromKeqStep_CUDA_mr
 {
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
+  extern int __shared__ reac_prodIdxs[];
+  int *reacIdxs = &reac_prodIdxs[0];
+  int *prodIdxs = &reac_prodIdxs[blockDim.x*nSpcPerStep];
   if(tid < nFromKeqStep)
   {
       if(reactorid < nReactors)
       {
-          double log_e_PatmInvRuT = log(P_ATM/(NIST_RU*Tmulti_dev[reactorid]));
-          double gibbs_net = 0.0;
-
-          extern int __shared__ reac_prodIdxs[];
-          int *reacIdxs = &reac_prodIdxs[0];
-          int *prodIdxs = &reac_prodIdxs[blockDim.x*nSpcPerStep];
           if(threadIdx.y == 0)
           {
               for(int j=0; j<nSpcPerStep; ++j )
@@ -88,7 +90,15 @@ void __global__ updateFromKeqStep_CUDA_mr
                   prodIdxs[threadIdx.x*nSpcPerStep + j] = fromKeq_prodIdx_dev[tid*nSpcPerStep+j];
 	      }
           }
-          __syncthreads();
+      }
+  }
+  __syncthreads();
+  if(tid < nFromKeqStep)
+  {
+      if(reactorid < nReactors)
+      {
+          double log_e_PatmInvRuT = log(P_ATM/(NIST_RU*Tmulti_dev[reactorid]));
+          double gibbs_net = 0.0;
 
           for(int j=0; j<nSpcPerStep; ++j)
           {
@@ -123,16 +133,13 @@ void __global__ updateFromKeqStepNI_CUDA_mr
 {
   int tid = blockIdx.x*blockDim.x + threadIdx.x;
   int reactorid = blockIdx.y*blockDim.y + threadIdx.y;
+  extern int __shared__ reac_prodIdxs[];
+  int *reacIdxs = &reac_prodIdxs[0];
+  int *prodIdxs = &reac_prodIdxs[blockDim.x*nSpcPerStep];
   if(tid < nFromKeqStep)
   {
       if(reactorid < nReactors)
       {
-          double log_e_PatmInvRuT = log(P_ATM/(NIST_RU*Tmulti_dev[reactorid]));
-          double gibbs_net = 0.0;
-
-          extern int __shared__ reac_prodIdxs[];
-          int *reacIdxs = &reac_prodIdxs[0];
-          int *prodIdxs = &reac_prodIdxs[blockDim.x*nSpcPerStep];
           //TODO: Consider packing stoich as well.  Need more shared mem for that
           if(threadIdx.y == 0)
           {
@@ -142,7 +149,15 @@ void __global__ updateFromKeqStepNI_CUDA_mr
                   prodIdxs[threadIdx.x*nSpcPerStep + j] = fromKeq_prodIdx_dev[tid*nSpcPerStep+j];
 	      }
           }
-          __syncthreads();
+      }
+  }
+  __syncthreads();
+  if(tid < nFromKeqStep)
+  {
+      if(reactorid < nReactors)
+      {
+          double log_e_PatmInvRuT = log(P_ATM/(NIST_RU*Tmulti_dev[reactorid]));
+          double gibbs_net = 0.0;
 
           for(int j=0; j<nSpcPerStep; ++j)
           {
