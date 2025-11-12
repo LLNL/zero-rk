@@ -578,6 +578,8 @@ static void WriteFieldParallel(double t,
     // Left BC
     if(j==num_reactor_states-1) {
       buffer[0] = params.inlet_temperature_*params.ref_temperature_;
+    } else if(j==num_reactor_states-2) {
+      buffer[0] = params.inlet_relative_volume_;
     } else {
       buffer[0] = params.inlet_mass_fractions_[j];
     }
@@ -660,6 +662,8 @@ static void WriteFieldSerial(double t,
     // Left BC
     if(j==num_reactor_states-1) {
       buffer[0] = params.inlet_temperature_*params.ref_temperature_;
+    } else if(j==num_reactor_states-2) {
+      buffer[0] = params.inlet_relative_volume_;
     } else {
       buffer[0] = params.inlet_mass_fractions_[j];
     }
