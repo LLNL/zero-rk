@@ -10,12 +10,9 @@
  * and Southern Methodist University.
  * All rights reserved.
  * ----------------------------------------------------------------*/
-//#include "utilities.h"
-//#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm> // for std::min
-
 
 #include "zrklinsol_magmadense.h"
 #include <sunmatrix/sunmatrix_magmadense.h>
@@ -149,6 +146,15 @@ SUNLinearSolver ZRKLinSol_MagmaDense(N_Vector y, SUNMatrix Amat)
   content->q         = A->q;
   content->Ainv      = SUNMatClone(Amat);
 
+  //Set boolean for LU/inverse solve
+  content->use_lu = SUNFALSE;  // default
+  if(getenv("ZERORK_REACTOR_USE_LU") != NULL) {
+    int use_lu_env = atoi(getenv("ZERORK_REACTOR_USE_LU"));
+    if(use_lu_env != 0) {
+        content->use_lu = SUNTRUE;
+    }
+  }
+
   /* Allocate data */
 
   /* The pivots need to be in host memory when calling the non-batched methods,
@@ -262,7 +268,7 @@ int ZRKLinSolSetup_MagmaDense(SUNLinearSolver S, SUNMatrix A)
                    nblocks,
                    QUEUE(S));
     if(!MAGMADENSE_CONTENT(S)->use_lu){
-        //Only solve for the direct inverse
+      //Only solve for the direct inverse
       xgetri_batched(M, /* order of block */
                      SUNMatrix_MagmaDense_BlockData(A),
                      M, /* leading dimension of each block */
@@ -272,7 +278,7 @@ int ZRKLinSolSetup_MagmaDense(SUNLinearSolver S, SUNMatrix A)
                      INFOARRAY(S),
                      nblocks,
                      QUEUE(S));
-  }
+    }
 #else
     realtype** blocks = SUNMatrix_MagmaDense_BlockData(A);
     for (int k = 0; k < nblocks; k++)
@@ -389,52 +395,49 @@ int ZRKLinSolSolve_MagmaDense(SUNLinearSolver S, SUNMatrix A, N_Vector x,
   /* Call MAGMA to solve the linear system */
   if (nblocks > 1)
   {
-      if(MAGMADENSE_CONTENT(S)->use_lu) {
-          //Need to transpose tog et the order right for xset_pointer.
-          xtranspose(nblocks, M, bdata, nblocks, xdata, M, QUEUE(S));
+    if(MAGMADENSE_CONTENT(S)->use_lu) {
+      //Need to transpose tog et the order right for xset_pointer.
+      xtranspose(nblocks, M, bdata, nblocks, xdata, M, QUEUE(S));
 
-        /* Set up the pointers for each of the blocks */
-        xset_pointer(RHSARRAY(S),
-                     xdata, /* 1D input array */
-                     1, /* leading dimension of input */
-                     0, /* rows */
-                     0, /* cols */
-                     M, /* number of rows in block */
+      /* Set up the pointers for each of the blocks */
+      xset_pointer(RHSARRAY(S),
+                   xdata, /* 1D input array */
+                   1, /* leading dimension of input */
+                   0, /* rows */
+                   0, /* cols */
+                   M, /* number of rows in block */
+                   nblocks,
+                   QUEUE(S));
+
+      /* Now, solve the batch system */
+      xgetrs_batched(MagmaNoTrans,
+                     M, /* order of the matrix */
+                     1, /* number of right hand sides */
+                     SUNMatrix_MagmaDense_BlockData(A),
+                     M, /* leading dimension of A */
+                     PIVOTSARRAY(S),
+                     RHSARRAY(S), /* right hand side (input), solution (output) */
+                     M, /* leading dimension of b */
                      nblocks,
                      QUEUE(S));
 
-        /* Now, solve the batch system */
-        xgetrs_batched(MagmaNoTrans,
-                       M, /* order of the matrix */
-                       1, /* number of right hand sides */
-                       SUNMatrix_MagmaDense_BlockData(A),
-                       M, /* leading dimension of A */
-                       PIVOTSARRAY(S),
-                       RHSARRAY(S), /* right hand side (input), solution (output) */
-                       M, /* leading dimension of b */
-                       nblocks,
-                       QUEUE(S));
+      if (!ASYNCHRONOUS(S)) magma_queue_sync(QUEUE(S));
 
-        if (!ASYNCHRONOUS(S)) magma_queue_sync(QUEUE(S));
+      //Need to transpose back to what ZeroRK expects
+      xtranspose(M, nblocks, xdata, M, bdata, nblocks, QUEUE(S));
 
-        //Need to transpose back to what ZeroRK expects
-        xtranspose(M, nblocks, xdata, M, bdata, nblocks, QUEUE(S));
+      N_VScale(ONE, b, x);
 
-        N_VScale(ONE, b, x);
-
-    }else{//Use the direct solve
-        xtranspose(nblocks, M, bdata, nblocks, xdata, M, QUEUE(S));
-        int threads = std::min(M * nblocks, 1024);
-        int blocks = (nblocks * M + threads - 1) / threads;
-        ZRKLINSOL_magma_bdmv_kernel<<<blocks,threads>>>(M, nblocks,
-                SUNMatrix_MagmaDense_Data(Ainv), xdata, bdata
-        );
-        //#ifdef ZERORK_FULL_DEBUG
-        //    cuda_err_check(hipPeekAtLastError());
-        //    cuda_err_check(hipDeviceSynchronize());
-        //#endif
-        xtranspose(M, nblocks, bdata, M, xdata, nblocks, QUEUE(S));
-        if (!ASYNCHRONOUS(S)) magma_queue_sync(QUEUE(S));
+    } else {
+      //Use the direct solve
+      xtranspose(nblocks, M, bdata, nblocks, xdata, M, QUEUE(S));
+      int threads = std::min(M * nblocks, 1024);
+      int blocks = (nblocks * M + threads - 1) / threads;
+      ZRKLINSOL_magma_bdmv_kernel<<<blocks,threads>>>(M, nblocks,
+              SUNMatrix_MagmaDense_Data(Ainv), xdata, bdata
+      );
+      xtranspose(M, nblocks, bdata, M, xdata, nblocks, QUEUE(S));
+      if (!ASYNCHRONOUS(S)) magma_queue_sync(QUEUE(S));
     }
   }
   else
