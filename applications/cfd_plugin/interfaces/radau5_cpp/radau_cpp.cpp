@@ -4,14 +4,8 @@
 
 #include <assert.h>
 #include <fenv.h>
-#include <math.h>
+#include <cmath>
 #include <stdio.h>
-
-#include <algorithm>
-#ifdef _MSC_VER
-  #include <cmath>
-  using std::pow;   // MSVC does not pull std::pow from <math.h> or <stdio.h>, only <cmath> adds the template overloads of std::pow
-#endif
 
 namespace radau_cpp {
 
